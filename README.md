@@ -1,7 +1,7 @@
 # Ko - Android Application 🤖
 
-[![Build APK](https://github.com/YOUR_USERNAME/Ko/actions/workflows/build-apk.yaml/badge.svg)](https://github.com/YOUR_USERNAME/Ko/actions/workflows/build-apk.yaml)
-[![Pre Merge Checks](https://github.com/YOUR_USERNAME/Ko/actions/workflows/pre-merge.yaml/badge.svg)](https://github.com/YOUR_USERNAME/Ko/actions/workflows/pre-merge.yaml)
+[![Build APK](https://github.com/DarkPhilosophy/Ko/actions/workflows/build-apk.yaml/badge.svg)](https://github.com/DarkPhilosophy/Ko/actions/workflows/build-apk.yaml)
+[![Pre Merge Checks](https://github.com/DarkPhilosophy/Ko/actions/workflows/pre-merge.yaml/badge.svg)](https://github.com/DarkPhilosophy/Ko/actions/workflows/pre-merge.yaml)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.1.0-blue.svg?logo=kotlin)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
