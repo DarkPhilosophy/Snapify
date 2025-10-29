@@ -1,0 +1,30 @@
+[versions]
+agp = "8.7.3"
+kotlin = "2.1.0"
+core_ktx = "1.15.0"
+appcompat = "1.7.0"
+material = "1.12.0"
+constraint_layout = "2.2.0"
+junit = "4.13.2"
+androidx_test_ext = "1.2.1"
+espresso_core = "3.6.1"
+detekt = "1.23.8"
+compile_sdk_version = "35"
+min_sdk_version = "24"
+target_sdk_version = "35"
+
+[libraries]
+androidx_core_ktx = { module = "androidx.core:core-ktx", version.ref = "core_ktx" }
+androidx_appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+material = { module = "com.google.android.material:material", version.ref = "material" }
+androidx_constraint_layout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraint_layout" }
+junit = { module = "junit:junit", version.ref = "junit" }
+androidx_test_ext_junit = { module = "androidx.test.ext:junit", version.ref = "androidx_test_ext" }
+espresso_core = { module = "androidx.test.espresso:espresso-core", version.ref = "espresso_core" }
+detekt_formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version.ref = "detekt" }
+
+[plugins]
+android_application = { id = "com.android.application", version.ref = "agp" }
+kotlin_android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+
