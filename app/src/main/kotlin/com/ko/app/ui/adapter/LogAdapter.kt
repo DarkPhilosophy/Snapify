@@ -46,11 +46,17 @@ class LogAdapter : ListAdapter<DebugLogger.LogEntry, LogAdapter.LogViewHolder>(L
     }
 
     class LogDiffCallback : DiffUtil.ItemCallback<DebugLogger.LogEntry>() {
-        override fun areItemsTheSame(oldItem: DebugLogger.LogEntry, newItem: DebugLogger.LogEntry): Boolean {
+        override fun areItemsTheSame(
+            oldItem: DebugLogger.LogEntry,
+            newItem: DebugLogger.LogEntry
+        ): Boolean {
             return oldItem.timestamp == newItem.timestamp && oldItem.message == newItem.message
         }
 
-        override fun areContentsTheSame(oldItem: DebugLogger.LogEntry, newItem: DebugLogger.LogEntry): Boolean {
+        override fun areContentsTheSame(
+            oldItem: DebugLogger.LogEntry,
+            newItem: DebugLogger.LogEntry
+        ): Boolean {
             return oldItem == newItem
         }
     }

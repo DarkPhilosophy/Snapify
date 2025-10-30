@@ -107,7 +107,8 @@ object DebugLogger {
     fun exportLogsAsString(): String {
         return buildString {
             appendLine("=== Ko Screenshot App Debug Logs ===")
-            appendLine("Generated: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())}")
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            appendLine("Generated: ${dateFormat.format(Date())}")
             appendLine("Total Entries: ${logEntries.size}")
             appendLine()
             logEntries.forEach { entry ->
