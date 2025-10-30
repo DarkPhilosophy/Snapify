@@ -46,6 +46,13 @@
             android:screenOrientation="portrait"
             android:parentActivityName=".ui.MainActivity" />
 
+        <!-- Debug Console Activity -->
+        <activity
+            android:name=".ui.DebugConsoleActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:parentActivityName=".ui.SettingsActivity" />
+
         <!-- Screenshot Monitor Service -->
         <service
             android:name=".service.ScreenshotMonitorService"
@@ -74,6 +81,17 @@
             android:name=".receiver.NotificationActionReceiver"
             android:enabled="true"
             android:exported="false" />
+
+        <!-- FileProvider for sharing screenshots -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
 

@@ -96,6 +96,9 @@ class MainActivity : AppCompatActivity() {
             },
             onDeleteClick = { screenshot ->
                 showDeleteConfirmationDialog(screenshot.id, screenshot.filePath)
+            },
+            onImageClick = { screenshot ->
+                openScreenshot(screenshot)
             }
         )
 
@@ -365,6 +368,40 @@ class MainActivity : AppCompatActivity() {
                 true
             }
             else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    private fun openScreenshot(screenshot: com.ko.app.data.entity.Screenshot) {
+        try {
+            val file = File(screenshot.filePath)
+            if (!file.exists()) {
+                AlertDialog.Builder(this)
+                    .setTitle("File Not Found")
+                    .setMessage("The screenshot file no longer exists.")
+                    .setPositiveButton("OK", null)
+                    .show()
+                return
+            }
+
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                this,
+                "${packageName}.fileprovider",
+                file
+            )
+
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "image/*")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+
+            startActivity(Intent.createChooser(intent, "Open with"))
+        } catch (e: Exception) {
+            AlertDialog.Builder(this)
+                .setTitle("Error")
+                .setMessage("Failed to open screenshot: ${e.message}")
+                .setPositiveButton("OK", null)
+                .show()
         }
     }
 }

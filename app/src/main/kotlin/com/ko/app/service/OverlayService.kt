@@ -14,6 +14,7 @@ import android.view.animation.DecelerateInterpolator
 import com.google.android.material.button.MaterialButton
 import com.ko.app.R
 import com.ko.app.ScreenshotApp
+import com.ko.app.util.DebugLogger
 import com.ko.app.util.NotificationHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -43,17 +44,23 @@ class OverlayService : Service() {
         screenshotId = intent?.getLongExtra("screenshot_id", -1L) ?: -1L
         filePath = intent?.getStringExtra("file_path") ?: ""
 
+        DebugLogger.info("OverlayService", "onStartCommand called with screenshot ID: $screenshotId, path: $filePath")
+
         if (screenshotId != -1L) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                if (android.provider.Settings.canDrawOverlays(this)) {
+                val canDraw = android.provider.Settings.canDrawOverlays(this)
+                DebugLogger.info("OverlayService", "Overlay permission check: $canDraw")
+                if (canDraw) {
                     showOverlay()
                 } else {
+                    DebugLogger.error("OverlayService", "Overlay permission not granted")
                     stopSelf()
                 }
             } else {
                 showOverlay()
             }
         } else {
+            DebugLogger.error("OverlayService", "Invalid screenshot ID")
             stopSelf()
         }
 
@@ -62,6 +69,7 @@ class OverlayService : Service() {
 
     private fun showOverlay() {
         try {
+            DebugLogger.info("OverlayService", "Attempting to show overlay")
             windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
             val layoutType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -87,10 +95,11 @@ class OverlayService : Service() {
             setupButtons()
 
             windowManager?.addView(overlayView, params)
+            DebugLogger.info("OverlayService", "Overlay view added to window manager")
 
             animateOverlayIn()
         } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-            android.util.Log.e("OverlayService", "Failed to show overlay", e)
+            DebugLogger.error("OverlayService", "Failed to show overlay", e)
             stopSelf()
         }
     }

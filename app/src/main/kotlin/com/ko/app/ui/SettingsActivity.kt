@@ -106,6 +106,10 @@ class SettingsActivity : AppCompatActivity() {
         binding.folderPathContainer.setOnClickListener {
             showFolderDialog()
         }
+
+        binding.btnOpenDebugConsole.setOnClickListener {
+            startActivity(Intent(this, DebugConsoleActivity::class.java))
+        }
     }
 
     private fun updateModeUI(isManualMode: Boolean) {

@@ -24,13 +24,14 @@ private const val SECONDS_IN_MINUTE = 60L
 
 class ScreenshotAdapter(
     private val onKeepClick: (Screenshot) -> Unit,
-    private val onDeleteClick: (Screenshot) -> Unit
+    private val onDeleteClick: (Screenshot) -> Unit,
+    private val onImageClick: (Screenshot) -> Unit
 ) : ListAdapter<Screenshot, ScreenshotAdapter.ScreenshotViewHolder>(ScreenshotDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ScreenshotViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_screenshot, parent, false)
-        return ScreenshotViewHolder(view, onKeepClick, onDeleteClick)
+        return ScreenshotViewHolder(view, onKeepClick, onDeleteClick, onImageClick)
     }
 
     override fun onBindViewHolder(holder: ScreenshotViewHolder, position: Int) {
@@ -40,7 +41,8 @@ class ScreenshotAdapter(
     class ScreenshotViewHolder(
         itemView: View,
         private val onKeepClick: (Screenshot) -> Unit,
-        private val onDeleteClick: (Screenshot) -> Unit
+        private val onDeleteClick: (Screenshot) -> Unit,
+        private val onImageClick: (Screenshot) -> Unit
     ) : RecyclerView.ViewHolder(itemView) {
 
         private val thumbnail: ImageView = itemView.findViewById(R.id.screenshotThumbnail)
@@ -63,6 +65,10 @@ class ScreenshotAdapter(
                 .centerCrop()
                 .placeholder(android.R.drawable.ic_menu_gallery)
                 .into(thumbnail)
+
+            thumbnail.setOnClickListener {
+                onImageClick(screenshot)
+            }
 
             when {
                 screenshot.isKept -> {

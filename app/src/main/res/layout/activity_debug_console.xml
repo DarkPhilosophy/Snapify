@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        android:elevation="4dp"
+        app:title="Debug Console"
+        app:titleTextColor="@android:color/white"
+        app:navigationIcon="@android:drawable/ic_menu_close_clear_cancel" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:gravity="center_vertical">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnClearLogs"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:text="Clear Logs"
+            style="@style/Widget.Material3.Button.TonalButton" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnExportLogs"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:text="Export Logs"
+            style="@style/Widget.Material3.Button.TonalButton" />
+
+    </LinearLayout>
+
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/filterChipGroup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        app:singleSelection="false">
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipDebug"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="DEBUG"
+            android:checked="true"
+            style="@style/Widget.Material3.Chip.Filter" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="INFO"
+            android:checked="true"
+            style="@style/Widget.Material3.Chip.Filter" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipWarning"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="WARNING"
+            android:checked="true"
+            style="@style/Widget.Material3.Chip.Filter" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipError"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ERROR"
+            android:checked="true"
+            style="@style/Widget.Material3.Chip.Filter" />
+
+    </com.google.android.material.chip.ChipGroup>
+
+    <TextView
+        android:id="@+id/logCountText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:text="0 log entries"
+        android:textSize="12sp"
+        android:textColor="?attr/colorOnSurfaceVariant" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/logsRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@android:color/black"
+        android:padding="8dp" />
+
+</LinearLayout>
+
