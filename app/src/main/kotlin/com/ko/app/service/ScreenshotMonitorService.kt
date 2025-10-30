@@ -25,6 +25,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.File
 
+private const val MILLIS_PER_SECOND = 1000L
+private const val PROCESSING_DELAY_MS = 500L
+
 class ScreenshotMonitorService : Service() {
 
     private val serviceScope = CoroutineScope(Dispatchers.IO + Job())
@@ -102,10 +105,10 @@ class ScreenshotMonitorService : Service() {
                         val filePath = cursor.getString(dataIndex)
                         val fileName = cursor.getString(nameIndex)
                         val fileSize = cursor.getLong(sizeIndex)
-                        val dateAdded = cursor.getLong(dateIndex) * 1000
+                        val dateAdded = cursor.getLong(dateIndex) * MILLIS_PER_SECOND
 
                         if (isScreenshotFile(filePath)) {
-                            delay(500)
+                            delay(PROCESSING_DELAY_MS)
 
                             val existing = app.repository.getByFilePath(filePath)
                             if (existing == null) {
