@@ -26,6 +26,8 @@ private const val THREE_DAYS = 3L
 private const val ONE_WEEK = 7L
 private const val ANIMATION_TRANSLATION_Y = 100f
 private const val ANIMATION_DURATION_MS = 300L
+private const val DISMISS_ANIMATION_DURATION_MS = 200L
+private const val DISMISS_TRANSLATION_Y = -100f
 
 class OverlayService : Service() {
 
@@ -159,12 +161,12 @@ class OverlayService : Service() {
     private fun dismissOverlay() {
         overlayView?.let { view ->
             ObjectAnimator.ofFloat(view, "alpha", 1f, 0f).apply {
-                duration = 200
+                duration = DISMISS_ANIMATION_DURATION_MS
                 start()
             }
 
-            ObjectAnimator.ofFloat(view, "translationY", 0f, -100f).apply {
-                duration = 200
+            ObjectAnimator.ofFloat(view, "translationY", 0f, DISMISS_TRANSLATION_Y).apply {
+                duration = DISMISS_ANIMATION_DURATION_MS
                 interpolator = DecelerateInterpolator()
                 start()
             }
