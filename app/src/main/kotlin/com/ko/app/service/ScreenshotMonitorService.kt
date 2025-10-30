@@ -114,7 +114,7 @@ class ScreenshotMonitorService : Service() {
                         }
                     }
                 }
-            } catch (e: Exception) {
+            } catch (@Suppress("TooGenericExceptionCaught", "PrintStackTrace") e: Exception) {
                 e.printStackTrace()
             }
         }

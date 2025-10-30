@@ -166,7 +166,7 @@ class OverlayService : Service() {
             view.postDelayed({
                 try {
                     windowManager?.removeView(view)
-                } catch (e: Exception) {
+                } catch (@Suppress("TooGenericExceptionCaught", "PrintStackTrace") e: Exception) {
                     e.printStackTrace()
                 }
                 stopSelf()
