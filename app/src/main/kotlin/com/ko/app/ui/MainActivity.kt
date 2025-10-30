@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.File
 
+@Suppress("TooManyFunctions")
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding

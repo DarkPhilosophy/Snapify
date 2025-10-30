@@ -10,6 +10,10 @@ import com.ko.app.receiver.NotificationActionReceiver
 import com.ko.app.ui.MainActivity
 import java.util.concurrent.TimeUnit
 
+private const val HOURS_IN_DAY = 24L
+private const val MINUTES_IN_HOUR = 60L
+private const val SECONDS_IN_MINUTE = 60L
+
 class NotificationHelper(private val context: Context) {
 
     private val notificationManager =
@@ -70,9 +74,9 @@ class NotificationHelper(private val context: Context) {
         if (millis <= 0) return "Expired"
 
         val days = TimeUnit.MILLISECONDS.toDays(millis)
-        val hours = TimeUnit.MILLISECONDS.toHours(millis) % 24
-        val minutes = TimeUnit.MILLISECONDS.toMinutes(millis) % 60
-        val seconds = TimeUnit.MILLISECONDS.toSeconds(millis) % 60
+        val hours = TimeUnit.MILLISECONDS.toHours(millis) % HOURS_IN_DAY
+        val minutes = TimeUnit.MILLISECONDS.toMinutes(millis) % MINUTES_IN_HOUR
+        val seconds = TimeUnit.MILLISECONDS.toSeconds(millis) % SECONDS_IN_MINUTE
 
         return when {
             days > 0 -> "${days}d ${hours}h"

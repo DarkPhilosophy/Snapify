@@ -16,28 +16,27 @@ class ScreenshotDeletionWorker(
         return try {
             val app = applicationContext as ScreenshotApp
             val currentTime = System.currentTimeMillis()
-
             val expiredScreenshots = app.repository.getExpiredScreenshots(currentTime)
 
             expiredScreenshots.forEach { screenshot ->
-                val file = File(screenshot.filePath)
-                if (file.exists()) {
-                    val deleted = file.delete()
-                    if (deleted) {
-                        app.repository.delete(screenshot)
-
-                        val notificationHelper = NotificationHelper(applicationContext)
-                        notificationHelper.cancelNotification(screenshot.id.toInt())
-                    }
-                } else {
-                    app.repository.delete(screenshot)
-                }
+                deleteScreenshot(app, screenshot)
             }
 
             Result.success()
         } catch (e: Exception) {
             e.printStackTrace()
             Result.retry()
+        }
+    }
+
+    private suspend fun deleteScreenshot(app: ScreenshotApp, screenshot: com.ko.app.data.entity.Screenshot) {
+        val file = File(screenshot.filePath)
+        val shouldDelete = !file.exists() || file.delete()
+
+        if (shouldDelete) {
+            app.repository.delete(screenshot)
+            val notificationHelper = NotificationHelper(applicationContext)
+            notificationHelper.cancelNotification(screenshot.id.toInt())
         }
     }
 }
