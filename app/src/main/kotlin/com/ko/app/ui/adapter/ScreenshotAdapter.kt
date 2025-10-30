@@ -16,6 +16,9 @@ import java.io.File
 import java.text.DecimalFormat
 import java.util.concurrent.TimeUnit
 
+private const val BYTES_IN_KB = 1024
+private const val BYTES_IN_MB = 1024 * 1024
+
 class ScreenshotAdapter(
     private val onKeepClick: (Screenshot) -> Unit,
     private val onDeleteClick: (Screenshot) -> Unit
@@ -95,9 +98,9 @@ class ScreenshotAdapter(
         private fun formatFileSize(bytes: Long): String {
             val df = DecimalFormat("#.##")
             return when {
-                bytes < 1024 -> "$bytes B"
-                bytes < 1024 * 1024 -> "${df.format(bytes / 1024.0)} KB"
-                else -> "${df.format(bytes / (1024.0 * 1024.0))} MB"
+                bytes < BYTES_IN_KB -> "$bytes B"
+                bytes < BYTES_IN_MB -> "${df.format(bytes / BYTES_IN_KB.toDouble())} KB"
+                else -> "${df.format(bytes / BYTES_IN_MB.toDouble())} MB"
             }
         }
 
