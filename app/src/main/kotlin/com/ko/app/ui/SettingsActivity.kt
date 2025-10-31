@@ -8,6 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.ko.app.BuildConfig
 import com.ko.app.ScreenshotApp
 import com.ko.app.databinding.ActivitySettingsBinding
 import kotlinx.coroutines.flow.first
