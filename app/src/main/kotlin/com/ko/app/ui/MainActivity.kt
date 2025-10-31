@@ -36,6 +36,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var app: ScreenshotApp
     private lateinit var adapter: ScreenshotAdapter
     private var currentTab = 0
+    private var screenshotsJob: Job? = null
 
     private val storagePermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -160,7 +161,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun observeScreenshots() {
-        lifecycleScope.launch {
+        screenshotsJob?.cancel()
+        screenshotsJob = lifecycleScope.launch {
             when (currentTab) {
                 0 -> app.repository.getMarkedScreenshots()
                 1 -> app.repository.getKeptScreenshots()
