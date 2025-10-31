@@ -98,8 +98,14 @@ class OverlayService : Service() {
             DebugLogger.info("OverlayService", "Overlay view added to window manager")
 
             animateOverlayIn()
+        } catch (e: WindowManager.BadTokenException) {
+            DebugLogger.error("OverlayService", "BadTokenException - overlay permission issue", e)
+            stopSelf()
+        } catch (e: SecurityException) {
+            DebugLogger.error("OverlayService", "SecurityException - overlay permission denied", e)
+            stopSelf()
         } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-            DebugLogger.error("OverlayService", "Failed to show overlay", e)
+            DebugLogger.error("OverlayService", "Unexpected error showing overlay", e)
             stopSelf()
         }
     }
