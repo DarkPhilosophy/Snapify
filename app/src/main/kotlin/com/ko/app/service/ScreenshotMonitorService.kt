@@ -134,7 +134,10 @@ class ScreenshotMonitorService : Service() {
                                 DebugLogger.info("ScreenshotMonitorService", "Processing new screenshot: $fileName")
                                 processNewScreenshot(filePath, fileName, fileSize, dateAdded)
                             } else {
-                                DebugLogger.debug("ScreenshotMonitorService", "Screenshot already exists in DB: $fileName")
+                                DebugLogger.debug(
+                                    "ScreenshotMonitorService",
+                                    "Screenshot already exists in DB: $fileName"
+                                )
                             }
                         } else {
                             DebugLogger.debug("ScreenshotMonitorService", "Not a screenshot file: $fileName")
@@ -171,8 +174,9 @@ class ScreenshotMonitorService : Service() {
 
         val actualFileSize = file.length()
         val isManualMode = app.preferences.isManualMarkMode.first()
+        val mode = if (isManualMode) "MANUAL" else "AUTOMATIC"
 
-        DebugLogger.info("ScreenshotMonitorService", "Processing screenshot in ${if (isManualMode) "MANUAL" else "AUTOMATIC"} mode: $fileName")
+        DebugLogger.info("ScreenshotMonitorService", "Processing screenshot in $mode mode: $fileName")
 
         if (isManualMode) {
             val screenshot = Screenshot(
@@ -212,7 +216,10 @@ class ScreenshotMonitorService : Service() {
                 isKept = false
             )
             val id = app.repository.insert(screenshot)
-            DebugLogger.info("ScreenshotMonitorService", "Screenshot inserted to DB with ID: $id (Automatic Mode, marked for deletion)")
+            DebugLogger.info(
+                "ScreenshotMonitorService",
+                "Screenshot inserted to DB with ID: $id (Automatic Mode, marked for deletion)"
+            )
 
             notificationHelper.showScreenshotNotification(id, fileName, deletionTimestamp)
             DebugLogger.info("ScreenshotMonitorService", "Notification shown for screenshot ID: $id")
@@ -229,7 +236,10 @@ class ScreenshotMonitorService : Service() {
 
                 val folder = File(screenshotFolder)
                 if (!folder.exists() || !folder.isDirectory) {
-                    DebugLogger.warning("ScreenshotMonitorService", "Screenshot folder doesn't exist: $screenshotFolder")
+                    DebugLogger.warning(
+                        "ScreenshotMonitorService",
+                        "Screenshot folder doesn't exist: $screenshotFolder"
+                    )
                     return@launch
                 }
 

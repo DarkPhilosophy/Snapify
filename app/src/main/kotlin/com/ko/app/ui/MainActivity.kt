@@ -385,7 +385,7 @@ class MainActivity : AppCompatActivity() {
 
             val uri = androidx.core.content.FileProvider.getUriForFile(
                 this,
-                "${packageName}.fileprovider",
+                "$packageName.fileprovider",
                 file
             )
 
@@ -396,7 +396,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             startActivity(Intent.createChooser(intent, "Open with"))
-        } catch (e: Exception) {
+        } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
             AlertDialog.Builder(this)
                 .setTitle("Error")
                 .setMessage("Failed to open screenshot: ${e.message}")
