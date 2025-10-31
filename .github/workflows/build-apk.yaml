@@ -24,19 +24,11 @@ jobs:
           distribution: "temurin"
           java-version: "21"
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
-
-      - name: Install Android SDK packages and accept licenses
-        env:
-          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-          ANDROID_HOME: /usr/local/lib/android/sdk
-          PATH: /usr/local/lib/android/sdk/cmdline-tools/latest/bin:/usr/local/lib/android/sdk/platform-tools:${{ env.PATH }}
-        run: |
-          set -eux
-          sdkmanager --list || true
-          yes | sdkmanager --licenses
-          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0" "cmdline-tools;latest"
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug
