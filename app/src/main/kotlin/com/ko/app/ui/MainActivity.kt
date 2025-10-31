@@ -152,11 +152,12 @@ class MainActivity : AppCompatActivity() {
         binding.serviceSwitch.setOnCheckedChangeListener { _, isChecked ->
             lifecycleScope.launch {
                 if (isChecked) {
-                    if (checkPermissions()) {
+                    val missingPerms = getMissingPermissions()
+                    if (missingPerms.isEmpty()) {
                         startMonitoringService()
                     } else {
                         binding.serviceSwitch.isChecked = false
-                        requestPermissions()
+                        showMissingPermissionsDialog(missingPerms)
                     }
                 } else {
                     stopMonitoringService()

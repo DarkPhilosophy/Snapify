@@ -45,14 +45,16 @@ class ScreenshotMonitorService : Service() {
         DebugLogger.info("ScreenshotMonitorService", "Service onCreate() called")
         startForeground(NOTIFICATION_ID, createForegroundNotification())
         setupContentObserver()
-
-        serviceScope.launch {
-            DebugLogger.info("ScreenshotMonitorService", "Scanning existing screenshots")
-            scanExistingScreenshots()
-        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val shouldScan = intent?.getBooleanExtra("scan_existing", false) ?: false
+        if (shouldScan) {
+            serviceScope.launch {
+                DebugLogger.info("ScreenshotMonitorService", "Scanning existing screenshots (background)")
+                scanExistingScreenshots()
+            }
+        }
         return START_STICKY
     }
 
