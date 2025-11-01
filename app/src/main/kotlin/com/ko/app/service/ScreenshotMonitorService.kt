@@ -254,60 +254,60 @@ class ScreenshotMonitorService : Service() {
 
                 val configuredFolder = app.preferences.screenshotFolder.first()
                 val screenshotFolder = if (configuredFolder.isNotEmpty()) {
-    // Decode URI to path
-                java.net.URLDecoder.decode(configuredFolder, "UTF-8").let { decoded ->
-                when {
-                    decoded.contains("primary:") -> decoded.substringAfter("primary:")
-                        decoded.contains("tree/") -> {
-                        val parts = decoded.substringAfter("tree/").split(":")
-                    if (parts.size >= 2) parts[1] else decoded
+                    // Decode URI to path
+                    java.net.URLDecoder.decode(configuredFolder, "UTF-8").let { decoded ->
+                        when {
+                            decoded.contains("primary:") -> decoded.substringAfter("primary:")
+                            decoded.contains("tree/") -> {
+                                val parts = decoded.substringAfter("tree/").split(":")
+                                if (parts.size >= 2) parts[1] else decoded
+                            }
+                            else -> decoded
+                        }
                     }
-                else -> decoded
-    }
-    }
-    } else {
-    // Default
-    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath + "/Screenshots"
-    }
+                } else {
+                    // Default
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath + "/Screenshots"
+                }
 
-    val folder = File(screenshotFolder)
-    if (!folder.exists() || !folder.isDirectory) {
-    DebugLogger.warning(
-    "ScreenshotMonitorService",
-    "Screenshot folder doesn't exist: $screenshotFolder"
-    )
-    return@launch
-    }
+                val folder = File(screenshotFolder)
+                if (!folder.exists() || !folder.isDirectory) {
+                    DebugLogger.warning(
+                        "ScreenshotMonitorService",
+                        "Screenshot folder doesn't exist: $screenshotFolder"
+                    )
+                    return@launch
+                }
 
-    val imageFiles = folder.listFiles { file ->
-    file.isFile && (file.extension.lowercase() in listOf("png", "jpg", "jpeg"))
-    }
+                val imageFiles = folder.listFiles { file ->
+                    file.isFile && (file.extension.lowercase() in listOf("png", "jpg", "jpeg"))
+                }
 
-    val count = imageFiles?.size ?: 0
-    DebugLogger.info("ScreenshotMonitorService", "Found $count existing screenshot files")
+                val count = imageFiles?.size ?: 0
+                DebugLogger.info("ScreenshotMonitorService", "Found $count existing screenshot files")
 
-    var imported = 0
-    imageFiles?.forEach { file ->
-    val existing = app.repository.getByFilePath(file.absolutePath)
-    if (existing == null && file.exists() && file.length() > 0) {
-    val screenshot = Screenshot(
-    filePath = file.absolutePath,
-    fileName = file.name,
-    fileSize = file.length(),
-    createdAt = file.lastModified(),
-    deletionTimestamp = null,
-    isMarkedForDeletion = false,
-    isKept = false
-    )
-    app.repository.insert(screenshot)
-    imported++
-    }
-    }
-    DebugLogger.info("ScreenshotMonitorService", "Imported $imported new screenshots from existing files")
-    } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-    DebugLogger.error("ScreenshotMonitorService", "Error scanning existing screenshots", e)
-    }
-    }
+                var imported = 0
+                imageFiles?.forEach { file ->
+                    val existing = app.repository.getByFilePath(file.absolutePath)
+                    if (existing == null && file.exists() && file.length() > 0) {
+                        val screenshot = Screenshot(
+                            filePath = file.absolutePath,
+                            fileName = file.name,
+                            fileSize = file.length(),
+                            createdAt = file.lastModified(),
+                            deletionTimestamp = null,
+                            isMarkedForDeletion = false,
+                            isKept = false
+                        )
+                        app.repository.insert(screenshot)
+                        imported++
+                    }
+                }
+                DebugLogger.info("ScreenshotMonitorService", "Imported $imported new screenshots from existing files")
+            } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+                DebugLogger.error("ScreenshotMonitorService", "Error scanning existing screenshots", e)
+            }
+        }
     }
 
     override fun onDestroy() {

@@ -10,8 +10,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.ko.app.R
 import com.ko.app.util.DebugLogger
 
-
-
 class LogAdapter : ListAdapter<DebugLogger.LogEntry, LogAdapter.LogViewHolder>(LogDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LogViewHolder {

@@ -7,6 +7,7 @@ import android.os.Build
 import com.ko.app.data.database.ScreenshotDatabase
 import com.ko.app.data.preferences.AppPreferences
 import com.ko.app.data.repository.ScreenshotRepository
+import com.ko.app.util.DebugLogger
 
 class ScreenshotApp : Application() {
 

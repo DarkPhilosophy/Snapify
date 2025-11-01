@@ -115,8 +115,6 @@ class ScreenshotAdapter(
                 else -> "${df.format(bytes / BYTES_IN_MB.toDouble())} MB"
             }
         }
-
-
     }
 
     class ScreenshotDiffCallback : DiffUtil.ItemCallback<Screenshot>() {

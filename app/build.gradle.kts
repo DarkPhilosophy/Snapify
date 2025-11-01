@@ -48,6 +48,10 @@ android {
     }
 }
 
+detekt {
+    config.setFrom(files("../detekt.yml"))
+}
+
 dependencies {
     // AndroidX Core
     implementation(libs.androidx.core.ktx)
@@ -76,6 +80,9 @@ dependencies {
     // Coroutines
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
+
+    // Gson for JSON persistence
+    implementation(libs.gson)
 
     // DataStore
     implementation(libs.datastore.preferences)

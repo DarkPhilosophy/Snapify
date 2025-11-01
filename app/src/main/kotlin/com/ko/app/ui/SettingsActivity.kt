@@ -3,11 +3,11 @@ package com.ko.app.ui
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import androidx.core.net.toUri
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import com.ko.app.BuildConfig
 import com.ko.app.R
@@ -73,7 +73,7 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun setupAboutSection() {
         binding.versionText.text = getString(R.string.version_label, BuildConfig.VERSION_NAME)
-        
+
         binding.emailText.setOnClickListener {
             val intent = Intent(Intent.ACTION_SENDTO).apply {
                 data = "mailto:ualexen92@gmail.com".toUri()
@@ -98,11 +98,11 @@ class SettingsActivity : AppCompatActivity() {
             if (currentFolder.isEmpty()) {
                 binding.folderPathText.text = getString(R.string.default_folder)
             } else {
-            val uri = android.net.Uri.parse(currentFolder)
-            val folderPath = uri.path?.substringAfter(":")?.let {
-                if (it.startsWith("/")) it.substring(1) else it
-            } ?: currentFolder
-            binding.folderPathText.text = folderPath
+                val uri = android.net.Uri.parse(currentFolder)
+                val folderPath = uri.path?.substringAfter(":")?.let {
+                    if (it.startsWith("/")) it.substring(1) else it
+                } ?: currentFolder
+                binding.folderPathText.text = folderPath
             }
         }
     }
@@ -138,13 +138,13 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun updateModeUI(isManualMode: Boolean) {
         if (isManualMode) {
-        binding.btnToggleMode.text = getString(R.string.manual_mode)
-        binding.deletionTimeContainer.visibility = View.GONE
-        binding.modeDescription.text = getString(R.string.manual_description)
+            binding.btnToggleMode.text = getString(R.string.manual_mode)
+            binding.deletionTimeContainer.visibility = View.GONE
+            binding.modeDescription.text = getString(R.string.manual_description)
         } else {
             binding.btnToggleMode.text = getString(R.string.automatic_mode)
-        binding.deletionTimeContainer.visibility = View.VISIBLE
-        binding.modeDescription.text = getString(R.string.automatic_description)
+            binding.deletionTimeContainer.visibility = View.VISIBLE
+            binding.modeDescription.text = getString(R.string.automatic_description)
         }
     }
 
@@ -213,15 +213,19 @@ class SettingsActivity : AppCompatActivity() {
             ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
         }
 
-        inputLayout.addView(android.widget.TextView(this).apply {
-            text = "Time value:"
-            setPadding(0, 0, 0, PADDING_SMALL)
-        })
+        inputLayout.addView(
+            android.widget.TextView(this).apply {
+                text = "Time value:"
+                setPadding(0, 0, 0, PADDING_SMALL)
+            }
+        )
         inputLayout.addView(valueInput)
-        inputLayout.addView(android.widget.TextView(this).apply {
-            text = getString(R.string.time_unit)
-            setPadding(0, PADDING_MEDIUM, 0, PADDING_SMALL)
-        })
+        inputLayout.addView(
+            android.widget.TextView(this).apply {
+                text = getString(R.string.time_unit)
+                setPadding(0, PADDING_MEDIUM, 0, PADDING_SMALL)
+            }
+        )
         inputLayout.addView(unitSpinner)
 
         AlertDialog.Builder(this)

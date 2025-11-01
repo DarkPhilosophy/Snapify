@@ -14,6 +14,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.tabs.TabLayout
@@ -22,9 +23,8 @@ import com.ko.app.ScreenshotApp
 import com.ko.app.databinding.ActivityMainBinding
 import com.ko.app.service.ScreenshotMonitorService
 import com.ko.app.ui.adapter.ScreenshotAdapter
-import androidx.core.net.toUri
-import com.ko.app.util.NotificationHelper
 import com.ko.app.util.DebugLogger
+import com.ko.app.util.NotificationHelper
 import com.ko.app.util.PermissionUtils
 import com.ko.app.util.WorkManagerScheduler
 import kotlinx.coroutines.Dispatchers
@@ -84,7 +84,7 @@ class MainActivity : AppCompatActivity() {
             if (app.preferences.isFirstLaunch.first()) {
                 showWelcomeDialog()
                 app.preferences.setFirstLaunch(false)
-                
+
                 if (app.preferences.serviceEnabled.first()) {
                     val serviceIntent = Intent(this@MainActivity, ScreenshotMonitorService::class.java).apply {
                         putExtra("scan_existing", true)
@@ -226,8 +226,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
-
     private fun getMissingPermissions(): List<String> {
         return PermissionUtils.getMissingPermissions(this)
     }
@@ -238,10 +236,10 @@ class MainActivity : AppCompatActivity() {
         val overlayGranted = PermissionUtils.hasOverlayPermission(this)
 
         val allGranted = storageGranted && notificationGranted && overlayGranted
-        
+
         val greenCheck = "✓"
         val redX = "✗"
-        
+
         val message = android.text.SpannableStringBuilder().apply {
             append("Read Screenshot     ")
             val start1 = length
@@ -252,7 +250,7 @@ class MainActivity : AppCompatActivity() {
                 setSpan(android.text.style.ForegroundColorSpan(0xFFF44336.toInt()), start1, length, 0)
             }
             append("\n")
-            
+
             append("Notification Access ")
             val start2 = length
             append(if (notificationGranted) greenCheck else redX)
@@ -262,7 +260,7 @@ class MainActivity : AppCompatActivity() {
                 setSpan(android.text.style.ForegroundColorSpan(0xFFF44336.toInt()), start2, length, 0)
             }
             append("\n")
-            
+
             append("Overlay Permission  ")
             val start3 = length
             append(if (overlayGranted) greenCheck else redX)
@@ -272,7 +270,7 @@ class MainActivity : AppCompatActivity() {
                 setSpan(android.text.style.ForegroundColorSpan(0xFFF44336.toInt()), start3, length, 0)
             }
             append("\n\n")
-            
+
             if (allGranted) {
                 val statusStart = length
                 append("😁 Ready")
@@ -290,9 +288,11 @@ class MainActivity : AppCompatActivity() {
             .setMessage(message)
             .setPositiveButton(if (allGranted) "OK" else "Go to Settings") { _, _ ->
                 if (!allGranted) {
-                    startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                        data = Uri.fromParts("package", packageName, null)
-                    })
+                    startActivity(
+                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.fromParts("package", packageName, null)
+                        }
+                    )
                 }
             }
             .setNegativeButton(if (allGranted) null else "Cancel", null)
@@ -301,7 +301,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showMissingPermissionsDialog(missingPerms: List<String>) {
         val message = "The following permissions are required:\n\n" +
-                missingPerms.joinToString("\n") { "• $it" }
+            missingPerms.joinToString("\n") { "• $it" }
 
         AlertDialog.Builder(this)
             .setTitle("Permissions Required")
@@ -409,11 +409,11 @@ class MainActivity : AppCompatActivity() {
             .setTitle("Welcome to Screenshot Manager")
             .setMessage(
                 "This app helps you automatically manage screenshots.\n\n" +
-                        "Features:\n" +
-                        "• Auto-delete screenshots after a set time\n" +
-                        "• Manual mark mode for custom deletion times\n" +
-                        "• Keep important screenshots forever\n\n" +
-                        "To get started, enable the monitoring service and grant the required permissions."
+                    "Features:\n" +
+                    "• Auto-delete screenshots after a set time\n" +
+                    "• Manual mark mode for custom deletion times\n" +
+                    "• Keep important screenshots forever\n\n" +
+                    "To get started, enable the monitoring service and grant the required permissions."
             )
             .setPositiveButton("Get Started", null)
             .show()
@@ -436,8 +436,8 @@ class MainActivity : AppCompatActivity() {
             .setMessage("This app needs overlay permission to show quick action popups for screenshots.")
             .setPositiveButton("Grant Permission") { _, _ ->
                 val intent = Intent(
-                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                "package:$packageName".toUri()
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    "package:$packageName".toUri()
                 )
                 startActivity(intent)
             }

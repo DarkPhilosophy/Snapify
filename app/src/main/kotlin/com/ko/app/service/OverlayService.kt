@@ -58,12 +58,18 @@ class OverlayService : Service() {
                         "OverlayService",
                         "Overlay permission not granted - manual mode requires overlay permission"
                     )
-                    notificationHelper.showErrorNotification("Manual Mode Error", "Overlay permission required. Grant in app settings.")
+                    notificationHelper.showErrorNotification(
+                        "Manual Mode Error",
+                        "Overlay permission required. Grant in app settings."
+                    )
                     stopSelf()
                 }
             } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
                 DebugLogger.error("OverlayService", "CRASH in manual mode: ${e.javaClass.simpleName} - ${e.message}", e)
-                notificationHelper.showErrorNotification("Manual Mode Crashed", "Error: ${e.javaClass.simpleName} - ${e.message}")
+                notificationHelper.showErrorNotification(
+                    "Manual Mode Crashed",
+                    "Error: ${e.javaClass.simpleName} - ${e.message}"
+                )
                 stopSelf()
             }
         } else {
@@ -97,7 +103,7 @@ class OverlayService : Service() {
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 layoutType,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                 PixelFormat.TRANSLUCENT
             ).apply {
                 gravity = Gravity.CENTER

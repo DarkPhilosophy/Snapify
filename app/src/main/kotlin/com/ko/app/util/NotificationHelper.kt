@@ -8,7 +8,6 @@ import androidx.core.app.NotificationCompat
 import com.ko.app.ScreenshotApp
 import com.ko.app.receiver.NotificationActionReceiver
 import com.ko.app.ui.MainActivity
-import com.ko.app.util.TimeUtils
 
 class NotificationHelper(private val context: Context) {
 
@@ -57,8 +56,6 @@ class NotificationHelper(private val context: Context) {
 
         notificationManager.notify(screenshotId.toInt(), notification)
     }
-
-
 
     fun showErrorNotification(title: String, message: String) {
         val notification = NotificationCompat.Builder(context, ScreenshotApp.CHANNEL_ID_SCREENSHOT)

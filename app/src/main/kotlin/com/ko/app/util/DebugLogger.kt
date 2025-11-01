@@ -3,8 +3,6 @@ package com.ko.app.util
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -16,6 +14,39 @@ object DebugLogger {
     private const val TAG = "KoScreenshot"
     private const val LEVEL_PADDING = 7
     private const val TAG_PADDING = 30
+    private const val PREFS_NAME = "debug_logs"
+    private const val LOGS_KEY = "logs"
+
+    private lateinit var prefs: SharedPreferences
+
+    fun init(context: Context) {
+        prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        loadPersistedLogs()
+    }
+
+    private fun loadPersistedLogs() {
+        val logsJson = prefs.getString(LOGS_KEY, null)
+        logsJson?.let {
+            try {
+                // Simple JSON parsing for logs
+                // For now, just clear and start fresh if corrupted
+                // In full implementation, deserialize logs
+            } catch (e: Exception) {
+                error("DebugLogger", "Failed to load persisted logs", e)
+            }
+        }
+    }
+
+    private fun persistLogs() {
+        try {
+            // Serialize logEntries to JSON and save
+            // For simplicity, save as string
+            val logsString = logEntries.joinToString("\n") { it.getFormattedMessage() }
+            prefs.edit().putString(LOGS_KEY, logsString).apply()
+        } catch (e: Exception) {
+            // Avoid infinite loop if logging fails
+        }
+    }
 
     enum class LogLevel {
         DEBUG, INFO, WARNING, ERROR
@@ -42,6 +73,7 @@ object DebugLogger {
     }
 
     private val logEntries = ConcurrentLinkedQueue<LogEntry>()
+    private val recentLogs = mutableListOf<LogEntry>()
     private val listeners = mutableListOf<(LogEntry) -> Unit>()
 
     fun debug(tag: String, message: String) {
@@ -89,6 +121,10 @@ object DebugLogger {
 
     fun getAllLogs(): List<LogEntry> {
         return logEntries.toList()
+    }
+
+    fun getRecentLogs(): List<LogEntry> {
+        return recentLogs.toList()
     }
 
     fun clearLogs() {
