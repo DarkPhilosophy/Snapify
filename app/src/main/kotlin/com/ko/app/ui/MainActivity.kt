@@ -320,16 +320,21 @@ class MainActivity : AppCompatActivity() {
     val overlaySwitch = dialogView.findViewById<androidx.appcompat.widget.SwitchCompat>(R.id.overlaySwitch)
     val batterySwitch = dialogView.findViewById<androidx.appcompat.widget.SwitchCompat>(R.id.batterySwitch)
     val statusText = dialogView.findViewById<android.widget.TextView>(R.id.statusText)
+    val btnRefresh = dialogView.findViewById<android.widget.Button>(R.id.btnRefresh)
     val btnGoToSettings = dialogView.findViewById<android.widget.Button>(R.id.btnGoToSettings)
     val btnOK = dialogView.findViewById<android.widget.Button>(R.id.btnOK)
 
-    storageSwitch.isChecked = storageGranted
-    notificationSwitch.isChecked = notificationGranted
-    overlaySwitch.isChecked = overlayGranted
-    batterySwitch.isChecked = batteryAllowed
+    fun updateSwitches() {
+        storageSwitch.isChecked = PermissionUtils.hasStoragePermission(this)
+        notificationSwitch.isChecked = PermissionUtils.hasNotificationPermission(this)
+        overlaySwitch.isChecked = PermissionUtils.hasOverlayPermission(this)
+        batterySwitch.isChecked = (getSystemService(POWER_SERVICE) as android.os.PowerManager).isIgnoringBatteryOptimizations(packageName)
+        val allGranted = storageSwitch.isChecked && notificationSwitch.isChecked && overlaySwitch.isChecked && batterySwitch.isChecked
+        statusText.text = if (allGranted) "😁 Ready" else "⚠️ Missing permissions"
+        statusText.setTextColor(if (allGranted) 0xFF4CAF50.toInt() else 0xFFF44336.toInt())
+    }
 
-    statusText.text = if (allGranted) "😁 Ready" else "⚠️ Missing permissions"
-    statusText.setTextColor(if (allGranted) 0xFF4CAF50.toInt() else 0xFFF44336.toInt())
+    updateSwitches()
 
     // Add checked change listeners for switches
     storageSwitch.setOnCheckedChangeListener { _, isChecked ->
@@ -361,19 +366,38 @@ class MainActivity : AppCompatActivity() {
     .setView(dialogView)
     .create()
 
+    val handler = android.os.Handler(android.os.Looper.getMainLooper())
+    val checkRunnable = object : Runnable {
+        override fun run() {
+            updateSwitches()
+            handler.postDelayed(this, 1000)
+        }
+    }
+    handler.post(checkRunnable)
+
+    btnRefresh.setOnClickListener {
+        updateSwitches()
+    }
     btnGoToSettings.setOnClickListener {
     startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
     data = Uri.fromParts("package", packageName, null)
     })
+    handler.removeCallbacks(checkRunnable)
     dialog.dismiss()
     }
     btnOK.setOnClickListener {
+    handler.removeCallbacks(checkRunnable)
     dialog.dismiss()
     }
 
-    if (allGranted) {
-    btnGoToSettings.visibility = android.view.View.GONE
-        }
+    dialog.setOnDismissListener {
+        handler.removeCallbacks(checkRunnable)
+    }
+
+    val initialAllGranted = storageSwitch.isChecked && notificationSwitch.isChecked && overlaySwitch.isChecked && batterySwitch.isChecked
+    if (initialAllGranted) {
+        btnGoToSettings.visibility = android.view.View.GONE
+    }
 
     dialog.show()
     }

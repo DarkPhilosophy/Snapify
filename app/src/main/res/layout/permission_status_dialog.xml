@@ -125,12 +125,21 @@
         android:orientation="horizontal">
 
         <Button
+            android:id="@+id/btnRefresh"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Refresh"
+            android:layout_marginEnd="4dp" />
+
+        <Button
             android:id="@+id/btnGoToSettings"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Go to Settings"
-            android:layout_marginEnd="8dp" />
+            android:text="Settings"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp" />
 
         <Button
             android:id="@+id/btnOK"
@@ -138,7 +147,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="OK"
-            android:layout_marginStart="8dp" />
+            android:layout_marginStart="4dp" />
 
     </LinearLayout>
 
