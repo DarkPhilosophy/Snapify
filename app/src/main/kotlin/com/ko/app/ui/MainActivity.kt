@@ -358,8 +358,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
     notificationSwitch.setOnCheckedChangeListener { _, isChecked ->
-        if (isChecked && !notificationGranted) {
-            startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
+    if (isChecked && !notificationGranted) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
         }
     }
     overlaySwitch.setOnCheckedChangeListener { _, isChecked ->
