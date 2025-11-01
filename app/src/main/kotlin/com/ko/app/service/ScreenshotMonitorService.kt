@@ -261,12 +261,8 @@ class ScreenshotMonitorService : Service() {
                             decoded.contains("tree/") -> {
                                 val parts = decoded.substringAfter("tree/").split(":")
                                 if (parts.size >= 2) {
-                                    val volume = parts[0]
                                     val path = parts[1]
-                                    when (volume) {
-                                        "primary" -> Environment.getExternalStorageDirectory().absolutePath + "/" + path
-                                        else -> "/storage/$volume/$path"
-                                    }
+                                    Environment.getExternalStorageDirectory().absolutePath + "/" + path
                                 } else decoded
                             }
                             else -> decoded
