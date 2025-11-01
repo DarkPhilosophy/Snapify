@@ -330,11 +330,10 @@ class MainActivity : AppCompatActivity() {
 
     // Make the permission rows clickable
     dialogView.findViewById<android.widget.LinearLayout>(R.id.storagePermission).setOnClickListener {
-    if (!storageGranted) {
-        startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-            data = Uri.fromParts("package", packageName, null)
-                })
-    }
+        if (!storageGranted) {
+            // Request storage permission
+            requestPermissions(arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE, android.Manifest.permission.READ_MEDIA_IMAGES), 1001)
+        }
     }
     dialogView.findViewById<android.widget.LinearLayout>(R.id.notificationPermission).setOnClickListener {
     if (!notificationGranted) {
