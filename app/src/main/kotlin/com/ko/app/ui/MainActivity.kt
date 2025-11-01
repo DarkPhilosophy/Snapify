@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.provider.Settings
 import android.view.Menu
 import android.view.MenuItem
@@ -79,6 +80,9 @@ class MainActivity : AppCompatActivity() {
 
         observeScreenshots()
         observeServiceStatus()
+
+        // Scan existing screenshots on app start
+        scanExistingScreenshots()
 
         lifecycleScope.launch {
             if (app.preferences.isFirstLaunch.first()) {
@@ -223,6 +227,69 @@ class MainActivity : AppCompatActivity() {
             "Service is running"
         } else {
             "Service is stopped"
+        }
+    }
+
+    private fun scanExistingScreenshots() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                DebugLogger.info("MainActivity", "Scanning existing screenshots on app start")
+
+                val configuredFolder = app.preferences.screenshotFolder.first()
+                val screenshotFolder = if (configuredFolder.isNotEmpty()) {
+                    // Decode URI to path
+                    java.net.URLDecoder.decode(configuredFolder, "UTF-8").let { decoded ->
+                        when {
+                            decoded.contains("primary:") -> decoded.substringAfter("primary:")
+                            decoded.contains("tree/") -> {
+                                val parts = decoded.substringAfter("tree/").split(":")
+                                if (parts.size >= 2) parts[1] else decoded
+                            }
+                            else -> decoded
+                        }
+                    }
+                } else {
+                    // Default
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath + "/Screenshots"
+                }
+
+                val folder = File(screenshotFolder)
+                if (!folder.exists() || !folder.isDirectory) {
+                    DebugLogger.warning(
+                        "MainActivity",
+                        "Screenshot folder doesn't exist: $screenshotFolder"
+                    )
+                    return@launch
+                }
+
+                val imageFiles = folder.listFiles { file ->
+                    file.isFile && (file.extension.lowercase() in listOf("png", "jpg", "jpeg"))
+                }
+
+                val count = imageFiles?.size ?: 0
+                DebugLogger.info("MainActivity", "Found $count existing screenshot files")
+
+                var imported = 0
+                imageFiles?.forEach { file ->
+                    val existing = app.repository.getByFilePath(file.absolutePath)
+                    if (existing == null && file.exists() && file.length() > 0) {
+                        val screenshot = com.ko.app.data.entity.Screenshot(
+                            filePath = file.absolutePath,
+                            fileName = file.name,
+                            fileSize = file.length(),
+                            createdAt = file.lastModified(),
+                            deletionTimestamp = null,
+                            isMarkedForDeletion = false,
+                            isKept = false
+                        )
+                        app.repository.insert(screenshot)
+                        imported++
+                    }
+                }
+                DebugLogger.info("MainActivity", "Imported $imported new screenshots from existing files")
+            } catch (e: Exception) {
+                DebugLogger.error("MainActivity", "Error scanning existing screenshots", e)
+            }
         }
     }
 
