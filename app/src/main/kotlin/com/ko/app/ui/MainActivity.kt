@@ -307,97 +307,67 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showDetailedPermissionsStatus() {
-        val storageGranted = PermissionUtils.hasStoragePermission(this)
-        val notificationGranted = PermissionUtils.hasNotificationPermission(this)
-        val overlayGranted = PermissionUtils.hasOverlayPermission(this)
+    val storageGranted = PermissionUtils.hasStoragePermission(this)
+    val notificationGranted = PermissionUtils.hasNotificationPermission(this)
+    val overlayGranted = PermissionUtils.hasOverlayPermission(this)
 
-        val allGranted = storageGranted && notificationGranted && overlayGranted
+    val allGranted = storageGranted && notificationGranted && overlayGranted
 
-        val greenCheck = "●"
-        val redX = "○"
+    val dialogView = layoutInflater.inflate(R.layout.permission_status_dialog, null)
+    val storageCheck = dialogView.findViewById<android.widget.CheckBox>(R.id.storageCheck)
+        val notificationCheck = dialogView.findViewById<android.widget.CheckBox>(R.id.notificationCheck)
+    val overlayCheck = dialogView.findViewById<android.widget.CheckBox>(R.id.overlayCheck)
+    val statusText = dialogView.findViewById<android.widget.TextView>(R.id.statusText)
+    val btnGoToSettings = dialogView.findViewById<android.widget.Button>(R.id.btnGoToSettings)
+    val btnOK = dialogView.findViewById<android.widget.Button>(R.id.btnOK)
 
-        val message = android.text.SpannableStringBuilder().apply {
-            append("Read Screenshot     ")
-            val start1 = length
-            append(if (storageGranted) greenCheck else redX)
-            if (storageGranted) {
-                setSpan(android.text.style.ForegroundColorSpan(0xFF4CAF50.toInt()), start1, length, 0)
-            } else {
-                setSpan(android.text.style.ForegroundColorSpan(0xFFF44336.toInt()), start1, length, 0)
-                setSpan(object : android.text.style.ClickableSpan() {
-                    override fun onClick(widget: android.view.View) {
-                        startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                            data = Uri.fromParts("package", packageName, null)
-                        })
-                    }
-                }, 0, length, 0)
-            }
-            append("\n")
+    storageCheck.isChecked = storageGranted
+    notificationCheck.isChecked = notificationGranted
+    overlayCheck.isChecked = overlayGranted
 
-            append("Notification Access ")
-            val start2 = length
-            append(if (notificationGranted) greenCheck else redX)
-            if (notificationGranted) {
-                setSpan(android.text.style.ForegroundColorSpan(0xFF4CAF50.toInt()), start2, length, 0)
-            } else {
-                setSpan(android.text.style.ForegroundColorSpan(0xFFF44336.toInt()), start2, length, 0)
-                setSpan(object : android.text.style.ClickableSpan() {
-                    override fun onClick(widget: android.view.View) {
-                        startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
-                    }
-                }, 0, length, 0)
-            }
-            append("\n")
+    statusText.text = if (allGranted) "😁 Ready" else "⚠️ Missing permissions"
+    statusText.setTextColor(if (allGranted) 0xFF4CAF50.toInt() else 0xFFF44336.toInt())
 
-            append("Overlay Permission  ")
-            val start3 = length
-            append(if (overlayGranted) greenCheck else redX)
-            if (overlayGranted) {
-                setSpan(android.text.style.ForegroundColorSpan(0xFF4CAF50.toInt()), start3, length, 0)
-            } else {
-                setSpan(android.text.style.ForegroundColorSpan(0xFFF44336.toInt()), start3, length, 0)
-                setSpan(object : android.text.style.ClickableSpan() {
-                    override fun onClick(widget: android.view.View) {
-                        startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
-                            data = Uri.parse("package:$packageName")
-                        })
-                    }
-                }, 0, length, 0)
-            }
-            append("\n\n")
+    // Make the permission rows clickable
+    dialogView.findViewById<android.widget.LinearLayout>(R.id.storagePermission).setOnClickListener {
+    if (!storageGranted) {
+        startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.fromParts("package", packageName, null)
+                })
+    }
+    }
+    dialogView.findViewById<android.widget.LinearLayout>(R.id.notificationPermission).setOnClickListener {
+    if (!notificationGranted) {
+    startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
+    }
+    }
+    dialogView.findViewById<android.widget.LinearLayout>(R.id.overlayPermission).setOnClickListener {
+    if (!overlayGranted) {
+    startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
+    data = Uri.parse("package:$packageName")
+    })
+    }
+    }
 
-            // Set base text color to black
-            setSpan(android.text.style.ForegroundColorSpan(android.graphics.Color.BLACK), 0, length, 0)
+    val dialog = AlertDialog.Builder(this)
+    .setView(dialogView)
+    .create()
 
-            if (allGranted) {
-                val statusStart = length
-                append("😁 Ready")
-                setSpan(android.text.style.ForegroundColorSpan(0xFF4CAF50.toInt()), statusStart, length, 0)
-                setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD), statusStart, length, 0)
-            } else {
-                val statusStart = length
-                append("⚠️ Missing permissions")
-                setSpan(android.text.style.ForegroundColorSpan(0xFFF44336.toInt()), statusStart, length, 0)
-            }
+    btnGoToSettings.setOnClickListener {
+    startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+    data = Uri.fromParts("package", packageName, null)
+    })
+    dialog.dismiss()
+    }
+    btnOK.setOnClickListener {
+    dialog.dismiss()
+    }
+
+    if (allGranted) {
+    btnGoToSettings.visibility = android.view.View.GONE
         }
 
-        val dialog = AlertDialog.Builder(this)
-        .setTitle("Permission Status")
-        .setMessage(message)
-        .setPositiveButton(if (allGranted) "OK" else "Go to Settings") { _, _ ->
-        if (!allGranted) {
-        startActivity(
-        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-        data = Uri.fromParts("package", packageName, null)
-        }
-        )
-        }
-        }
-        .setNegativeButton(if (allGranted) null else "Cancel", null)
-        .create()
-
-        dialog.show()
-        (dialog.findViewById(android.R.id.message) as? android.widget.TextView)?.movementMethod = android.text.method.LinkMovementMethod.getInstance()
+    dialog.show()
     }
 
     private fun showMissingPermissionsDialog(missingPerms: List<String>) {
