@@ -283,10 +283,10 @@ class SettingsActivity : AppCompatActivity() {
 
             // Show success message
             AlertDialog.Builder(this)
-                .setTitle(getString(R.string.folder_selected))
-                .setMessage(getString(R.string.folder_updated_message, folderPath))
-                .setPositiveButton("OK", null)
-                .show()
+            .setTitle(getString(R.string.folder_selected))
+            .setMessage(getString(R.string.folder_updated_message, displayPath))
+            .setPositiveButton("OK", null)
+            .show()
         } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
             android.util.Log.e("SettingsActivity", "Failed to handle folder selection", e)
             AlertDialog.Builder(this)
