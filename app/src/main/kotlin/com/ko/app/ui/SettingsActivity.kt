@@ -98,11 +98,23 @@ class SettingsActivity : AppCompatActivity() {
             if (currentFolder.isEmpty()) {
                 binding.folderPathText.text = getString(R.string.default_folder)
             } else {
-                val uri = android.net.Uri.parse(currentFolder)
-                val folderPath = uri.path?.substringAfter(":")?.let {
-                    if (it.startsWith("/")) it.substring(1) else it
-                } ?: currentFolder
-                binding.folderPathText.text = folderPath
+            val decoded = java.net.URLDecoder.decode(currentFolder, "UTF-8")
+            val displayPath = when {
+            decoded.contains("primary:") -> {
+                    val path = decoded.substringAfter("primary:")
+                    "Internal Storage > ${path.replace("/", " > ")}"
+                    }
+                    decoded.contains("tree/") -> {
+                        val parts = decoded.substringAfter("tree/").split(":")
+                        if (parts.size >= 2) {
+                            val volume = if (parts[0] == "primary") "Internal Storage" else "SD Card (${parts[0]})"
+                            val path = parts[1]
+                            "$volume > ${path.replace("/", " > ")}"
+                        } else decoded
+                    }
+                    else -> decoded
+                }
+                binding.folderPathText.text = displayPath
             }
         }
     }
@@ -264,12 +276,25 @@ class SettingsActivity : AppCompatActivity() {
             )
 
             // Extract folder path for display
-            val folderPath = uri.path?.substringAfter(":")?.let {
-                if (it.startsWith("/")) it.substring(1) else it
-            } ?: uri.toString()
+            val decoded = java.net.URLDecoder.decode(uri.toString(), "UTF-8")
+            val displayPath = when {
+                decoded.contains("primary:") -> {
+                    val path = decoded.substringAfter("primary:")
+                    "Internal Storage > ${path.replace("/", " > ")}"
+                }
+                decoded.contains("tree/") -> {
+                    val parts = decoded.substringAfter("tree/").split(":")
+                    if (parts.size >= 2) {
+                        val volume = if (parts[0] == "primary") "Internal Storage" else "SD Card (${parts[0]})"
+                        val path = parts[1]
+                        "$volume > ${path.replace("/", " > ")}"
+                    } else decoded
+                }
+                else -> decoded
+            }
 
             // Update UI immediately
-            binding.folderPathText.text = folderPath
+            binding.folderPathText.text = displayPath
 
             // Save folder URI to preferences
             lifecycleScope.launch {

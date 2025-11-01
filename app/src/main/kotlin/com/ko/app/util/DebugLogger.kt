@@ -32,8 +32,8 @@ object DebugLogger {
         val logsJson = prefs.getString(LOGS_KEY, null)
         logsJson?.let {
             try {
-                val loadedLogs: List<LogEntry> = gson.fromJson(it, object : TypeToken<List<LogEntry>>() {}.type)
-                logEntries.addAll(loadedLogs)
+                val loadedLogs: Array<LogEntry> = gson.fromJson(it, Array<LogEntry>::class.java)
+                logEntries.addAll(loadedLogs.toList())
                 // Trim to max size
                 while (logEntries.size > MAX_LOG_ENTRIES) {
                     logEntries.poll()
