@@ -344,6 +344,13 @@ class MainActivity : AppCompatActivity() {
         notificationSwitch.isChecked = PermissionUtils.hasNotificationPermission(this)
         overlaySwitch.isChecked = PermissionUtils.hasOverlayPermission(this)
         batterySwitch.isChecked = (getSystemService(POWER_SERVICE) as android.os.PowerManager).isIgnoringBatteryOptimizations(packageName)
+
+        // Prevent disabling granted permissions
+        storageSwitch.isEnabled = !storageSwitch.isChecked
+        notificationSwitch.isEnabled = !notificationSwitch.isChecked
+        overlaySwitch.isEnabled = !overlaySwitch.isChecked
+        batterySwitch.isEnabled = !batterySwitch.isChecked
+
         val allGranted = storageSwitch.isChecked && notificationSwitch.isChecked && overlaySwitch.isChecked && batterySwitch.isChecked
         statusText.text = if (allGranted) "😁 Ready" else "⚠️ Missing permissions"
         statusText.setTextColor(if (allGranted) 0xFF4CAF50.toInt() else 0xFFF44336.toInt())
