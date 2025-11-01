@@ -313,8 +313,8 @@ class MainActivity : AppCompatActivity() {
 
         val allGranted = storageGranted && notificationGranted && overlayGranted
 
-        val greenCheck = "☑"
-        val redX = "☐"
+        val greenCheck = "●"
+        val redX = "○"
 
         val message = android.text.SpannableStringBuilder().apply {
             append("Read Screenshot     ")
@@ -365,6 +365,9 @@ class MainActivity : AppCompatActivity() {
                 }, 0, length, 0)
             }
             append("\n\n")
+
+            // Set base text color to black
+            setSpan(android.text.style.ForegroundColorSpan(android.graphics.Color.BLACK), 0, length, 0)
 
             if (allGranted) {
                 val statusStart = length
