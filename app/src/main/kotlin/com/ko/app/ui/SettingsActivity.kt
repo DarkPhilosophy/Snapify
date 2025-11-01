@@ -100,21 +100,11 @@ class SettingsActivity : AppCompatActivity() {
             } else {
             val decoded = java.net.URLDecoder.decode(currentFolder, "UTF-8")
             val displayPath = when {
-            decoded.contains("primary:") -> {
-                    val path = decoded.substringAfter("primary:")
-                    "Internal Storage > ${path.replace("/", " > ")}"
-                    }
-                    decoded.contains("tree/") -> {
-                        val parts = decoded.substringAfter("tree/").split(":")
-                        if (parts.size >= 2) {
-                            val volume = if (parts[0] == "primary") "Internal Storage" else "SD Card (${parts[0]})"
-                            val path = parts[1]
-                            "$volume > ${path.replace("/", " > ")}"
-                        } else decoded
-                    }
-                    else -> decoded
-                }
-                binding.folderPathText.text = displayPath
+                decoded.contains("primary:") -> decoded.substringAfter("primary:")
+            decoded.contains("tree/") -> decoded.substringAfter("tree/")
+            else -> decoded
+            }
+            binding.folderPathText.text = displayPath
             }
         }
     }
@@ -278,19 +268,9 @@ class SettingsActivity : AppCompatActivity() {
             // Extract folder path for display
             val decoded = java.net.URLDecoder.decode(uri.toString(), "UTF-8")
             val displayPath = when {
-                decoded.contains("primary:") -> {
-                    val path = decoded.substringAfter("primary:")
-                    "Internal Storage > ${path.replace("/", " > ")}"
-                }
-                decoded.contains("tree/") -> {
-                    val parts = decoded.substringAfter("tree/").split(":")
-                    if (parts.size >= 2) {
-                        val volume = if (parts[0] == "primary") "Internal Storage" else "SD Card (${parts[0]})"
-                        val path = parts[1]
-                        "$volume > ${path.replace("/", " > ")}"
-                    } else decoded
-                }
-                else -> decoded
+            decoded.contains("primary:") -> decoded.substringAfter("primary:")
+            decoded.contains("tree/") -> decoded.substringAfter("tree/")
+            else -> decoded
             }
 
             // Update UI immediately
