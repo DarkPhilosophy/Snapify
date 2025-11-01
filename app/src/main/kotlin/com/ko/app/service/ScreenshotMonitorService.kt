@@ -62,6 +62,15 @@ class ScreenshotMonitorService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        DebugLogger.info("ScreenshotMonitorService", "onStartCommand called")
+        
+        if (intent?.getBooleanExtra("rescan", false) == true) {
+            serviceScope.launch {
+                DebugLogger.info("ScreenshotMonitorService", "Rescanning triggered from intent")
+                scanExistingScreenshots()
+            }
+        }
+        
         return START_STICKY
     }
 

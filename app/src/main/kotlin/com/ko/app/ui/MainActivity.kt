@@ -104,7 +104,9 @@ class MainActivity : AppCompatActivity() {
             }
 
             if (isServiceEnabled) {
-                val serviceIntent = Intent(this@MainActivity, ScreenshotMonitorService::class.java)
+                val serviceIntent = Intent(this@MainActivity, ScreenshotMonitorService::class.java).apply {
+                    putExtra("rescan", true)
+                }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     startForegroundService(serviceIntent)
                 } else {
@@ -126,7 +128,6 @@ class MainActivity : AppCompatActivity() {
         if (isPermissionDialogOpen) {
             updatePermissionSwitches?.invoke()
         }
-        refreshCurrentTab()
     }
 
     private fun setupToolbar() {
