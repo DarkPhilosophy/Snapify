@@ -313,8 +313,8 @@ class MainActivity : AppCompatActivity() {
 
         val allGranted = storageGranted && notificationGranted && overlayGranted
 
-        val greenCheck = "✓"
-        val redX = "✗"
+        val greenCheck = "☑"
+        val redX = "☐"
 
         val message = android.text.SpannableStringBuilder().apply {
             append("Read Screenshot     ")
