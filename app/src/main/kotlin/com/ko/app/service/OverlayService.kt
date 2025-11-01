@@ -35,12 +35,14 @@ class OverlayService : Service() {
     private var windowManager: WindowManager? = null
     private var overlayView: View? = null
     private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
+    private lateinit var notificationHelper: NotificationHelper
     private var screenshotId: Long = -1L
     private var filePath: String = ""
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        notificationHelper = NotificationHelper(this)
         screenshotId = intent?.getLongExtra("screenshot_id", -1L) ?: -1L
         filePath = intent?.getStringExtra("file_path") ?: ""
 
