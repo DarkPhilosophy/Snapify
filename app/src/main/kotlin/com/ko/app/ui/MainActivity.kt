@@ -307,16 +307,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showDetailedPermissionsStatus() {
-    val storageGranted = PermissionUtils.hasStoragePermission(this)
-    val notificationGranted = PermissionUtils.hasNotificationPermission(this)
-    val overlayGranted = PermissionUtils.hasOverlayPermission(this)
+        val storageGranted = PermissionUtils.hasStoragePermission(this)
+        val notificationGranted = PermissionUtils.hasNotificationPermission(this)
+        val overlayGranted = PermissionUtils.hasOverlayPermission(this)
+        val batteryAllowed = (getSystemService(POWER_SERVICE) as android.os.PowerManager).isIgnoringBatteryOptimizations(packageName)
 
-    val allGranted = storageGranted && notificationGranted && overlayGranted
+        val allGranted = storageGranted && notificationGranted && overlayGranted && batteryAllowed
 
     val dialogView = layoutInflater.inflate(R.layout.permission_status_dialog, null)
     val storageSwitch = dialogView.findViewById<androidx.appcompat.widget.SwitchCompat>(R.id.storageSwitch)
     val notificationSwitch = dialogView.findViewById<androidx.appcompat.widget.SwitchCompat>(R.id.notificationSwitch)
     val overlaySwitch = dialogView.findViewById<androidx.appcompat.widget.SwitchCompat>(R.id.overlaySwitch)
+    val batterySwitch = dialogView.findViewById<androidx.appcompat.widget.SwitchCompat>(R.id.batterySwitch)
     val statusText = dialogView.findViewById<android.widget.TextView>(R.id.statusText)
     val btnGoToSettings = dialogView.findViewById<android.widget.Button>(R.id.btnGoToSettings)
     val btnOK = dialogView.findViewById<android.widget.Button>(R.id.btnOK)
@@ -324,28 +326,35 @@ class MainActivity : AppCompatActivity() {
     storageSwitch.isChecked = storageGranted
     notificationSwitch.isChecked = notificationGranted
     overlaySwitch.isChecked = overlayGranted
+    batterySwitch.isChecked = batteryAllowed
 
     statusText.text = if (allGranted) "😁 Ready" else "⚠️ Missing permissions"
     statusText.setTextColor(if (allGranted) 0xFF4CAF50.toInt() else 0xFFF44336.toInt())
 
-    // Make the permission rows clickable
-    dialogView.findViewById<android.widget.LinearLayout>(R.id.storagePermission).setOnClickListener {
-        if (!storageGranted) {
-            // Request storage permission
+    // Add checked change listeners for switches
+    storageSwitch.setOnCheckedChangeListener { _, isChecked ->
+        if (isChecked && !storageGranted) {
             requestPermissions(arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE, android.Manifest.permission.READ_MEDIA_IMAGES), 1001)
         }
     }
-    dialogView.findViewById<android.widget.LinearLayout>(R.id.notificationPermission).setOnClickListener {
-    if (!notificationGranted) {
-    startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
+    notificationSwitch.setOnCheckedChangeListener { _, isChecked ->
+        if (isChecked && !notificationGranted) {
+            startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
+        }
     }
+    overlaySwitch.setOnCheckedChangeListener { _, isChecked ->
+        if (isChecked && !overlayGranted) {
+            startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
+                data = Uri.parse("package:$packageName")
+            })
+        }
     }
-    dialogView.findViewById<android.widget.LinearLayout>(R.id.overlayPermission).setOnClickListener {
-    if (!overlayGranted) {
-    startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
-    data = Uri.parse("package:$packageName")
-    })
-    }
+    batterySwitch.setOnCheckedChangeListener { _, isChecked ->
+        if (isChecked && !batteryAllowed) {
+            startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                data = Uri.parse("package:$packageName")
+            })
+        }
     }
 
     val dialog = AlertDialog.Builder(this)
