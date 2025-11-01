@@ -3,14 +3,14 @@ package com.ko.app
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.content.res.Configuration
 import android.os.Build
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import com.ko.app.data.database.ScreenshotDatabase
 import com.ko.app.data.preferences.AppPreferences
 import com.ko.app.data.repository.ScreenshotRepository
 import com.ko.app.util.DebugLogger
 import kotlinx.coroutines.runBlocking
-import java.util.Locale
 
 class ScreenshotApp : Application() {
 
@@ -32,23 +32,13 @@ class ScreenshotApp : Application() {
     preferences = AppPreferences(this)
 
     val lang = runBlocking { preferences.getLanguageSync() }
-        setLocale(lang)
+    val localeTag = if (lang == "ro") "ro" else "en"
+    AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(localeTag))
 
         DebugLogger.init(this)
 
         createNotificationChannels()
         }
-
-    private fun setLocale(language: String) {
-        val locale = when (language) {
-            "ro" -> Locale("ro", "RO")
-            else -> Locale("en", "US")
-        }
-        Locale.setDefault(locale)
-        val config = Configuration(resources.configuration)
-        config.setLocale(locale)
-        resources.updateConfiguration(config, resources.displayMetrics)
-    }
 
     private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

@@ -6,10 +6,12 @@ import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.net.toUri
+import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.lifecycleScope
 import com.ko.app.BuildConfig
 import com.ko.app.R
@@ -90,19 +92,13 @@ class SettingsActivity : AppCompatActivity() {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val selectedLang = if (position == 1) "ro" else "en"
                 lifecycleScope.launch {
-                    val current = app.preferences.language.first()
-                    if (current != selectedLang) {
-                        app.preferences.setLanguage(selectedLang)
-                        AlertDialog.Builder(this@SettingsActivity)
-                        .setTitle(getString(R.string.language_changed))
-                        .setMessage(getString(R.string.restart_message))
-                        .setPositiveButton(getString(R.string.ok)) { _, _ ->
-                                finishAffinity()
-                                System.exit(0)
-                            }
-                            .setCancelable(false)
-                            .show()
-                    }
+                val current = app.preferences.language.first()
+                if (current != selectedLang) {
+                app.preferences.setLanguage(selectedLang)
+                val localeTag = if (selectedLang == "ro") "ro" else "en"
+                androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(localeTag))
+                Toast.makeText(this@SettingsActivity, getString(R.string.language_changed), Toast.LENGTH_SHORT).show()
+                }
                 }
             }
 
