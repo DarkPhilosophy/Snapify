@@ -44,6 +44,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adapter: ScreenshotAdapter
     private var currentTab = 0
     private var screenshotsJob: Job? = null
+    private var isPermissionDialogOpen = false
+    private var updatePermissionSwitches: (() -> Unit)? = null
 
     private val storagePermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -105,6 +107,13 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
+        }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus && isPermissionDialogOpen) {
+            updatePermissionSwitches?.invoke()
         }
     }
 
@@ -366,14 +375,8 @@ class MainActivity : AppCompatActivity() {
     .setView(dialogView)
     .create()
 
-    val handler = android.os.Handler(android.os.Looper.getMainLooper())
-    val checkRunnable = object : Runnable {
-        override fun run() {
-            updateSwitches()
-            handler.postDelayed(this, 1000)
-        }
-    }
-    handler.post(checkRunnable)
+    isPermissionDialogOpen = true
+    updatePermissionSwitches = { updateSwitches() }
 
     btnRefresh.setOnClickListener {
         updateSwitches()
@@ -382,16 +385,15 @@ class MainActivity : AppCompatActivity() {
     startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
     data = Uri.fromParts("package", packageName, null)
     })
-    handler.removeCallbacks(checkRunnable)
     dialog.dismiss()
     }
     btnOK.setOnClickListener {
-    handler.removeCallbacks(checkRunnable)
     dialog.dismiss()
     }
 
     dialog.setOnDismissListener {
-        handler.removeCallbacks(checkRunnable)
+        isPermissionDialogOpen = false
+        updatePermissionSwitches = null
     }
 
     val initialAllGranted = storageSwitch.isChecked && notificationSwitch.isChecked && overlaySwitch.isChecked && batterySwitch.isChecked
