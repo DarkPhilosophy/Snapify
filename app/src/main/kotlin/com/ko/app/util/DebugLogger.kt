@@ -3,6 +3,7 @@ package com.ko.app.util
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import androidx.annotation.Keep
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.text.SimpleDateFormat
@@ -56,6 +57,7 @@ object DebugLogger {
         DEBUG, INFO, WARNING, ERROR
     }
 
+    @Keep
     data class LogEntry(
         val timestamp: Long,
         val level: LogLevel,

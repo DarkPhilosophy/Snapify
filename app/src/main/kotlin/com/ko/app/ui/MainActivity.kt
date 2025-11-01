@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import androidx.annotation.Keep
 import android.provider.Settings
 import android.view.Menu
 import android.view.MenuItem
@@ -245,7 +246,14 @@ class MainActivity : AppCompatActivity() {
                             decoded.contains("primary:") -> Environment.getExternalStorageDirectory().absolutePath + "/" + decoded.substringAfter("primary:")
                             decoded.contains("tree/") -> {
                                 val parts = decoded.substringAfter("tree/").split(":")
-                                if (parts.size >= 2) Environment.getExternalStorageDirectory().absolutePath + "/" + parts[1] else decoded
+                                if (parts.size >= 2) {
+                                    val volume = parts[0]
+                                    val path = parts[1]
+                                    when (volume) {
+                                        "primary" -> Environment.getExternalStorageDirectory().absolutePath + "/" + path
+                                        else -> "/storage/$volume/$path"
+                                    }
+                                } else decoded
                             }
                             else -> decoded
                         }
