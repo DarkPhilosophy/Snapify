@@ -23,10 +23,13 @@ import com.ko.app.databinding.ActivityMainBinding
 import com.ko.app.service.ScreenshotMonitorService
 import com.ko.app.ui.adapter.ScreenshotAdapter
 import com.ko.app.util.NotificationHelper
+import com.ko.app.util.DebugLogger
 import com.ko.app.util.WorkManagerScheduler
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 @Suppress("TooManyFunctions")
