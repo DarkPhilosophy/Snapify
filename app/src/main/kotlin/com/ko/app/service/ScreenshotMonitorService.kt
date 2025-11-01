@@ -270,11 +270,12 @@ class ScreenshotMonitorService : Service() {
                     Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath + "/Screenshots"
                 }
 
+                DebugLogger.info("ScreenshotMonitorService", "Scanning folder: $screenshotFolder")
                 val folder = File(screenshotFolder)
                 if (!folder.exists() || !folder.isDirectory) {
                     DebugLogger.warning(
                         "ScreenshotMonitorService",
-                        "Screenshot folder doesn't exist: $screenshotFolder"
+                        "Screenshot folder doesn't exist: $screenshotFolder, exists=${folder.exists()}, isDir=${folder.isDirectory}"
                     )
                     return@launch
                 }
