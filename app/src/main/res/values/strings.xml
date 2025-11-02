@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Screenshot Manager</string>
+    <string name="app_name">Ko</string>
     <string name="button_press">PRESS</string>
     <string name="attribution">by Adalbert Alexandru</string>
-    <string name="version_label">Version: %s</string>
-    <string name="email_subject">Ko App Feedback</string>
+    <string name="version_label">Version %1$s</string>
+    <string name="email_subject">App Feedback</string>
     <string name="default_folder">Default (Pictures/Screenshots)</string>
     <string name="manual_mode">Manual</string>
     <string name="automatic_mode">Automatic</string>
-    <string name="manual_description">You will choose deletion time for each screenshot when it is captured</string>
-    <string name="automatic_description">Screenshots will be automatically deleted after the specified time</string>
-    <string name="select_deletion_time">Select Deletion Time</string>
+    <string name="manual_description">Mark screenshots manually</string>
+    <string name="automatic_description">Automatically mark screenshots for deletion</string>
+    <string name="select_deletion_time">Select deletion time</string>
     <string name="custom_deletion_time">Custom Deletion Time</string>
     <string name="enter_time_value">Enter time value</string>
-    <string name="time_unit">Time unit:</string>
-    <string name="custom_deletion_time_title">Custom Deletion Time</string>
+    <string name="time_unit">Time unit</string>
+    <string name="custom_deletion_time_title">Custom deletion time</string>
     <string name="folder_selected">Folder Selected</string>
     <string name="folder_updated_message">Screenshot folder has been updated to:
 %s</string>
@@ -65,9 +65,8 @@ To get started, enable the monitoring service and grant the required permissions
     <string name="open_with">Open with</string>
     <string name="delete">Delete</string>
     <string name="get_started">Get Started</string>
-    <string name="send_email">Send Email</string>
+    <string name="send_email">Send email</string>
     <string name="language">Language</string>
-    <string name="language_changed">Language Changed</string>
+    <string name="language_changed">Language changed</string>
     <string name="restart_message">Please restart the app for the changes to take effect.</string>
 </resources>
-

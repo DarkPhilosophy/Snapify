@@ -15,7 +15,6 @@ import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.lifecycleScope
 import com.ko.app.BuildConfig
 import com.ko.app.R
-import com.ko.app.ScreenshotApp
 import com.ko.app.databinding.ActivitySettingsBinding
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
@@ -134,7 +133,7 @@ class SettingsActivity : AppCompatActivity() {
 
             val currentFolder = preferences.screenshotFolder.first()
             if (currentFolder.isEmpty() || currentFolder == "Pictures/Screenshots") {
-                binding.folderPathText.text = "primary:Pictures/Screenshots"
+                binding.folderPathText.text = getString(R.string.default_folder)
             } else {
                 val decoded = java.net.URLDecoder.decode(currentFolder, "UTF-8")
                 val displayPath = when {
@@ -228,7 +227,7 @@ class SettingsActivity : AppCompatActivity() {
                     }
                 }
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
 
@@ -246,7 +245,7 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         val unitSpinner = android.widget.Spinner(this).apply {
-            adapter = android.widget.ArrayAdapter(
+            adapter = ArrayAdapter(
                 this@SettingsActivity,
                 android.R.layout.simple_spinner_item,
                 timeUnits
@@ -255,7 +254,7 @@ class SettingsActivity : AppCompatActivity() {
 
         inputLayout.addView(
             android.widget.TextView(this).apply {
-                text = "Time value:"
+                text = getString(R.string.enter_time_value)
                 setPadding(0, 0, 0, PADDING_SMALL)
             }
         )
@@ -271,7 +270,7 @@ class SettingsActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.custom_deletion_time_title))
             .setView(inputLayout)
-            .setPositiveButton("Set") { _, _ ->
+            .setPositiveButton(getString(R.string.ok)) { _, _ ->
                 val value = valueInput.text.toString().toIntOrNull() ?: DEFAULT_TIME_VALUE
                 val unit = unitSpinner.selectedItemPosition
 
@@ -287,7 +286,7 @@ class SettingsActivity : AppCompatActivity() {
                     binding.deletionTimeText.text = formatDeletionTime(millis)
                 }
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
 
@@ -341,9 +340,9 @@ class SettingsActivity : AppCompatActivity() {
         } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
             android.util.Log.e("SettingsActivity", "Failed to handle folder selection", e)
             AlertDialog.Builder(this)
-                .setTitle("Error")
-                .setMessage("Failed to select folder. Please try again.")
-                .setPositiveButton("OK", null)
+                .setTitle(getString(R.string.error))
+                .setMessage(getString(R.string.open_failed, ""))
+                .setPositiveButton(getString(R.string.ok), null)
                 .show()
         }
     }

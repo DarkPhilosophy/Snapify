@@ -1,12 +1,7 @@
 package com.ko.app.ui
 
 import android.Manifest
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
-import android.content.pm.PackageManager
-import android.content.res.ColorStateList
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -14,13 +9,17 @@ import android.provider.Settings
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.toColorInt
 import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.tabs.TabLayout
 import com.ko.app.R
 import com.ko.app.databinding.ActivityMainBinding
@@ -106,10 +105,12 @@ class MainActivity : AppCompatActivity() {
         loadPagedScreenshots()
         observeServiceStatus()
 
-        lifecycleScope.launchWhenStarted {
-            AppEvents.screenshotsScanned.collect {
-                DebugLogger.info("MainActivity", "Received screenshotsScanned event via AppEvents")
-                refreshCurrentTab()
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                AppEvents.screenshotsScanned.collect {
+                    DebugLogger.info("MainActivity", "Received screenshotsScanned event via AppEvents")
+                    refreshCurrentTab()
+                }
             }
         }
 
@@ -519,23 +520,18 @@ class MainActivity : AppCompatActivity() {
             .setMessage(getString(R.string.delete_confirmation))
             .setPositiveButton(getString(R.string.delete)) { _, _ ->
                 lifecycleScope.launch {
-                    var deleted = false
-
                     // Prefer deleting via ContentResolver when possible
-                    contentUri?.let { uriStr ->
+                    if (!contentUri.isNullOrEmpty()) {
                         try {
-                            val uri = uriStr.toUri()
-                            val rows = contentResolver.delete(uri, null, null)
-                            deleted = rows > 0
+                            val uri = contentUri.toUri()
+                            contentResolver.delete(uri, null, null)
                         } catch (e: Exception) {
                             DebugLogger.warning("MainActivity", "Failed to delete via ContentResolver", e)
                         }
-                    }
-
-                    if (!deleted && !filePath.isNullOrEmpty()) {
+                    } else if (!filePath.isNullOrEmpty()) {
                         val file = File(filePath)
                         if (file.exists()) {
-                            deleted = file.delete()
+                            file.delete()
                         }
                     }
 
@@ -614,22 +610,22 @@ class MainActivity : AppCompatActivity() {
 
     private fun openScreenshot(screenshot: com.ko.app.data.entity.Screenshot) {
         try {
-            val uri = screenshot.contentUri?.let { it.toUri() } ?: run {
-                val file = File(screenshot.filePath)
-                if (!file.exists()) {
-                    AlertDialog.Builder(this)
-                        .setTitle(getString(R.string.file_not_found))
-                        .setMessage(getString(R.string.file_not_exists))
-                        .setPositiveButton(getString(R.string.ok), null)
-                        .show()
-                    return
-                }
-                androidx.core.content.FileProvider.getUriForFile(
-                    this,
-                    "$packageName.fileprovider",
-                    file
-                )
-            }
+            val uri = screenshot.contentUri?.toUri() ?: run {
+                 val file = File(screenshot.filePath)
+                 if (!file.exists()) {
+                     AlertDialog.Builder(this)
+                         .setTitle(getString(R.string.file_not_found))
+                         .setMessage(getString(R.string.file_not_exists))
+                         .setPositiveButton(getString(R.string.ok), null)
+                         .show()
+                     return
+                 }
+                 androidx.core.content.FileProvider.getUriForFile(
+                     this,
+                     "$packageName.fileprovider",
+                     file
+                 )
+             }
 
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, "image/*")

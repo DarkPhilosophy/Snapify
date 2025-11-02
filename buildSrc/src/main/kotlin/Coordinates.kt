@@ -8,7 +8,6 @@ object Coordinates {
     const val APP_VERSION_CODE = 1
     
     const val MIN_SDK = 24
-    const val TARGET_SDK = 35
-    const val COMPILE_SDK = 35
+    const val TARGET_SDK = 36
+    const val COMPILE_SDK = 36
 }
-

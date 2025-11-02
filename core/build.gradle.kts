@@ -9,7 +9,6 @@ android {
 
     defaultConfig {
         minSdk = Coordinates.MIN_SDK
-        targetSdk = Coordinates.TARGET_SDK
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -28,22 +27,22 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.core.ktx)
+    implementation("androidx.core:core-ktx:1.17.0")
 
     // Room runtime annotations (no kapt/ksp in core) - provides @Entity etc.
-    implementation(libs.room.runtime)
-    implementation(libs.room.ktx)
+    implementation("androidx.room:room-runtime:2.8.3")
+    implementation("androidx.room:room-ktx:2.8.3")
 
     // Coroutines
-    implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.kotlinx.coroutines.android)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
 
     // DataStore
-    implementation(libs.datastore.preferences)
+    implementation("androidx.datastore:datastore-preferences:1.1.7")
 
     // Gson
-    implementation(libs.gson)
+    implementation("com.google.code.gson:gson:2.13.2")
 
     // WorkManager (used by util scheduler if needed)
-    implementation(libs.work.runtime.ktx)
+    implementation("androidx.work:work-runtime-ktx:2.11.0")
 }

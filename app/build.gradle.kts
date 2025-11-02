@@ -1,7 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("com.google.devtools.ksp") version "2.1.0-1.0.29"
+    id("com.google.devtools.ksp") version "2.2.21-2.0.4"
     id("com.google.dagger.hilt.android") version "2.57.2"
     id("org.jetbrains.kotlin.kapt")
 }
@@ -59,62 +59,62 @@ dependencies {
     implementation(project(":core"))
 
     // AndroidX Core
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
+    implementation("androidx.core:core-ktx:1.17.0")
+    implementation("androidx.appcompat:appcompat:1.7.1")
 
     // Material Design
-    implementation(libs.material)
+    implementation("com.google.android.material:material:1.13.0")
 
     // ConstraintLayout
-    implementation(libs.androidx.constraint.layout)
+    implementation("androidx.constraintlayout:constraintlayout:2.2.1")
 
     // Room Database
-    implementation(libs.room.runtime)
-    implementation(libs.room.ktx)
-    ksp(libs.room.compiler)
+    implementation("androidx.room:room-runtime:2.8.3")
+    implementation("androidx.room:room-ktx:2.8.3")
+    ksp("androidx.room:room-compiler:2.8.3")
 
     // Lifecycle & ViewModel
-    implementation(libs.lifecycle.viewmodel.ktx)
-    implementation(libs.lifecycle.livedata.ktx)
-    implementation(libs.lifecycle.runtime.ktx)
-    implementation(libs.lifecycle.service)
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.4")
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.9.4")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.4")
+    implementation("androidx.lifecycle:lifecycle-service:2.9.4")
 
     // WorkManager
-    implementation(libs.work.runtime.ktx)
+    implementation("androidx.work:work-runtime-ktx:2.11.0")
 
     // Coroutines
-    implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.kotlinx.coroutines.android)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
 
     // Gson for JSON persistence
-    implementation(libs.gson)
+    implementation("com.google.code.gson:gson:2.13.2")
 
     // DataStore
-    implementation(libs.datastore.preferences)
+    implementation("androidx.datastore:datastore-preferences:1.1.7")
 
     // Activity & Fragment KTX
-    implementation(libs.activity.ktx)
-    implementation(libs.fragment.ktx)
+    implementation("androidx.activity:activity-ktx:1.11.0")
+    implementation("androidx.fragment:fragment-ktx:1.8.9")
 
     // RecyclerView
-    implementation(libs.recyclerview)
+    implementation("androidx.recyclerview:recyclerview:1.4.0")
 
     // Glide for image loading
-    implementation(libs.glide)
-    ksp(libs.glide.compiler)
+    implementation("com.github.bumptech.glide:glide:5.0.5")
+    ksp("com.github.bumptech.glide:compiler:5.0.5")
 
     // Hilt
     implementation("com.google.dagger:hilt-android:2.57.2")
-    add("kapt", "com.google.dagger:hilt-compiler:2.57.2")
-    // Hilt Work (for injecting into WorkManager workers)
-    implementation("androidx.hilt:hilt-work:1.0.0")
-    add("kapt", "androidx.hilt:hilt-compiler:1.0.0")
+    kapt("com.google.dagger:hilt-compiler:2.57.2")
+    // Hilt Work
+    implementation("androidx.hilt:hilt-work:1.3.0")
+    kapt("androidx.hilt:hilt-compiler:1.3.0")
 
     // Testing
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.test.ext.junit)
-    androidTestImplementation(libs.espresso.core)
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
 
     // Static Analysis
-    detektPlugins(libs.detekt.formatting)
+    // detekt formatting plugin handled at root
 }
