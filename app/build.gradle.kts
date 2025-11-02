@@ -3,7 +3,6 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp") version "2.2.21-2.0.4"
     id("com.google.dagger.hilt.android") version "2.57.2"
-    id("org.jetbrains.kotlin.kapt")
 }
 
 android {
@@ -105,10 +104,10 @@ dependencies {
 
     // Hilt
     implementation("com.google.dagger:hilt-android:2.57.2")
-    kapt("com.google.dagger:hilt-compiler:2.57.2")
+    ksp("com.google.dagger:hilt-compiler:2.57.2")
     // Hilt Work
     implementation("androidx.hilt:hilt-work:1.3.0")
-    kapt("androidx.hilt:hilt-compiler:1.3.0")
+    ksp("androidx.hilt:hilt-compiler:1.3.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")
