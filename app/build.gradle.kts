@@ -2,6 +2,8 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp") version "2.1.0-1.0.29"
+    id("com.google.dagger.hilt.android") version "2.57.2"
+    id("org.jetbrains.kotlin.kapt")
 }
 
 android {
@@ -53,6 +55,9 @@ detekt {
 }
 
 dependencies {
+    // Module dependencies
+    implementation(project(":core"))
+
     // AndroidX Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -98,6 +103,13 @@ dependencies {
     implementation(libs.glide)
     ksp(libs.glide.compiler)
 
+    // Hilt
+    implementation("com.google.dagger:hilt-android:2.57.2")
+    add("kapt", "com.google.dagger:hilt-compiler:2.57.2")
+    // Hilt Work (for injecting into WorkManager workers)
+    implementation("androidx.hilt:hilt-work:1.0.0")
+    add("kapt", "androidx.hilt:hilt-compiler:1.0.0")
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
@@ -106,4 +118,3 @@ dependencies {
     // Static Analysis
     detektPlugins(libs.detekt.formatting)
 }
-

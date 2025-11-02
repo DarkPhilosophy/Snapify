@@ -5,7 +5,6 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
-import com.ko.app.ScreenshotApp
 import com.ko.app.receiver.NotificationActionReceiver
 import com.ko.app.ui.MainActivity
 
@@ -39,7 +38,7 @@ class NotificationHelper(private val context: Context) {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val notification = NotificationCompat.Builder(context, ScreenshotApp.CHANNEL_ID_SCREENSHOT)
+        val notification = NotificationCompat.Builder(context, com.ko.app.ScreenshotApp.CHANNEL_ID_SCREENSHOT)
             .setContentTitle("Screenshot will be deleted")
             .setContentText("$fileName - $timeText remaining")
             .setSmallIcon(android.R.drawable.ic_menu_delete)
@@ -58,7 +57,7 @@ class NotificationHelper(private val context: Context) {
     }
 
     fun showErrorNotification(title: String, message: String) {
-        val notification = NotificationCompat.Builder(context, ScreenshotApp.CHANNEL_ID_SCREENSHOT)
+        val notification = NotificationCompat.Builder(context, com.ko.app.ScreenshotApp.CHANNEL_ID_SCREENSHOT)
             .setContentTitle(title)
             .setContentText(message)
             .setSmallIcon(android.R.drawable.ic_dialog_alert)

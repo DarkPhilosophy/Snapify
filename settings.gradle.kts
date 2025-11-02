@@ -15,5 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Ko"
-include(":app")
-
+include(":app", ":core")

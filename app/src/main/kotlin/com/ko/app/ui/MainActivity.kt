@@ -21,11 +21,8 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.toColorInt
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.tabs.TabLayout
 import com.ko.app.R
-import com.ko.app.ScreenshotApp
 import com.ko.app.databinding.ActivityMainBinding
 import com.ko.app.service.ScreenshotMonitorService
 import com.ko.app.ui.adapter.ScreenshotAdapter
@@ -33,22 +30,35 @@ import com.ko.app.util.DebugLogger
 import com.ko.app.util.NotificationHelper
 import com.ko.app.util.PermissionUtils
 import com.ko.app.util.WorkManagerScheduler
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import javax.inject.Inject
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.ko.app.events.AppEvents
 
 @Suppress("TooManyFunctions")
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+
+    @Inject
+    lateinit var repository: com.ko.app.data.repository.ScreenshotRepository
+
+    @Inject
+    lateinit var preferences: com.ko.app.data.preferences.AppPreferences
+
+    @Inject
+    lateinit var notificationHelperInject: NotificationHelper
 
     private companion object {
         private const val PAGINATION_DEBOUNCE_MS = 300L
     }
 
     private lateinit var binding: ActivityMainBinding
-    private lateinit var app: ScreenshotApp
     private lateinit var adapter: ScreenshotAdapter
     private var currentTab = 0
     private var currentOffset = 0
@@ -60,13 +70,6 @@ class MainActivity : AppCompatActivity() {
     private var updatePermissionSwitches: (() -> Unit)? = null
     private var loadJob: Job? = null
     private var lastPaginationTime = 0L
-    
-    private val screenshotsScannedReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            DebugLogger.info("MainActivity", "Received SCREENSHOTS_SCANNED broadcast")
-            refreshCurrentTab()
-        }
-    }
 
     private val storagePermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -94,8 +97,6 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        app = application as ScreenshotApp
-
         setupToolbar()
         setupRecyclerView()
         setupTabs()
@@ -104,19 +105,21 @@ class MainActivity : AppCompatActivity() {
 
         loadPagedScreenshots()
         observeServiceStatus()
-        
-        LocalBroadcastManager.getInstance(this).registerReceiver(
-            screenshotsScannedReceiver,
-            IntentFilter("com.ko.app.SCREENSHOTS_SCANNED")
-        )
+
+        lifecycleScope.launchWhenStarted {
+            AppEvents.screenshotsScanned.collect {
+                DebugLogger.info("MainActivity", "Received screenshotsScanned event via AppEvents")
+                refreshCurrentTab()
+            }
+        }
 
         lifecycleScope.launch {
-            val isFirstLaunch = app.preferences.isFirstLaunch.first()
-            val isServiceEnabled = app.preferences.serviceEnabled.first()
+            val isFirstLaunch = preferences.isFirstLaunch.first()
+            val isServiceEnabled = preferences.serviceEnabled.first()
 
             if (isFirstLaunch) {
                 showWelcomeDialog()
-                app.preferences.setFirstLaunch(false)
+                preferences.setFirstLaunch(false)
             }
 
             if (isServiceEnabled) {
@@ -148,7 +151,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(screenshotsScannedReceiver)
+        // No LocalBroadcastManager cleanup required when using AppEvents
     }
 
     private fun setupToolbar() {
@@ -159,14 +162,14 @@ class MainActivity : AppCompatActivity() {
         adapter = ScreenshotAdapter(
             onKeepClick = { screenshot ->
                 lifecycleScope.launch {
-                    app.repository.markAsKept(screenshot.id)
+                    repository.markAsKept(screenshot.id)
                     val notificationHelper = NotificationHelper(this@MainActivity)
                     notificationHelper.cancelNotification(screenshot.id.toInt())
                     refreshCurrentTab()
                 }
             },
             onDeleteClick = { screenshot ->
-                showDeleteConfirmationDialog(screenshot.id, screenshot.filePath)
+                showDeleteConfirmationDialog(screenshot.id, screenshot.filePath, screenshot.contentUri)
             },
             onImageClick = { screenshot ->
                 openScreenshot(screenshot)
@@ -223,7 +226,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupServiceSwitch() {
         lifecycleScope.launch {
-            val isEnabled = app.preferences.serviceEnabled.first()
+            val isEnabled = preferences.serviceEnabled.first()
             binding.serviceSwitch.isChecked = isEnabled
             updateServiceStatus(isEnabled)
         }
@@ -263,9 +266,9 @@ class MainActivity : AppCompatActivity() {
         loadJob = lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val newItems = when (targetTab) {
-                    0 -> app.repository.getPagedMarkedScreenshots(currentOffset, pageSize)
-                    1 -> app.repository.getPagedKeptScreenshots(currentOffset, pageSize)
-                    else -> app.repository.getPagedScreenshots(currentOffset, pageSize)
+                    0 -> repository.getPagedMarkedScreenshots(currentOffset, pageSize)
+                    1 -> repository.getPagedKeptScreenshots(currentOffset, pageSize)
+                    else -> repository.getPagedScreenshots(currentOffset, pageSize)
                 }
                 DebugLogger.info("MainActivity", "Loaded ${newItems.size} items for tab $targetTab")
                 withContext(Dispatchers.Main) {
@@ -308,7 +311,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun observeServiceStatus() {
         lifecycleScope.launch {
-            app.preferences.serviceEnabled.collect { isEnabled ->
+            preferences.serviceEnabled.collect { isEnabled ->
                 updateServiceStatus(isEnabled)
             }
         }
@@ -482,7 +485,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun startMonitoringService() {
         lifecycleScope.launch {
-            app.preferences.setServiceEnabled(true)
+            preferences.setServiceEnabled(true)
 
             val serviceIntent = Intent(this@MainActivity, ScreenshotMonitorService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -499,7 +502,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun stopMonitoringService() {
         lifecycleScope.launch {
-            app.preferences.setServiceEnabled(false)
+            preferences.setServiceEnabled(false)
 
             val serviceIntent = Intent(this@MainActivity, ScreenshotMonitorService::class.java)
             stopService(serviceIntent)
@@ -510,17 +513,33 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showDeleteConfirmationDialog(screenshotId: Long, filePath: String) {
+    private fun showDeleteConfirmationDialog(screenshotId: Long, filePath: String?, contentUri: String?) {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.delete_screenshot))
             .setMessage(getString(R.string.delete_confirmation))
             .setPositiveButton(getString(R.string.delete)) { _, _ ->
                 lifecycleScope.launch {
-                    val file = File(filePath)
-                    if (file.exists()) {
-                        file.delete()
+                    var deleted = false
+
+                    // Prefer deleting via ContentResolver when possible
+                    contentUri?.let { uriStr ->
+                        try {
+                            val uri = uriStr.toUri()
+                            val rows = contentResolver.delete(uri, null, null)
+                            deleted = rows > 0
+                        } catch (e: Exception) {
+                            DebugLogger.warning("MainActivity", "Failed to delete via ContentResolver", e)
+                        }
                     }
-                    app.repository.deleteById(screenshotId)
+
+                    if (!deleted && !filePath.isNullOrEmpty()) {
+                        val file = File(filePath)
+                        if (file.exists()) {
+                            deleted = file.delete()
+                        }
+                    }
+
+                    repository.deleteById(screenshotId)
 
                     val notificationHelper = NotificationHelper(this@MainActivity)
                     notificationHelper.cancelNotification(screenshotId.toInt())
@@ -595,21 +614,22 @@ class MainActivity : AppCompatActivity() {
 
     private fun openScreenshot(screenshot: com.ko.app.data.entity.Screenshot) {
         try {
-            val file = File(screenshot.filePath)
-            if (!file.exists()) {
-                AlertDialog.Builder(this)
-                    .setTitle(getString(R.string.file_not_found))
-                    .setMessage(getString(R.string.file_not_exists))
-                    .setPositiveButton(getString(R.string.ok), null)
-                    .show()
-                return
+            val uri = screenshot.contentUri?.let { it.toUri() } ?: run {
+                val file = File(screenshot.filePath)
+                if (!file.exists()) {
+                    AlertDialog.Builder(this)
+                        .setTitle(getString(R.string.file_not_found))
+                        .setMessage(getString(R.string.file_not_exists))
+                        .setPositiveButton(getString(R.string.ok), null)
+                        .show()
+                    return
+                }
+                androidx.core.content.FileProvider.getUriForFile(
+                    this,
+                    "$packageName.fileprovider",
+                    file
+                )
             }
-
-            val uri = androidx.core.content.FileProvider.getUriForFile(
-                this,
-                "$packageName.fileprovider",
-                file
-            )
 
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, "image/*")

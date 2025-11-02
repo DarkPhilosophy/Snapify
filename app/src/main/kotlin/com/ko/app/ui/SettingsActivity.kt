@@ -17,9 +17,11 @@ import com.ko.app.BuildConfig
 import com.ko.app.R
 import com.ko.app.ScreenshotApp
 import com.ko.app.databinding.ActivitySettingsBinding
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 
 private const val FIVE_MINUTES = 5L
 private const val FIFTEEN_MINUTES = 15L
@@ -41,10 +43,13 @@ private const val UNIT_MINUTES = 0
 private const val UNIT_HOURS = 1
 private const val UNIT_DAYS = 2
 
+@AndroidEntryPoint
 class SettingsActivity : AppCompatActivity() {
 
+    @Inject
+    lateinit var preferences: com.ko.app.data.preferences.AppPreferences
+
     private lateinit var binding: ActivitySettingsBinding
-    private lateinit var app: ScreenshotApp
 
     private val folderPickerLauncher = registerForActivityResult(
         ActivityResultContracts.OpenDocumentTree()
@@ -59,8 +64,6 @@ class SettingsActivity : AppCompatActivity() {
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        app = application as ScreenshotApp
-
         setupToolbar()
         loadSettings()
         setupListeners()
@@ -74,16 +77,16 @@ class SettingsActivity : AppCompatActivity() {
         binding.toolbar.setNavigationOnClickListener {
             finish()
         }
-        }
+    }
 
-        private fun setupLanguageSpinner() {
+    private fun setupLanguageSpinner() {
         val languages = arrayOf("English", "Română")
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, languages)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         binding.languageSpinner.adapter = adapter
 
         lifecycleScope.launch {
-            val currentLang = app.preferences.language.first()
+            val currentLang = preferences.language.first()
             val position = if (currentLang == "ro") 1 else 0
             binding.languageSpinner.setSelection(position)
         }
@@ -92,13 +95,13 @@ class SettingsActivity : AppCompatActivity() {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val selectedLang = if (position == 1) "ro" else "en"
                 lifecycleScope.launch {
-                val current = app.preferences.language.first()
-                if (current != selectedLang) {
-                app.preferences.setLanguage(selectedLang)
-                val localeTag = if (selectedLang == "ro") "ro" else "en"
-                androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(localeTag))
-                Toast.makeText(this@SettingsActivity, getString(R.string.language_changed), Toast.LENGTH_SHORT).show()
-                }
+                    val current = preferences.language.first()
+                    if (current != selectedLang) {
+                        preferences.setLanguage(selectedLang)
+                        val localeTag = if (selectedLang == "ro") "ro" else "en"
+                        androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(localeTag))
+                        Toast.makeText(this@SettingsActivity, getString(R.string.language_changed), Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
 
@@ -120,26 +123,26 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun loadSettings() {
         lifecycleScope.launch {
-            val isManualMode = app.preferences.isManualMarkMode.first()
+            val isManualMode = preferences.isManualMarkMode.first()
             updateModeUI(isManualMode)
 
-            val deletionTime = app.preferences.deletionTimeMillis.first()
+            val deletionTime = preferences.deletionTimeMillis.first()
             binding.deletionTimeText.text = formatDeletionTime(deletionTime)
 
-            val notificationsEnabled = app.preferences.notificationsEnabled.first()
+            val notificationsEnabled = preferences.notificationsEnabled.first()
             binding.notificationsSwitch.isChecked = notificationsEnabled
 
-            val currentFolder = app.preferences.screenshotFolder.first()
+            val currentFolder = preferences.screenshotFolder.first()
             if (currentFolder.isEmpty() || currentFolder == "Pictures/Screenshots") {
                 binding.folderPathText.text = "primary:Pictures/Screenshots"
             } else {
-            val decoded = java.net.URLDecoder.decode(currentFolder, "UTF-8")
-            val displayPath = when {
-                decoded.contains("primary:") -> "primary:" + decoded.substringAfter("primary:")
-                decoded.contains("tree/") -> decoded.substringAfter("tree/")
-                else -> decoded
-            }
-            binding.folderPathText.text = displayPath
+                val decoded = java.net.URLDecoder.decode(currentFolder, "UTF-8")
+                val displayPath = when {
+                    decoded.contains("primary:") -> "primary:" + decoded.substringAfter("primary:")
+                    decoded.contains("tree/") -> decoded.substringAfter("tree/")
+                    else -> decoded
+                }
+                binding.folderPathText.text = displayPath
             }
         }
     }
@@ -147,9 +150,9 @@ class SettingsActivity : AppCompatActivity() {
     private fun setupListeners() {
         binding.btnToggleMode.setOnClickListener {
             lifecycleScope.launch {
-                val currentMode = app.preferences.isManualMarkMode.first()
+                val currentMode = preferences.isManualMarkMode.first()
                 val newMode = !currentMode
-                app.preferences.setManualMarkMode(newMode)
+                preferences.setManualMarkMode(newMode)
                 updateModeUI(newMode)
             }
         }
@@ -160,7 +163,7 @@ class SettingsActivity : AppCompatActivity() {
 
         binding.notificationsSwitch.setOnCheckedChangeListener { _, isChecked ->
             lifecycleScope.launch {
-                app.preferences.setNotificationsEnabled(isChecked)
+                preferences.setNotificationsEnabled(isChecked)
             }
         }
 
@@ -220,7 +223,7 @@ class SettingsActivity : AppCompatActivity() {
                     showCustomTimeDialog()
                 } else {
                     lifecycleScope.launch {
-                        app.preferences.setDeletionTimeMillis(values[which])
+                        preferences.setDeletionTimeMillis(values[which])
                         binding.deletionTimeText.text = options[which]
                     }
                 }
@@ -280,7 +283,7 @@ class SettingsActivity : AppCompatActivity() {
                 }
 
                 lifecycleScope.launch {
-                    app.preferences.setDeletionTimeMillis(millis)
+                    preferences.setDeletionTimeMillis(millis)
                     binding.deletionTimeText.text = formatDeletionTime(millis)
                 }
             }
@@ -313,10 +316,10 @@ class SettingsActivity : AppCompatActivity() {
 
             // Save folder URI to preferences
             lifecycleScope.launch {
-            app.preferences.setScreenshotFolder(uri.toString())
+                preferences.setScreenshotFolder(uri.toString())
 
                 // Restart service if running to re-scan with new folder
-                val isServiceEnabled = app.preferences.serviceEnabled.first()
+                val isServiceEnabled = preferences.serviceEnabled.first()
                 if (isServiceEnabled) {
                     // Stop current service
                     val stopIntent = Intent(this@SettingsActivity, com.ko.app.service.ScreenshotMonitorService::class.java)

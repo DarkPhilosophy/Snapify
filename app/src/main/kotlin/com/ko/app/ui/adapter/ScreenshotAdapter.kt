@@ -81,21 +81,31 @@ class ScreenshotAdapter(
                     btnDelete.visibility = View.VISIBLE
                 }
                 screenshot.isMarkedForDeletion && screenshot.deletionTimestamp != null -> {
-                    val remaining = screenshot.deletionTimestamp - System.currentTimeMillis()
-                    if (remaining > 0) {
-                        timeRemaining.visibility = View.VISIBLE
-                        timeRemaining.text = itemView.context.getString(
-                            R.string.deletes_in,
-                            TimeUtils.formatTimeRemaining(remaining)
-                        )
-                        statusText.visibility = View.GONE
-                        btnKeep.visibility = View.VISIBLE
-                        btnDelete.visibility = View.VISIBLE
+                    val deletionTs = screenshot.deletionTimestamp
+                    if (deletionTs != null) {
+                        val remaining = deletionTs - System.currentTimeMillis()
+                        if (remaining > 0) {
+                            timeRemaining.visibility = View.VISIBLE
+                            timeRemaining.text = itemView.context.getString(
+                                R.string.deletes_in,
+                                TimeUtils.formatTimeRemaining(remaining)
+                            )
+                            statusText.visibility = View.GONE
+                            btnKeep.visibility = View.VISIBLE
+                            btnDelete.visibility = View.VISIBLE
+                        } else {
+                            timeRemaining.visibility = View.VISIBLE
+                            timeRemaining.text = itemView.context.getString(R.string.expired)
+                            statusText.visibility = View.GONE
+                            btnKeep.visibility = View.GONE
+                            btnDelete.visibility = View.VISIBLE
+                        }
                     } else {
-                        timeRemaining.visibility = View.VISIBLE
-                        timeRemaining.text = itemView.context.getString(R.string.expired)
-                        statusText.visibility = View.GONE
-                        btnKeep.visibility = View.GONE
+                        // Fallback if timestamps unexpectedly null across module boundary
+                        timeRemaining.visibility = View.GONE
+                        statusText.visibility = View.VISIBLE
+                        statusText.text = itemView.context.getString(R.string.unmarked)
+                        btnKeep.visibility = View.VISIBLE
                         btnDelete.visibility = View.VISIBLE
                     }
                 }

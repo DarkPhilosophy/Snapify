@@ -1,30 +1,4 @@
 package com.ko.app.data.entity
 
-import androidx.room.Entity
-import androidx.room.Index
-import androidx.room.PrimaryKey
-
-@Entity(
-    tableName = "screenshots",
-    indices = [Index(value = ["filePath"], unique = true)]
-)
-data class Screenshot(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
-
-    val filePath: String,
-
-    val fileName: String,
-
-    val fileSize: Long,
-
-    val createdAt: Long,
-
-    val deletionTimestamp: Long?,
-
-    val isMarkedForDeletion: Boolean = false,
-
-    val isKept: Boolean = false,
-
-    val thumbnailPath: String? = null
-)
+// Entity is provided by :core module (com.ko.app.data.entity.Screenshot)
+// Keep this stub so references in the app module compile while the canonical entity lives in :core.

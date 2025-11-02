@@ -80,3 +80,4 @@ interface ScreenshotDao {
     @Query("SELECT * FROM screenshots WHERE isKept = 1 ORDER BY createdAt DESC LIMIT :limit OFFSET :offset")
     suspend fun getKeptScreenshotsPaged(limit: Int, offset: Int): List<Screenshot>
 }
+

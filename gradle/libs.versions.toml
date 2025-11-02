@@ -41,6 +41,12 @@ glide = "4.16.0"
 # Gson for JSON
 gson = "2.10.1"
 
+# Hilt
+hilt = "2.57.2"
+
+# Hilt Work
+hilt_work = "1.0.0"
+
 [libraries]
 androidx_core_ktx = { module = "androidx.core:core-ktx", version.ref = "core_ktx" }
 androidx_appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
@@ -86,8 +92,15 @@ glide_compiler = { module = "com.github.bumptech.glide:compiler", version.ref = 
 # Gson
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 
+# Hilt
+hilt_android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
+hilt_compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
+
+# Hilt Work
+hilt_work = { module = "androidx.hilt:hilt-work", version.ref = "hilt_work" }
+hilt_work_compiler = { module = "androidx.hilt:hilt-compiler", version.ref = "hilt_work" }
+
 [plugins]
 android_application = { id = "com.android.application", version.ref = "agp" }
 kotlin_android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
-

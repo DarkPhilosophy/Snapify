@@ -4,95 +4,96 @@ import androidx.lifecycle.LiveData
 import com.ko.app.data.dao.ScreenshotDao
 import com.ko.app.data.entity.Screenshot
 import kotlinx.coroutines.flow.Flow
+import javax.inject.Inject
 
-@Suppress("TooManyFunctions", "unused")
-class ScreenshotRepository(private val screenshotDao: ScreenshotDao) {
+@Suppress("TooManyFunctions")
+class ScreenshotRepositoryImpl @Inject constructor(private val screenshotDao: ScreenshotDao) : com.ko.app.data.repository.ScreenshotRepository {
 
-    fun getAllScreenshots(): Flow<List<Screenshot>> {
+    override fun getAllScreenshots(): Flow<List<Screenshot>> {
         return screenshotDao.getAllScreenshots()
     }
 
-    fun getAllScreenshotsLiveData(): LiveData<List<Screenshot>> {
+    override fun getAllScreenshotsLiveData(): LiveData<List<Screenshot>> {
         return screenshotDao.getAllScreenshotsLiveData()
     }
 
-    fun getMarkedScreenshots(): Flow<List<Screenshot>> {
+    override fun getMarkedScreenshots(): Flow<List<Screenshot>> {
         return screenshotDao.getMarkedScreenshots()
     }
 
-    fun getMarkedScreenshotsLiveData(): LiveData<List<Screenshot>> {
+    override fun getMarkedScreenshotsLiveData(): LiveData<List<Screenshot>> {
         return screenshotDao.getMarkedScreenshotsLiveData()
     }
 
-    fun getKeptScreenshots(): Flow<List<Screenshot>> {
+    override fun getKeptScreenshots(): Flow<List<Screenshot>> {
         return screenshotDao.getKeptScreenshots()
     }
 
-    fun getUnmarkedScreenshots(): Flow<List<Screenshot>> {
+    override fun getUnmarkedScreenshots(): Flow<List<Screenshot>> {
         return screenshotDao.getUnmarkedScreenshots()
     }
 
-    fun getMarkedCount(): Flow<Int> {
+    override fun getMarkedCount(): Flow<Int> {
         return screenshotDao.getMarkedCount()
     }
 
-    suspend fun insert(screenshot: Screenshot): Long {
+    override suspend fun insert(screenshot: Screenshot): Long {
         return screenshotDao.insert(screenshot)
     }
 
-    suspend fun insertAll(screenshots: List<Screenshot>): List<Long> {
+    override suspend fun insertAll(screenshots: List<Screenshot>): List<Long> {
         return screenshotDao.insertAll(screenshots)
     }
 
-    suspend fun update(screenshot: Screenshot) {
+    override suspend fun update(screenshot: Screenshot) {
         screenshotDao.update(screenshot)
     }
 
-    suspend fun delete(screenshot: Screenshot) {
+    override suspend fun delete(screenshot: Screenshot) {
         screenshotDao.delete(screenshot)
     }
 
-    suspend fun getById(id: Long): Screenshot? {
+    override suspend fun getById(id: Long): Screenshot? {
         return screenshotDao.getById(id)
     }
 
-    suspend fun getByFilePath(filePath: String): Screenshot? {
+    override suspend fun getByFilePath(filePath: String): Screenshot? {
         return screenshotDao.getByFilePath(filePath)
     }
 
-    suspend fun getExpiredScreenshots(currentTime: Long): List<Screenshot> {
+    override suspend fun getExpiredScreenshots(currentTime: Long): List<Screenshot> {
         return screenshotDao.getExpiredScreenshots(currentTime)
     }
 
-    suspend fun deleteById(id: Long) {
+    override suspend fun deleteById(id: Long) {
         screenshotDao.deleteById(id)
     }
 
-    suspend fun deleteByFilePath(filePath: String) {
+    override suspend fun deleteByFilePath(filePath: String) {
         screenshotDao.deleteByFilePath(filePath)
     }
 
-    suspend fun markAsKept(id: Long) {
+    override suspend fun markAsKept(id: Long) {
         screenshotDao.markAsKept(id)
     }
 
-    suspend fun markForDeletion(id: Long, deletionTime: Long) {
+    override suspend fun markForDeletion(id: Long, deletionTime: Long) {
         screenshotDao.markForDeletion(id, deletionTime)
     }
 
-    suspend fun deleteAll() {
-    screenshotDao.deleteAll()
+    override suspend fun deleteAll() {
+        screenshotDao.deleteAll()
     }
 
-    suspend fun getPagedScreenshots(offset: Int, limit: Int): List<Screenshot> {
+    override suspend fun getPagedScreenshots(offset: Int, limit: Int): List<Screenshot> {
         return screenshotDao.getAllScreenshotsPaged(limit, offset)
     }
 
-    suspend fun getPagedMarkedScreenshots(offset: Int, limit: Int): List<Screenshot> {
+    override suspend fun getPagedMarkedScreenshots(offset: Int, limit: Int): List<Screenshot> {
         return screenshotDao.getMarkedScreenshotsPaged(limit, offset)
     }
 
-    suspend fun getPagedKeptScreenshots(offset: Int, limit: Int): List<Screenshot> {
+    override suspend fun getPagedKeptScreenshots(offset: Int, limit: Int): List<Screenshot> {
         return screenshotDao.getKeptScreenshotsPaged(limit, offset)
     }
 }

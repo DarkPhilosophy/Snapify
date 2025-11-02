@@ -16,20 +16,19 @@ class NotificationActionReceiver : BroadcastReceiver() {
             ACTION_KEEP -> {
                 val screenshotId = intent.getLongExtra("screenshot_id", -1L)
                 if (screenshotId != -1L) {
-                    handleKeepAction(context, screenshotId)
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            val app = context.applicationContext as ScreenshotApp
+                            app.repository.markAsKept(screenshotId)
+
+                            val notificationHelper = NotificationHelper(context)
+                            notificationHelper.cancelNotification(screenshotId.toInt())
+                        } catch (_: Exception) {
+                            // ignore errors in broadcast handling
+                        }
+                    }
                 }
             }
-        }
-    }
-
-    private fun handleKeepAction(context: Context, screenshotId: Long) {
-        val app = context.applicationContext as ScreenshotApp
-
-        CoroutineScope(Dispatchers.IO).launch {
-            app.repository.markAsKept(screenshotId)
-
-            val notificationHelper = NotificationHelper(context)
-            notificationHelper.cancelNotification(screenshotId.toInt())
         }
     }
 

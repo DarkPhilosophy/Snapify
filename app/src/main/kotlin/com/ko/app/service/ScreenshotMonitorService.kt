@@ -3,6 +3,7 @@ package com.ko.app.service
 import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
+import android.content.ContentUris
 import android.content.Intent
 import android.database.ContentObserver
 import android.net.Uri
@@ -13,12 +14,14 @@ import android.os.IBinder
 import android.os.Looper
 import android.provider.MediaStore
 import androidx.core.app.NotificationCompat
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.core.net.toUri
 import com.ko.app.ScreenshotApp
 import com.ko.app.data.entity.Screenshot
+import com.ko.app.events.AppEvents
 import com.ko.app.ui.MainActivity
 import com.ko.app.util.DebugLogger
 import com.ko.app.util.NotificationHelper
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -26,23 +29,30 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.File
+import javax.inject.Inject
 
 private const val MILLIS_PER_SECOND = 1000L
 private const val PROCESSING_DELAY_MS = 500L
 private const val CLEANUP_DELAY_MS = 1000L
 
+@AndroidEntryPoint
 class ScreenshotMonitorService : Service() {
 
-    private val serviceScope = CoroutineScope(Dispatchers.IO + Job())
+    @Inject
+    lateinit var repository: com.ko.app.data.repository.ScreenshotRepository
+
+    @Inject
+    lateinit var preferences: com.ko.app.data.preferences.AppPreferences
+
+    @Inject
+    lateinit var notificationHelperInjected: NotificationHelper
+
+    private val serviceJob = Job()
+    private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
     private lateinit var contentObserver: ContentObserver
-    private lateinit var app: ScreenshotApp
-    private lateinit var notificationHelper: NotificationHelper
 
     override fun onCreate() {
         super.onCreate()
-        app = application as ScreenshotApp
-        notificationHelper = NotificationHelper(this)
-
         DebugLogger.info("ScreenshotMonitorService", "Service onCreate() called")
         startForeground(NOTIFICATION_ID, createForegroundNotification())
         setupContentObserver()
@@ -51,27 +61,36 @@ class ScreenshotMonitorService : Service() {
             DebugLogger.info("ScreenshotMonitorService", "Scanning existing screenshots on service start")
             scanExistingScreenshots()
 
-            // Clean up expired screenshots with deleted files
+            // Clean up expired screenshots whose files are gone
             val currentTime = System.currentTimeMillis()
-            val expired = app.repository.getExpiredScreenshots(currentTime)
-                .filter { !File(it.filePath).exists() }
-            expired.forEach { screenshot ->
-                app.repository.delete(screenshot)
-                DebugLogger.info("ScreenshotMonitorService", "Cleaned up expired screenshot: ${screenshot.fileName}")
+            val expired = repository.getExpiredScreenshots(currentTime)
+            expired.filter { screenshot ->
+                screenshot.contentUri?.let { uriStr ->
+                    try {
+                        val uri = uriStr.toUri()
+                        val cursor = contentResolver.query(uri, arrayOf(MediaStore.Images.Media._ID), null, null, null)
+                        cursor?.use { it.count > 0 } ?: !File(screenshot.filePath).exists()
+                    } catch (e: Exception) {
+                        !File(screenshot.filePath).exists()
+                    }
+                } ?: !File(screenshot.filePath).exists()
+            }.forEach { screenshot ->
+                repository.delete(screenshot)
+                DebugLogger.info("ScreenshotMonitorService", "Cleaned up expired screenshot: ${'$'}{screenshot.fileName}")
             }
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         DebugLogger.info("ScreenshotMonitorService", "onStartCommand called")
-        
+
         if (intent?.getBooleanExtra("rescan", false) == true) {
             serviceScope.launch {
                 DebugLogger.info("ScreenshotMonitorService", "Rescanning triggered from intent")
                 scanExistingScreenshots()
             }
         }
-        
+
         return START_STICKY
     }
 
@@ -91,7 +110,6 @@ class ScreenshotMonitorService : Service() {
             .setContentText("Monitoring screenshots for automatic deletion")
             .setSmallIcon(android.R.drawable.ic_menu_camera)
             .setContentIntent(pendingIntent)
-            .setOngoing(true)
             .build()
     }
 
@@ -103,65 +121,65 @@ class ScreenshotMonitorService : Service() {
             }
         }
 
-        val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-        } else {
-            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-        }
-
+        val uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
         contentResolver.registerContentObserver(uri, true, contentObserver)
+        DebugLogger.info("ScreenshotMonitorService", "Content observer registered for $uri")
     }
 
     private fun handleNewScreenshot(uri: Uri) {
+        val projection = arrayOf(
+            MediaStore.Images.Media._ID,
+            MediaStore.Images.Media.DISPLAY_NAME,
+            MediaStore.Images.Media.SIZE,
+            MediaStore.Images.Media.DATE_ADDED,
+            MediaStore.Images.Media.DATA
+        )
         serviceScope.launch {
             try {
                 DebugLogger.debug("ScreenshotMonitorService", "New media detected: $uri")
-                val projection = arrayOf(
-                    MediaStore.Images.Media.DATA,
-                    MediaStore.Images.Media.DISPLAY_NAME,
-                    MediaStore.Images.Media.SIZE,
-                    MediaStore.Images.Media.DATE_ADDED
-                )
-
                 contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
                     if (cursor.moveToFirst()) {
-                        val dataIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
-                        val nameIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
+                        val idIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
+                        val fileName = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME))
                         val sizeIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.SIZE)
                         val dateIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_ADDED)
+                        val dataIndex = cursor.getColumnIndex(MediaStore.Images.Media.DATA)
 
-                        val filePath = cursor.getString(dataIndex)
-                        val fileName = cursor.getString(nameIndex)
+                        val id = cursor.getLong(idIndex)
+                        val contentUri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id).toString()
+
+                        val filePath = if (dataIndex != -1) cursor.getString(dataIndex) else null
                         val fileSize = cursor.getLong(sizeIndex)
                         val dateAdded = cursor.getLong(dateIndex) * MILLIS_PER_SECOND
 
-                        DebugLogger.debug("ScreenshotMonitorService", "File detected: $fileName at $filePath")
-
-                        if (filePath.contains(".pending")) {
+                        if (filePath?.contains(".pending") == true) {
                             DebugLogger.debug("ScreenshotMonitorService", "Ignoring pending file: $fileName")
                             return@use
                         }
 
-                        if (isScreenshotFile(filePath)) {
+                        val isScreenshot = if (filePath != null) {
+                            isScreenshotFile(filePath)
+                        } else {
+                            fileName.lowercase().contains("screenshot")
+                        }
+
+                        if (isScreenshot) {
                             DebugLogger.info("ScreenshotMonitorService", "Screenshot file detected: $fileName")
                             delay(PROCESSING_DELAY_MS)
 
-                            val existing = app.repository.getByFilePath(filePath)
+                            val existing = filePath?.let { repository.getByFilePath(it) } ?: null
                             if (existing == null) {
                                 DebugLogger.info("ScreenshotMonitorService", "Processing new screenshot: $fileName")
-                                processNewScreenshot(filePath, fileName, fileSize, dateAdded)
+                                processNewScreenshot(filePath, contentUri, fileName, fileSize, dateAdded)
                             } else {
-                                DebugLogger.debug(
-                                    "ScreenshotMonitorService",
-                                    "Screenshot already exists in DB: $fileName"
-                                )
+                                DebugLogger.debug("ScreenshotMonitorService", "Screenshot already exists in DB: $fileName")
                             }
                         } else {
                             DebugLogger.debug("ScreenshotMonitorService", "Not a screenshot file: $fileName")
                         }
                     }
                 }
-            } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+            } catch (e: Exception) {
                 DebugLogger.error("ScreenshotMonitorService", "Error handling new screenshot", e)
             }
         }
@@ -171,22 +189,25 @@ class ScreenshotMonitorService : Service() {
         val lowerPath = filePath.lowercase()
 
         // Check if it's in the configured screenshot folder
-        val configuredFolder = app.preferences.screenshotFolder.first()
-        val screenshotFolder = if (configuredFolder.isNotEmpty()) {
-            // Decode URI to path
-            java.net.URLDecoder.decode(configuredFolder, "UTF-8").let { decoded ->
-                when {
-                    decoded.contains("primary:") -> decoded.substringAfter("primary:")
-                    decoded.contains("tree/") -> {
-                        val parts = decoded.substringAfter("tree/").split(":")
-                        if (parts.size >= 2) parts[1] else decoded
+        val configuredFolder = preferences.screenshotFolder.first()
+        val screenshotFolder = run {
+            if (configuredFolder.isNotEmpty() && configuredFolder != com.ko.app.data.preferences.AppPreferences.DEFAULT_SCREENSHOT_FOLDER) {
+                try {
+                    val decoded = java.net.URLDecoder.decode(configuredFolder, "UTF-8")
+                    when {
+                        decoded.contains("primary:") -> Environment.getExternalStorageDirectory().absolutePath + "/" + decoded.substringAfter("primary:")
+                        decoded.contains("tree/") -> {
+                            val parts = decoded.substringAfter("tree/").split(":" )
+                            if (parts.size >= 2) Environment.getExternalStorageDirectory().absolutePath + "/" + parts[1] else decoded
+                        }
+                        else -> decoded
                     }
-                    else -> decoded
+                } catch (e: Exception) {
+                    configuredFolder
                 }
+            } else {
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath + "/Screenshots"
             }
-        } else {
-            // Default
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath + "/Screenshots"
         }
 
         val isInFolder = lowerPath.contains(screenshotFolder.lowercase())
@@ -197,39 +218,57 @@ class ScreenshotMonitorService : Service() {
     }
 
     private suspend fun processNewScreenshot(
-        filePath: String,
+        filePath: String?,
+        contentUri: String?,
         fileName: String,
-        @Suppress("UNUSED_PARAMETER") fileSize: Long,
+        fileSize: Long,
         createdAt: Long
     ) {
-        val file = File(filePath)
-        if (!file.exists() || file.length() == 0L) {
+        // Validate existence: prefer contentUri, fallback to file path
+        val exists = contentUri?.let { uriStr ->
+            try {
+                val uri = uriStr.toUri()
+                contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
+                    pfd.statSize > 0
+                } ?: false
+            } catch (e: Exception) {
+                false
+            }
+        } ?: run {
+            filePath?.let { path ->
+                val f = File(path)
+                f.exists() && f.length() > 0L
+            } ?: false
+        }
+
+        if (!exists) {
             DebugLogger.warning("ScreenshotMonitorService", "File doesn't exist or is empty: $fileName")
             return
         }
 
-        val actualFileSize = file.length()
-        val isManualMode = app.preferences.isManualMarkMode.first()
+        val actualFileSize = filePath?.let { File(it).length() } ?: fileSize
+        val isManualMode = preferences.isManualMarkMode.first()
         val mode = if (isManualMode) "MANUAL" else "AUTOMATIC"
-
         DebugLogger.info("ScreenshotMonitorService", "Processing screenshot in $mode mode: $fileName")
 
         if (isManualMode) {
             val screenshot = Screenshot(
-                filePath = filePath,
+                filePath = filePath ?: "",
                 fileName = fileName,
                 fileSize = actualFileSize,
                 createdAt = createdAt,
                 deletionTimestamp = null,
                 isMarkedForDeletion = false,
-                isKept = false
+                isKept = false,
+                contentUri = contentUri
             )
-            val id = app.repository.insert(screenshot)
-            DebugLogger.info("ScreenshotMonitorService", "Screenshot inserted to DB with ID: $id (Manual Mode)")
+            val id = repository.insert(screenshot)
+            DebugLogger.info("ScreenshotMonitorService", "Screenshot inserted to DB with ID: ${'$'}id (Manual Mode)")
 
             val intent = Intent(this, OverlayService::class.java).apply {
                 putExtra("screenshot_id", id)
                 putExtra("file_path", filePath)
+                putExtra("content_uri", contentUri)
             }
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -237,31 +276,31 @@ class ScreenshotMonitorService : Service() {
             } else {
                 startService(intent)
             }
-            DebugLogger.info("ScreenshotMonitorService", "OverlayService started for screenshot ID: $id")
+            DebugLogger.info("ScreenshotMonitorService", "OverlayService started for screenshot ID: ${'$'}id")
         } else {
-            val deletionTime = app.preferences.getDeletionTimeMillisSync()
+            val deletionTime = preferences.getDeletionTimeMillisSync()
             val deletionTimestamp = System.currentTimeMillis() + deletionTime
 
             val screenshot = Screenshot(
-                filePath = filePath,
+                filePath = filePath ?: "",
                 fileName = fileName,
                 fileSize = actualFileSize,
                 createdAt = createdAt,
                 deletionTimestamp = deletionTimestamp,
                 isMarkedForDeletion = true,
-                isKept = false
+                isKept = false,
+                contentUri = contentUri
             )
-            val id = app.repository.insert(screenshot)
+            val id = repository.insert(screenshot)
             DebugLogger.info(
                 "ScreenshotMonitorService",
-                "Screenshot inserted to DB with ID: $id (Automatic Mode, marked for deletion)"
+                "Screenshot inserted to DB with ID: ${'$'}id (Automatic Mode, marked for deletion)"
             )
 
-            notificationHelper.showScreenshotNotification(id, fileName, deletionTimestamp)
-            DebugLogger.info("ScreenshotMonitorService", "Notification shown for screenshot ID: $id")
-            
-            val broadcastIntent = Intent("com.ko.app.SCREENSHOTS_SCANNED")
-            LocalBroadcastManager.getInstance(this).sendBroadcast(broadcastIntent)
+            notificationHelperInjected.showScreenshotNotification(id, fileName, deletionTimestamp)
+            DebugLogger.info("ScreenshotMonitorService", "Notification shown for screenshot ID: ${'$'}id")
+
+            AppEvents.notifyScreenshotsScanned()
         }
     }
 
@@ -270,14 +309,14 @@ class ScreenshotMonitorService : Service() {
             try {
                 DebugLogger.info("ScreenshotMonitorService", "Starting scan of existing screenshots")
 
-                val configuredFolder = app.preferences.screenshotFolder.first()
-                val screenshotFolder = if (configuredFolder.isNotEmpty() && configuredFolder != "Pictures/Screenshots") {
+                val configuredFolder = preferences.screenshotFolder.first()
+                val screenshotFolder = if (configuredFolder.isNotEmpty() && configuredFolder != com.ko.app.data.preferences.AppPreferences.DEFAULT_SCREENSHOT_FOLDER) {
                     // Decode URI to path
                     java.net.URLDecoder.decode(configuredFolder, "UTF-8").let { decoded ->
                         when {
                             decoded.contains("primary:") -> Environment.getExternalStorageDirectory().absolutePath + "/" + decoded.substringAfter("primary:")
                             decoded.contains("tree/") -> {
-                                val parts = decoded.substringAfter("tree/").split(":")
+                                val parts = decoded.substringAfter("tree/").split(":" )
                                 if (parts.size >= 2) {
                                     val path = parts[1]
                                     Environment.getExternalStorageDirectory().absolutePath + "/" + path
@@ -296,7 +335,7 @@ class ScreenshotMonitorService : Service() {
                 if (!folder.exists() || !folder.isDirectory) {
                     DebugLogger.warning(
                         "ScreenshotMonitorService",
-                        "Screenshot folder doesn't exist: $screenshotFolder, exists=${folder.exists()}, isDir=${folder.isDirectory}"
+                        "Screenshot folder doesn't exist: $screenshotFolder, exists=${'$'}{folder.exists()}, isDir=${'$'}{folder.isDirectory}"
                     )
                     return@launch
                 }
@@ -317,23 +356,23 @@ class ScreenshotMonitorService : Service() {
                             createdAt = file.lastModified(),
                             deletionTimestamp = null,
                             isMarkedForDeletion = false,
-                            isKept = false
+                            isKept = false,
+                            contentUri = null
                         )
                     } else null
                 } ?: emptyList()
 
                 val imported = if (screenshotsToImport.isNotEmpty()) {
                     screenshotsToImport.chunked(500).sumOf { chunk ->
-                        app.repository.insertAll(chunk).count { it > 0 }
+                        repository.insertAll(chunk).count { it > 0 }
                     }
                 } else 0
 
-                DebugLogger.info("ScreenshotMonitorService", "Imported $imported new screenshots from existing files")
-                
-                val broadcastIntent = Intent("com.ko.app.SCREENSHOTS_SCANNED")
-                LocalBroadcastManager.getInstance(this@ScreenshotMonitorService).sendBroadcast(broadcastIntent)
+                DebugLogger.info("ScreenshotMonitorService", "Imported ${'$'}imported new screenshots from existing files")
+
+                AppEvents.notifyScreenshotsScanned()
                 DebugLogger.info("ScreenshotMonitorService", "Broadcast sent: SCREENSHOTS_SCANNED")
-            } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+            } catch (e: Exception) {
                 DebugLogger.error("ScreenshotMonitorService", "Error scanning existing screenshots", e)
             }
         }
@@ -343,6 +382,7 @@ class ScreenshotMonitorService : Service() {
         super.onDestroy()
         DebugLogger.info("ScreenshotMonitorService", "Service onDestroy() called")
         contentResolver.unregisterContentObserver(contentObserver)
+        serviceJob.cancel()
         serviceScope.launch {
             delay(CLEANUP_DELAY_MS)
         }

@@ -14,15 +14,18 @@ import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
 import com.google.android.material.button.MaterialButton
 import com.ko.app.R
-import com.ko.app.ScreenshotApp
 import com.ko.app.util.DebugLogger
 import com.ko.app.util.NotificationHelper
 import com.ko.app.util.PermissionUtils
+import com.ko.app.ScreenshotApp
+import android.annotation.SuppressLint
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.cancel
 
 private const val FIFTEEN_MINUTES = 15L
 private const val THREE_DAYS = 3L
@@ -37,6 +40,7 @@ class OverlayService : Service() {
     private lateinit var windowManager: WindowManager
     private var overlayView: View? = null
     private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
+    private lateinit var repository: com.ko.app.data.repository.ScreenshotRepository
     private lateinit var notificationHelper: NotificationHelper
     private var screenshotId: Long = -1L
     private var filePath: String = ""
@@ -44,11 +48,15 @@ class OverlayService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        notificationHelper = NotificationHelper(this)
         screenshotId = intent?.getLongExtra("screenshot_id", -1L) ?: -1L
         filePath = intent?.getStringExtra("file_path") ?: ""
 
         DebugLogger.info("OverlayService", "onStartCommand called with screenshot ID: $screenshotId, path: $filePath")
+
+        // Initialize dependencies from application
+        val app = application as ScreenshotApp
+        repository = app.repository
+        notificationHelper = NotificationHelper(this)
 
         if (screenshotId != -1L) {
             try {
@@ -81,6 +89,7 @@ class OverlayService : Service() {
         return START_NOT_STICKY
     }
 
+    @SuppressLint("InflateParams")
     private fun showOverlay() {
         try {
             DebugLogger.info("OverlayService", "Attempting to show overlay")
@@ -166,12 +175,11 @@ class OverlayService : Service() {
 
     private fun handleDeletionTime(timeMillis: Long) {
         serviceScope.launch(Dispatchers.IO) {
-            val app = application as ScreenshotApp
             val deletionTimestamp = System.currentTimeMillis() + timeMillis
 
-            app.repository.markForDeletion(screenshotId, deletionTimestamp)
+            repository.markForDeletion(screenshotId, deletionTimestamp)
 
-            val screenshot = app.repository.getById(screenshotId)
+            val screenshot = repository.getById(screenshotId)
             screenshot?.let {
                 val notificationHelper = NotificationHelper(this@OverlayService)
                 notificationHelper.showScreenshotNotification(
@@ -181,7 +189,7 @@ class OverlayService : Service() {
                 )
             }
 
-            launch(Dispatchers.Main) {
+            withContext(Dispatchers.Main) {
                 dismissOverlay()
             }
         }
@@ -189,10 +197,9 @@ class OverlayService : Service() {
 
     private fun handleKeep() {
         serviceScope.launch(Dispatchers.IO) {
-            val app = application as ScreenshotApp
-            app.repository.markAsKept(screenshotId)
+            repository.markAsKept(screenshotId)
 
-            launch(Dispatchers.Main) {
+            withContext(Dispatchers.Main) {
                 dismissOverlay()
             }
         }
@@ -244,6 +251,12 @@ class OverlayService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        // Cancel any running coroutines to avoid leaks
+        try {
+            serviceScope.cancel()
+        } catch (_: Exception) {
+            // ignore
+        }
         overlayView?.let {
             try {
                 if (::windowManager.isInitialized) {

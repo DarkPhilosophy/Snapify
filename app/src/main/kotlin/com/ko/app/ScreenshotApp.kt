@@ -10,35 +10,51 @@ import com.ko.app.data.database.ScreenshotDatabase
 import com.ko.app.data.preferences.AppPreferences
 import com.ko.app.data.repository.ScreenshotRepository
 import com.ko.app.util.DebugLogger
-import kotlinx.coroutines.runBlocking
+import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import androidx.work.Configuration
+import androidx.hilt.work.HiltWorkerFactory
+import javax.inject.Inject
 
-class ScreenshotApp : Application() {
+@HiltAndroidApp
+class ScreenshotApp : Application(), Configuration.Provider {
 
+    @Inject
+    lateinit var workerFactory: HiltWorkerFactory
+
+    @Inject
     lateinit var database: ScreenshotDatabase
-        private set
 
+    @Inject
     lateinit var repository: ScreenshotRepository
-        private set
 
+    @Inject
     lateinit var preferences: AppPreferences
-        private set
 
     override fun onCreate() {
-    super.onCreate()
-    instance = this
+        super.onCreate()
+        instance = this
 
-    database = ScreenshotDatabase.getDatabase(this)
-        repository = ScreenshotRepository(database.screenshotDao())
-    preferences = AppPreferences(this)
+        // Preferences, database and repository are injected by Hilt
 
-    val lang = runBlocking { preferences.getLanguageSync() }
-    val localeTag = if (lang == "ro") "ro" else "en"
-    AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(localeTag))
+        // Read language asynchronously to avoid blocking application start
+        CoroutineScope(Dispatchers.Default).launch {
+            try {
+                val lang = preferences.getLanguageSync()
+                val localeTag = if (lang == "ro") "ro" else "en"
+                AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(localeTag))
+            } catch (e: Exception) {
+                // If anything fails, default locale is used
+                DebugLogger.warning("ScreenshotApp", "Failed to set application locale", e)
+            }
+        }
 
         DebugLogger.init(this)
 
         createNotificationChannels()
-        }
+    }
 
     private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -66,6 +82,12 @@ class ScreenshotApp : Application() {
             notificationManager.createNotificationChannel(screenshotChannel)
         }
     }
+
+    // Replace getWorkManagerConfiguration() method with WorkManager's property API
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
 
     companion object {
         const val CHANNEL_ID_SERVICE = "screenshot_monitor_service"
