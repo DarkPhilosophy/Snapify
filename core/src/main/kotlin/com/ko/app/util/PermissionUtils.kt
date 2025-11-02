@@ -8,15 +8,21 @@ object PermissionUtils {
     fun hasStoragePermission(context: Context): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             android.content.pm.PackageManager.PERMISSION_GRANTED ==
-                androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.READ_MEDIA_IMAGES)
+                androidx.core.content.ContextCompat.checkSelfPermission(
+                    context, android.Manifest.permission.READ_MEDIA_IMAGES
+                )
         } else {
-            androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.READ_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                context, android.Manifest.permission.READ_EXTERNAL_STORAGE
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
         }
     }
 
     fun hasNotificationPermission(context: Context): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                context, android.Manifest.permission.POST_NOTIFICATIONS
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
         } else true
     }
 

@@ -48,13 +48,28 @@ jobs:
           name: ko-release-apk
           path: app/build/outputs/apk/release/*.apk
 
-      - name: Create Release
+      - name: Create Release on Tag
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v1
         with:
           files: |
             app/build/outputs/apk/debug/*.apk
             app/build/outputs/apk/release/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release on Main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release - Ko ${{ github.run_number }}
+          tag_name: build-${{ github.run_number }}
+          body: Automated release from main branch.
+          files: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/release/*.apk
+          draft: true
+          prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -11,6 +11,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ConcurrentLinkedQueue
 
+@Suppress("TooManyFunctions")
 object DebugLogger {
 
     private const val MAX_LOG_ENTRIES = 500
@@ -38,7 +39,7 @@ object DebugLogger {
                 while (logEntries.size > MAX_LOG_ENTRIES) {
                     logEntries.poll()
                 }
-            } catch (e: Exception) {
+            } catch (e: com.google.gson.JsonSyntaxException) {
                 error("DebugLogger", "Failed to load persisted logs", e)
             }
         }
@@ -66,16 +67,13 @@ object DebugLogger {
         // Persist throwable information as a stack trace string instead of the Throwable object
         val throwableStackTrace: String? = null
     ) {
-        private fun getFormattedTimestamp(): String {
-            val sdf = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault())
-            return sdf.format(Date(timestamp))
-        }
-
         fun getFormattedMessage(): String {
+            val sdf = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault())
+            val formattedTimestamp = sdf.format(Date(timestamp))
             val levelStr = level.name.padEnd(LEVEL_PADDING)
             val tagStr = tag.padEnd(TAG_PADDING)
             val throwableStr = throwableStackTrace?.let { "\n$it" } ?: ""
-            return "[${'$'}{getFormattedTimestamp()}] [${'$'}levelStr] [${'$'}tagStr] ${'$'}message${'$'}throwableStr"
+            return "[$formattedTimestamp] [$levelStr] [$tagStr] $message$throwableStr"
         }
     }
 
@@ -158,8 +156,8 @@ object DebugLogger {
     fun exportLogsAsString(): String {
         return buildString {
             appendLine("=== Ko Screenshot App Debug Logs ===")
-            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-            appendLine("Generated: ${'$'}{dateFormat.format(Date())}")
+            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            appendLine("Generated: ${'$'}{sdf.format(Date())}")
             appendLine("Total Entries: ${'$'}{logEntries.size}")
             appendLine()
             logEntries.forEach { entry ->

@@ -5,9 +5,10 @@ import com.ko.app.data.entity.Screenshot
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Public repository interface for screenshots.
- * Implementations live in the `:app` module (ScreenshotRepositoryImpl).
- */
+* Public repository interface for screenshots.
+* Implementations live in the `:app` module (ScreenshotRepositoryImpl).
+*/
+@Suppress("TooManyFunctions")
 interface ScreenshotRepository {
     fun getAllScreenshots(): Flow<List<Screenshot>>
     fun getAllScreenshotsLiveData(): LiveData<List<Screenshot>>
