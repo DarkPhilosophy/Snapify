@@ -91,6 +91,14 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- Disable default WorkManager initializer since Application implements Configuration.Provider -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="remove">
+        </provider>
+
     </application>
 
 </manifest>
