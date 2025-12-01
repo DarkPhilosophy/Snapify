@@ -303,9 +303,9 @@ fun MainScreen(
             if (event == Lifecycle.Event.ON_RESUME) {
                 DebugLogger.info(
                     "MainScreen",
-                    "ON_RESUME: App regained focus - refreshMediaItems DISABLED, calling refreshMonitoringStatus"
+                    "ON_RESUME: App regained focus - refreshing media items and monitoring status"
                 )
-                // TEMPORARILY DISABLED: actualViewModel.refreshMediaItems()
+                actualViewModel.refreshMediaItems()
                 actualViewModel.refreshMonitoringStatus()
             }
         }

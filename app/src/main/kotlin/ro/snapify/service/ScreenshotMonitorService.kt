@@ -51,10 +51,19 @@ class ScreenshotMonitorService : Service() {
                 "ScreenshotMonitorService",
                 "Scanning existing media on service start"
             )
-            mediaScanner.scanExistingMedia()
+            val inserted = mediaScanner.scanExistingMedia()
             observeConfiguredFolders()
             mediaScanner.cleanUpExpiredMediaItems()
             mediaScanner.cleanUpMissingMediaItems()
+            
+            // Trigger UI refresh after scan completes
+            if (inserted > 0) {
+                DebugLogger.info(
+                    "ScreenshotMonitorService",
+                    "Scan completed with $inserted new items, triggering UI refresh"
+                )
+                recomposeFlow.emit(RecomposeReason.Other)
+            }
         }
     }
 
