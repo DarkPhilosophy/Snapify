@@ -16,7 +16,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import ro.snapify.R
 import ro.snapify.data.model.ScreenshotTab
-import ro.snapify.util.UriPathConverter
 
 /**
  * Multi-select filter bar for screenshot tags (Marked, Kept, Unmarked)
@@ -78,7 +77,16 @@ fun FolderFilterBar(
         verticalAlignment = Alignment.CenterVertically
     ) {
         availableUris.zip(availablePaths).forEach { (uri, path) ->
-            val folderName = UriPathConverter.uriToDisplayName(uri)
+            val folderName = try {
+                val decoded = java.net.URLDecoder.decode(uri, "UTF-8")
+                when {
+                    decoded.contains("primary:") -> "Primary:" + decoded.substringAfter("primary:")
+                    decoded.contains("tree/") -> "Tree:" + decoded.substringAfter("tree/")
+                    else -> path.substringAfterLast('/')
+                }
+            } catch (e: Exception) {
+                path.substringAfterLast('/')
+            }
             FilterChip(
                 selected = path in selectedPaths,
                 onClick = {

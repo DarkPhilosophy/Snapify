@@ -152,7 +152,6 @@ import ro.snapify.ui.theme.SuccessGreen
 import ro.snapify.ui.theme.ThemeMode
 import ro.snapify.ui.theme.WarningOrange
 import ro.snapify.util.DebugLogger
-import ro.snapify.util.UriPathConverter
 
 // Reusable bounce animation function
 suspend fun animatedBounce(
@@ -218,14 +217,6 @@ fun MainScreen(
     val currentFilterState by actualViewModel.currentFilterState.collectAsStateWithLifecycle(initialValue = FilterState())
 
     // Debug currentFilterState changes
-    // Observe mediaItems list changes - force recomposition when SnapshotStateList mutates
-    var mediaItemsSnapshot by remember { mutableStateOf(actualViewModel.mediaItems.toList()) }
-    
-    LaunchedEffect(actualViewModel.mediaItems.size) {
-        mediaItemsSnapshot = actualViewModel.mediaItems.toList()
-        DebugLogger.info("MainScreen", "mediaItems updated: ${mediaItemsSnapshot.size} items")
-    }
-    
     LaunchedEffect(currentFilterState) {
         DebugLogger.info(
             "MainScreen",
@@ -275,16 +266,12 @@ fun MainScreen(
     ) ?: remember { mutableStateOf(false) }
 
     // Calculate filtered item count for UI logic
-    val filteredItemCount by remember(mediaItems.size, currentFilterState) {
+    val filteredItemCount by remember(mediaItems, currentFilterState) {
         derivedStateOf {
             mediaItems.count { item ->
                 // Folder filter: only include items from selected folders
-                val folderMatches = if (currentFilterState.selectedFolders.isEmpty()) {
-                    true // Empty folder filter means all folders
-                } else {
-                    currentFilterState.selectedFolders.any { selectedPath ->
-                        item.filePath.lowercase().startsWith(selectedPath.lowercase())
-                    }
+                val folderMatches = currentFilterState.selectedFolders.any { selectedPath ->
+                    item.filePath.lowercase().startsWith(selectedPath.lowercase())
                 }
 
                 // Tag filter: if selectedTags is empty or contains all, include all; otherwise filter by tags
@@ -316,9 +303,9 @@ fun MainScreen(
             if (event == Lifecycle.Event.ON_RESUME) {
                 DebugLogger.info(
                     "MainScreen",
-                    "ON_RESUME: App regained focus - refreshing media items and monitoring status"
+                    "ON_RESUME: App regained focus - refreshMediaItems DISABLED, calling refreshMonitoringStatus"
                 )
-                actualViewModel.refreshMediaItems()
+                // TEMPORARILY DISABLED: actualViewModel.refreshMediaItems()
                 actualViewModel.refreshMonitoringStatus()
             }
         }
@@ -410,9 +397,29 @@ fun MainScreen(
     }
 
     val availablePaths = remember(mediaFolderUris) {
-        mediaFolderUris.mapNotNull { uri ->
-            UriPathConverter.uriToFilePath(uri)
-        }.toList()
+        val parsedFolders = mediaFolderUris.mapNotNull { uri ->
+            try {
+                val decoded = java.net.URLDecoder.decode(uri, "UTF-8")
+                when {
+                    decoded.contains("primary:") -> "/storage/emulated/0/" + decoded.substringAfter(
+                        "primary:"
+                    ).replace(":", "/")
+
+                    decoded.contains("tree/") -> {
+                        val parts = decoded.substringAfter("tree/").split(":")
+                        if (parts.size >= 2) {
+                            val path = parts.drop(1).joinToString("/")
+                            "/storage/emulated/0/$path"
+                        } else null
+                    }
+
+                    else -> null
+                }?.removeSuffix("/")
+            } catch (_: Exception) {
+                null
+            }
+        }
+        parsedFolders
     }
 
     // Auto-scroll to top when filter changes
@@ -1356,10 +1363,33 @@ private fun FolderManagementDialog(
                             folderItems.forEach { item ->
                                 val (uri, _) = item
                                 item {
-                                    val formattedPath = if (uri.isEmpty()) {
-                                        "Default (Pictures/Screenshots)"
-                                    } else {
-                                        UriPathConverter.uriToDisplayName(uri)
+                                    val formattedPath = try {
+                                        if (uri.isEmpty()) {
+                                            "Default (Pictures/Screenshots)"
+                                        } else {
+                                            val decoded = java.net.URLDecoder.decode(uri, "UTF-8")
+                                            when {
+                                                decoded.contains("primary:") -> "Primary:" + decoded.substringAfter(
+                                                    "primary:"
+                                                )
+                                                    .replace("%2F", "/").replace("%3A", ":")
+
+                                                decoded.contains("tree/") -> {
+                                                    val parts =
+                                                        decoded.substringAfter("tree/").split(":")
+                                                    if (parts.size >= 2) {
+                                                        val volume = parts[0]
+                                                        val path = parts[1].replace("%2F", "/")
+                                                            .replace("%3A", ":")
+                                                        "$volume:$path"
+                                                    } else decoded
+                                                }
+
+                                                else -> decoded
+                                            }
+                                        }
+                                    } catch (_: Exception) {
+                                        "Invalid folder path"
                                     }
 
                                     MediaFolderItem(
@@ -1489,17 +1519,16 @@ fun ScreenshotListComposable(
     onDismissInfoDialog: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Use remember with mediaItems.size as key to force recomposition when list changes
-    val filteredMediaItems by remember(mediaItems.size, currentFilterState) {
+    val filteredMediaItems by remember(mediaItems, currentFilterState) {
+        DebugLogger.info(
+            "ScreenshotListComposable",
+            "Recalculating filteredMediaItems: mediaItems.size=${mediaItems.size}"
+        )
         derivedStateOf {
-            mediaItems.filter { item ->
+            val result = mediaItems.filter { item ->
                 // Folder filter: only include items from selected folders
-                val folderMatches = if (currentFilterState.selectedFolders.isEmpty()) {
-                    true // Empty folder filter means all folders
-                } else {
-                    currentFilterState.selectedFolders.any { selectedPath ->
-                        item.filePath.lowercase().startsWith(selectedPath.lowercase())
-                    }
+                val folderMatches = currentFilterState.selectedFolders.any { selectedPath ->
+                    item.filePath.lowercase().startsWith(selectedPath.lowercase())
                 }
 
                 // Tag filter: if selectedTags is empty or contains all, include all; otherwise filter by tags
@@ -1518,13 +1547,10 @@ fun ScreenshotListComposable(
 
                 folderMatches && tagMatches
             }
+            DebugLogger.info("ScreenshotListComposable", "Filtered to ${result.size} items")
+            result
         }
     }
-    
-    DebugLogger.info(
-        "ScreenshotListComposable",
-        "Filtering: mediaItems.size=${mediaItems.size}, filtered=${filteredMediaItems.size}, folders=${currentFilterState.selectedFolders}"
-    )
 
     DebugLogger.info(
         "ScreenshotListComposable",
@@ -1713,8 +1739,17 @@ fun MainScreenDestination(
                 PermissionDialog(
                     onDismiss = { viewModel.hidePermissionsDialog() },
                     onPermissionsUpdated = {
-                        // Permissions were just granted, start the service
-                        viewModel.startMonitoring()
+                        val intent = android.content.Intent(
+                            localContext,
+                            ro.snapify.service.ScreenshotMonitorService::class.java
+                        )
+                        val activity = localContext as Activity
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                            activity.startForegroundService(intent)
+                        } else {
+                            activity.startService(intent)
+                        }
+                        viewModel.refreshMonitoringStatus()
                     },
                     autoCloseWhenGranted = true
                 )

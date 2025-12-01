@@ -4,100 +4,134 @@ import android.os.Environment
 import java.net.URLDecoder
 
 /**
- * Utility for converting and parsing media folder URIs to file system paths.
- * Handles both primary storage and SAF (Storage Access Framework) URIs.
- * Eliminates duplicate code and provides testable path conversion logic.
+ * Utility for converting Android content URIs to file system paths
+ * Handles formats like:
+ * - primary:Folder/Path  -> /storage/emulated/0/Folder/Path
+ * - tree/B68D-37C9:Photos/Videos -> /storage/emulated/0/Photos/Videos
+ * - tree/primary:DCIM/Camera -> /storage/emulated/0/DCIM/Camera
  */
 object UriPathConverter {
-
+    
     /**
-     * Converts a configured media folder URI (from preferences) to an absolute file path.
-     * Handles multiple URI formats:
-     * - Empty string → default Pictures/Screenshots folder
-     * - primary:path/to/folder → external storage path
-     * - tree/primary:folder:name → SAF-style path
-     *
-     * @param uri The URI string to convert
-     * @return Absolute file path, or original URI if parsing fails
+     * Converts a content:// URI or tree URI to an actual file path
+     * Returns null if the URI format is not recognized
      */
-    fun decodeMediaFolderUri(uri: String): String {
-        return when {
-            uri.isEmpty() -> {
-                getDefaultScreenshotsPath()
-            }
-            uri.contains("primary:") -> {
-                val path = uri.substringAfter("primary:").replace(":", "/")
-                "${Environment.getExternalStorageDirectory().absolutePath}/$path"
-            }
-            uri.contains("tree/") -> {
-                val parts = uri.substringAfter("tree/").split(":")
-                if (parts.size >= 2) {
-                    "${Environment.getExternalStorageDirectory().absolutePath}/${parts[1]}"
-                } else {
-                    uri // Fallback to original if parsing fails
+    fun uriToFilePath(uri: String): String? {
+        return try {
+            val decoded = URLDecoder.decode(uri, "UTF-8")
+            
+            when {
+                // Handle primary: format (direct folder selection)
+                decoded.contains("primary:") -> {
+                    val folderPath = decoded.substringAfter("primary:")
+                        .replace("%2F", "/")
+                        .replace("%3A", ":")
+                    "/storage/emulated/0/$folderPath"
                 }
-            }
-            else -> {
-                // Try to decode as URL-encoded string
-                try {
-                    URLDecoder.decode(uri, "UTF-8")
-                } catch (e: Exception) {
-                    uri // Return original if decoding fails
+                
+                // Handle tree/ format (Storage Access Framework URIs)
+                decoded.contains("tree/") -> {
+                    val treeContent = decoded.substringAfter("tree/")
+                    val parts = treeContent.split(":")
+                    
+                    if (parts.size >= 2) {
+                        val volume = parts[0]
+                        val path = parts.drop(1).joinToString(":")
+                            .replace("%2F", "/")
+                            .replace("%3A", ":")
+                        
+                        // Map volume IDs to their actual mount points
+                        val basePath = when (volume) {
+                            "primary" -> "/storage/emulated/0"
+                            else -> "/storage/$volume"
+                        }
+                        "$basePath/$path"
+                    } else {
+                        null
+                    }
                 }
-            }
+                
+                // If it's already a file path, return as-is
+                decoded.startsWith("/") -> decoded
+                
+                else -> null
+            }?.removeSuffix("/") // Remove trailing slash if any
+        } catch (e: Exception) {
+            null
         }
     }
-
+    
     /**
-     * Converts a list of configured media folder URIs to file paths.
-     * Returns default Screenshots folder if list is empty.
+     * Converts a URI to a display name in the format "Volume:Path"
+     * Used for folder filter chips and settings display
      */
-    fun decodeMediaFolderUris(uris: List<String>): List<String> {
-        return if (uris.isEmpty()) {
-            listOf(getDefaultScreenshotsPath())
-        } else {
-            uris.map { decodeMediaFolderUri(it) }
+    fun uriToDisplayName(uri: String): String {
+        return try {
+            val decoded = URLDecoder.decode(uri, "UTF-8")
+            
+            when {
+                decoded.contains("primary:") -> {
+                    "Primary:" + decoded.substringAfter("primary:")
+                        .replace("%2F", "/")
+                        .replace("%3A", ":")
+                }
+                
+                decoded.contains("tree/") -> {
+                    val treeContent = decoded.substringAfter("tree/")
+                    val parts = treeContent.split(":")
+                    
+                    if (parts.size >= 2) {
+                        val volume = parts[0]
+                        val path = parts.drop(1).joinToString(":")
+                            .replace("%2F", "/")
+                            .replace("%3A", ":")
+                        "$volume:$path"
+                    } else {
+                        decoded
+                    }
+                }
+                
+                else -> decoded
+            }
+        } catch (e: Exception) {
+            uri
         }
     }
-
+    
     /**
-     * Gets the default Screenshots folder path.
-     * Typically: /storage/emulated/0/Pictures/Screenshots
+     * Checks if a file path is within any of the configured media folders
      */
-    fun getDefaultScreenshotsPath(): String {
-        return "${Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath}/Screenshots"
+    fun isInMediaFolder(filePath: String, mediaFolders: Set<String>): Boolean {
+        return mediaFolders.any { folder ->
+            filePath.startsWith(folder) && 
+            (filePath.length == folder.length || 
+             filePath[folder.length] == '/')
+        }
     }
-
+    
     /**
-     * Checks if a file path belongs to any of the configured media folders.
+     * Checks if a file path is within any of the configured media folders (accepts List)
      */
     fun isInMediaFolder(filePath: String, mediaFolders: List<String>): Boolean {
-        if (filePath.isEmpty() || mediaFolders.isEmpty()) return false
-        val lowerPath = filePath.lowercase()
-        return mediaFolders.any { folder -> lowerPath.contains(folder.lowercase()) }
+        return mediaFolders.any { folder ->
+            filePath.startsWith(folder) && 
+            (filePath.length == folder.length || 
+             filePath[folder.length] == '/')
+        }
     }
-
+    
     /**
-     * Validates that a file path is safe and not trying to escape the media folder.
-     * Prevents directory traversal attacks.
+     * Gets the default Screenshots folder path
      */
-    fun validateFilePath(filePath: String, allowedFolder: String): Boolean {
-        if (filePath.isEmpty() || filePath.length > 4096) return false
-
-        // Normalize paths for comparison
-        val normalizedPath = try {
-            java.io.File(filePath).canonicalPath
-        } catch (e: Exception) {
-            return false
-        }
-
-        val normalizedFolder = try {
-            java.io.File(allowedFolder).canonicalPath
-        } catch (e: Exception) {
-            return false
-        }
-
-        // Check if file is inside the allowed folder
-        return normalizedPath.startsWith(normalizedFolder)
+    fun getDefaultScreenshotsPath(): String {
+        val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+        return "${picturesDir.absolutePath}/Screenshots"
+    }
+    
+    /**
+     * Decodes a list of media folder URIs to file paths
+     */
+    fun decodeMediaFolderUris(uris: List<String>): List<String> {
+        return uris.mapNotNull { uri -> uriToFilePath(uri) }
     }
 }

@@ -86,7 +86,6 @@ import ro.snapify.ui.components.PermissionDialog
 import ro.snapify.ui.theme.AppTheme
 import ro.snapify.ui.theme.ThemeMode
 import ro.snapify.util.TimeUtils
-import ro.snapify.util.UriPathConverter
 
 @Destination
 @OptIn(ExperimentalMaterial3Api::class)
@@ -138,14 +137,7 @@ fun SettingsScreen(
     )
     var showPermissionDialog by remember { mutableStateOf(false) }
 
-    val formattedFolderPaths = remember(mediaFolderUris) {
-        if (mediaFolderUris.isEmpty()) {
-            listOf("Default (Pictures/Screenshots)")
-        } else {
-            mediaFolderUris.map { uri ->
-                UriPathConverter.uriToDisplayName(uri)
-            }
-        }
+    
     }
 
     Scaffold(

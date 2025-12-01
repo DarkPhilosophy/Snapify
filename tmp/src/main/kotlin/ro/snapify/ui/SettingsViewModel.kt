@@ -14,7 +14,6 @@ import ro.snapify.data.preferences.AppPreferences
 import ro.snapify.data.repository.MediaRepository
 import ro.snapify.service.ScreenshotMonitorService
 import ro.snapify.ui.theme.ThemeMode
-import ro.snapify.util.UriPathConverter
 import javax.inject.Inject
 
 @HiltViewModel
@@ -136,7 +135,7 @@ class SettingsViewModel @Inject constructor(
             preferences.setMediaFolderUris(updated)
 
             // Remove media items from the database that are in the removed folder
-            val folderPath = UriPathConverter.uriToFilePath(uri)
+            val folderPath = getFolderPathFromUri(uri)
             if (folderPath != null) {
                 val allItems = mediaRepository.getAllMediaItems().first()
                 val itemsToDelete = allItems.filter { it.filePath.startsWith(folderPath) }
@@ -160,6 +159,29 @@ class SettingsViewModel @Inject constructor(
                     }
                 }
             }
+        }
+    }
+
+    private fun getFolderPathFromUri(uri: String): String? {
+        return try {
+            val decoded = java.net.URLDecoder.decode(uri, "UTF-8")
+            when {
+                decoded.contains("primary:") -> "/storage/emulated/0/" + decoded.substringAfter("primary:")
+                    .replace("%2F", "/").replace("%3A", ":")
+
+                decoded.contains("tree/") -> {
+                    val parts = decoded.substringAfter("tree/").split(":")
+                    if (parts.size >= 2) {
+                        val volume = parts[0]
+                        val path = parts[1].replace("%2F", "/").replace("%3A", ":")
+                        "/storage/emulated/0/$path" // Assuming primary for now
+                    } else null
+                }
+
+                else -> null
+            }?.removeSuffix("/") // Remove trailing slash if any
+        } catch (e: Exception) {
+            null
         }
     }
 
