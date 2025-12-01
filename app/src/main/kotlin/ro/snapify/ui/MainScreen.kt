@@ -217,6 +217,14 @@ fun MainScreen(
     val currentFilterState by actualViewModel.currentFilterState.collectAsStateWithLifecycle(initialValue = FilterState())
 
     // Debug currentFilterState changes
+    // Observe mediaItems list changes - force recomposition when SnapshotStateList mutates
+    var mediaItemsSnapshot by remember { mutableStateOf(actualViewModel.mediaItems.toList()) }
+    
+    LaunchedEffect(actualViewModel.mediaItems.size) {
+        mediaItemsSnapshot = actualViewModel.mediaItems.toList()
+        DebugLogger.info("MainScreen", "mediaItems updated: ${mediaItemsSnapshot.size} items")
+    }
+    
     LaunchedEffect(currentFilterState) {
         DebugLogger.info(
             "MainScreen",
@@ -266,7 +274,7 @@ fun MainScreen(
     ) ?: remember { mutableStateOf(false) }
 
     // Calculate filtered item count for UI logic
-    val filteredItemCount by remember(mediaItems, currentFilterState) {
+    val filteredItemCount by remember(mediaItems.size, currentFilterState) {
         derivedStateOf {
             mediaItems.count { item ->
                 // Folder filter: only include items from selected folders
@@ -1519,13 +1527,10 @@ fun ScreenshotListComposable(
     onDismissInfoDialog: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val filteredMediaItems by remember(mediaItems, currentFilterState) {
-        DebugLogger.info(
-            "ScreenshotListComposable",
-            "Recalculating filteredMediaItems: mediaItems.size=${mediaItems.size}, selectedFolders=${currentFilterState.selectedFolders}"
-        )
+    // Use remember with mediaItems.size as key to force recomposition when list changes
+    val filteredMediaItems by remember(mediaItems.size, currentFilterState) {
         derivedStateOf {
-            val result = mediaItems.filter { item ->
+            mediaItems.filter { item ->
                 // Folder filter: only include items from selected folders
                 val folderMatches = if (currentFilterState.selectedFolders.isEmpty()) {
                     true // Empty folder filter means all folders
@@ -1551,10 +1556,13 @@ fun ScreenshotListComposable(
 
                 folderMatches && tagMatches
             }
-            DebugLogger.info("ScreenshotListComposable", "Filtered to ${result.size} items (tagMatches, folderMatches applied)")
-            result
         }
     }
+    
+    DebugLogger.info(
+        "ScreenshotListComposable",
+        "Filtering: mediaItems.size=${mediaItems.size}, filtered=${filteredMediaItems.size}, folders=${currentFilterState.selectedFolders}"
+    )
 
     DebugLogger.info(
         "ScreenshotListComposable",

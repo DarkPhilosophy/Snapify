@@ -111,13 +111,49 @@ class MainViewModel @Inject constructor(
 
 
     init {
-        loadMediaItems()
+        observeMediaItemsFromDatabase()
         observeServiceStatus()
         observeRecomposeEvents()
         observeMediaEvents()
         observeFolderChanges()
         startTimeUpdater()
         checkAndStartServiceOnLaunch()
+    }
+    
+    private fun observeMediaItemsFromDatabase() {
+        viewModelScope.launch {
+            DebugLogger.info("MainViewModel", "Starting database observation")
+            repository.getAllMediaItems().collect { allMediaItems ->
+                DebugLogger.info(
+                    "MainViewModel",
+                    "Database Flow emitted: ${allMediaItems.size} items from query"
+                )
+                
+                if (allMediaItems.isNotEmpty()) {
+                    DebugLogger.info("MainViewModel", "First item: ${allMediaItems.first().fileName}")
+                }
+                
+                // Filter out items being deleted
+                val activelyDeletingIds = _deletingIds.value
+                val filteredItems = allMediaItems.filter { item ->
+                    item.id !in activelyDeletingIds && !(item.deletionTimestamp != null && !item.isKept)
+                }
+                
+                // Sort by newest first
+                val sortedItems = filteredItems.sortedByDescending { it.createdAt }
+                
+                // Update UI list
+                DebugLogger.info("MainViewModel", "Clearing ${_mediaItems.size} items from _mediaItems")
+                _mediaItems.clear()
+                DebugLogger.info("MainViewModel", "Adding ${sortedItems.size} items to _mediaItems")
+                _mediaItems.addAll(sortedItems)
+                
+                DebugLogger.info(
+                    "MainViewModel",
+                    "Updated _mediaItems: now has ${_mediaItems.size} items"
+                )
+            }
+        }
     }
 
     private fun checkAndStartServiceOnLaunch() {
