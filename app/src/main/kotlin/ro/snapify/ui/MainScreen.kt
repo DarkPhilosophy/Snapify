@@ -1739,17 +1739,8 @@ fun MainScreenDestination(
                 PermissionDialog(
                     onDismiss = { viewModel.hidePermissionsDialog() },
                     onPermissionsUpdated = {
-                        val intent = android.content.Intent(
-                            localContext,
-                            ro.snapify.service.ScreenshotMonitorService::class.java
-                        )
-                        val activity = localContext as Activity
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                            activity.startForegroundService(intent)
-                        } else {
-                            activity.startService(intent)
-                        }
-                        viewModel.refreshMonitoringStatus()
+                        // Permissions were just granted, start the service
+                        viewModel.startMonitoring()
                     },
                     autoCloseWhenGranted = true
                 )
