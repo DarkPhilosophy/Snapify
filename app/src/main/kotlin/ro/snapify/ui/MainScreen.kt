@@ -278,8 +278,12 @@ fun MainScreen(
         derivedStateOf {
             mediaItems.count { item ->
                 // Folder filter: only include items from selected folders
-                val folderMatches = currentFilterState.selectedFolders.any { selectedPath ->
-                    item.filePath.lowercase().startsWith(selectedPath.lowercase())
+                val folderMatches = if (currentFilterState.selectedFolders.isEmpty()) {
+                    true // Empty folder filter means all folders
+                } else {
+                    currentFilterState.selectedFolders.any { selectedPath ->
+                        item.filePath.lowercase().startsWith(selectedPath.lowercase())
+                    }
                 }
 
                 // Tag filter: if selectedTags is empty or contains all, include all; otherwise filter by tags
