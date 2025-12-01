@@ -79,6 +79,14 @@ android {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
             freeCompilerArgs.add("-Xannotation-default-target=param-property")
         }
+        sourceSets {
+            debug {
+                kotlin.srcDir("build/generated/ksp/debug/kotlin")
+            }
+            release {
+                kotlin.srcDir("build/generated/ksp/release/kotlin")
+            }
+        }
     }
 
     buildFeatures {
@@ -179,6 +187,9 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
 
+    // LazyColumn Scrollbar
+    implementation("com.github.nanihadesuka:LazyColumnScrollbar:2.2.0")
+
     // Compose Activity
     implementation(libs.activity.compose)
 
@@ -188,12 +199,20 @@ dependencies {
     // Compose Navigation
     implementation(libs.navigation.compose)
     implementation(libs.hilt.navigation.compose)
+    // Type-safe navigation
+    implementation("io.github.raamcosta.compose-destinations:core:1.9.54")
+    ksp("io.github.raamcosta.compose-destinations:ksp:1.9.54")
 
-    // Accompanist for system UI controller
+    // Accompanist utilities
     implementation(libs.accompanist.systemuicontroller)
+    implementation("com.google.accompanist:accompanist-permissions:0.34.0")
+    implementation("com.google.accompanist:accompanist-pager:0.34.0")
 
     // Coil for image loading (Compose compatible)
     implementation(libs.coil.compose)
+
+    // Lottie for advanced animations
+    implementation("com.airbnb.android:lottie-compose:6.4.0")
 
     // Hilt
     implementation(libs.hilt.android)

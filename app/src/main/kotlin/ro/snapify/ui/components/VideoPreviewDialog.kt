@@ -1,5 +1,6 @@
 package ro.snapify.ui.components
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -112,6 +113,9 @@ fun VideoPreviewDialog(
     position: androidx.compose.ui.geometry.Offset? = null,
     onDismiss: () -> Unit
 ) {
+    // Handle back press to dismiss dialog
+    BackHandler { onDismiss() }
+
     val context = LocalContext.current
     val windowInfo = LocalWindowInfo.current
     val density = LocalDensity.current

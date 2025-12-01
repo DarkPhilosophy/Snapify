@@ -19,7 +19,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "screenshotmanager"
+rootProject.name = "Multi Media Manager"
 
 include(":app")
 include(":core")

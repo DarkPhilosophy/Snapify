@@ -8,7 +8,6 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.database.ContentObserver
 import android.net.Uri
-import android.os.Environment
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
@@ -24,19 +23,19 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import ro.snapify.ScreenshotApp
+import ro.snapify.config.MediaMonitorConfig
 import ro.snapify.data.entity.MediaItem
+import ro.snapify.events.MediaEvent
 import ro.snapify.ui.MainActivity
 import ro.snapify.ui.MainViewModel
-import ro.snapify.ui.RefreshReason
+import ro.snapify.ui.RecomposeReason
 import ro.snapify.util.DebugLogger
+import ro.snapify.util.MediaFileValidator
 import ro.snapify.util.NotificationHelper
 import ro.snapify.util.PermissionUtils
+import ro.snapify.util.UriPathConverter
 import java.io.File
 import javax.inject.Inject
-
-private const val MILLIS_PER_SECOND = 1000L
-private const val PROCESSING_DELAY_MS = 500L
-private const val CLEANUP_DELAY_MS = 1000L
 
 @AndroidEntryPoint
 class ScreenshotMonitorService : Service() {
@@ -44,57 +43,18 @@ class ScreenshotMonitorService : Service() {
     private fun performInitialSetup() {
         setupContentObserver()
         startDeletionCheckTimer()
+        startGlobalNotificationUpdater()
+        startJobCleanupTimer()
 
         serviceScope.launch {
             DebugLogger.info(
                 "ScreenshotMonitorService",
                 "Scanning existing media on service start"
             )
-            scanExistingMedia()
+            mediaScanner.scanExistingMedia()
             observeConfiguredFolders()
-            cleanUpExpiredMediaItems()
-            cleanUpMissingMediaItems()
-        }
-    }
-
-    private suspend fun cleanUpExpiredMediaItems() {
-        val currentTime = System.currentTimeMillis()
-        val expired = repository.getExpiredMediaItems(currentTime)
-        expired.filter { mediaItem ->
-            mediaItem.contentUri?.let { uriStr ->
-                try {
-                    val uri = uriStr.toUri()
-                    val cursor = contentResolver.query(
-                        uri,
-                        arrayOf(MediaStore.Images.Media._ID),
-                        null,
-                        null,
-                        null
-                    )
-                    cursor?.use { it.count > 0 } ?: !File(mediaItem.filePath).exists()
-                } catch (_: Exception) {
-                    !File(mediaItem.filePath).exists()
-                }
-            } ?: !File(mediaItem.filePath).exists()
-        }.forEach { mediaItem ->
-            repository.delete(mediaItem)
-            DebugLogger.info(
-                "ScreenshotMonitorService",
-                "Cleaned up expired media item: ${mediaItem.fileName}"
-            )
-        }
-    }
-
-    private suspend fun cleanUpMissingMediaItems() {
-        val allItems = repository.getAllMediaItems().first()
-        allItems.filter { mediaItem ->
-            !File(mediaItem.filePath).exists()
-        }.forEach { mediaItem ->
-            repository.delete(mediaItem)
-            DebugLogger.info(
-                "ScreenshotMonitorService",
-                "Cleaned up missing media item: ${mediaItem.fileName}"
-            )
+            mediaScanner.cleanUpExpiredMediaItems()
+            mediaScanner.cleanUpMissingMediaItems()
         }
     }
 
@@ -102,7 +62,7 @@ class ScreenshotMonitorService : Service() {
     lateinit var repository: ro.snapify.data.repository.MediaRepository
 
     @Inject
-    lateinit var refreshFlow: MutableSharedFlow<RefreshReason>
+    lateinit var recomposeFlow: MutableSharedFlow<RecomposeReason>
 
     @Inject
     lateinit var preferences: ro.snapify.data.preferences.AppPreferences
@@ -111,19 +71,31 @@ class ScreenshotMonitorService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
     private lateinit var contentObserver: ContentObserver
     private var deletionCheckJob: Job? = null
+    private var globalNotificationUpdateJob: Job? = null
+    private var jobCleanupJob: Job? = null
 
-    // Individual deletion timers for each marked screenshot
-    private val deletionJobs = mutableMapOf<Long, Job>()
-    private val updateJobs = mutableMapOf<Long, Job>()
+    // Use DeletionTimerManager for managing deletion timers
+    private lateinit var deletionTimerManager: DeletionTimerManager
+    private lateinit var mediaScanner: MediaScannerHelper
 
     // Deduplication for screenshot notifications - track recent notifications
     private val recentNotifications = mutableMapOf<String, Long>() // filePath -> timestamp
-    private val NOTIFICATION_DEDUPE_WINDOW = 5000L // 5 seconds window
 
     override fun onCreate() {
         super.onCreate()
 
         DebugLogger.info("ScreenshotMonitorService", "Service onCreate() called")
+
+        // Initialize helpers
+        mediaScanner = MediaScannerHelper(contentResolver, repository, preferences, serviceScope)
+        deletionTimerManager = DeletionTimerManager(
+            this,
+            repository,
+            serviceScope,
+            onItemDeleted = { mediaId ->
+                MainViewModel.mediaEventFlow.tryEmit(MediaEvent.ItemDeleted(mediaId))
+            }
+        )
 
         // For foreground service, we must call startForeground within a few seconds
         // So call it immediately, even if we'll stop due to missing permissions
@@ -152,7 +124,7 @@ class ScreenshotMonitorService : Service() {
         if (intent?.getBooleanExtra("rescan", false) == true) {
             serviceScope.launch {
                 DebugLogger.info("ScreenshotMonitorService", "Rescanning triggered from intent")
-                scanExistingMedia()
+                mediaScanner.scanExistingMedia()
             }
         }
 
@@ -194,214 +166,9 @@ class ScreenshotMonitorService : Service() {
             "ScreenshotMonitorService",
             "Content observers registered for $imageUri and $videoUri"
         )
-
-        // Perform initial scan of existing media
-        scanExistingMedia()
     }
 
-    private fun scanExistingMedia() {
-        serviceScope.launch {
-            try {
-                DebugLogger.info("ScreenshotMonitorService", "Starting initial media scan")
 
-                // Preload existing file paths to avoid per-file DB queries
-                val existingFilePaths =
-                    repository.getAllMediaItems().first().map { it.filePath }.toSet()
-
-                var totalInserted = 0
-
-                // Scan MediaStore for existing media (relies on MediaStore being properly indexed)
-                // Scan images
-                totalInserted += scanMediaType(
-                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                    false,
-                    existingFilePaths
-                )
-
-                // Scan videos
-                totalInserted += scanMediaType(
-                    MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-                    true,
-                    existingFilePaths
-                )
-
-                // Emit refresh only if new media was discovered
-                if (totalInserted > 0) {
-                    refreshFlow.emit(RefreshReason.Other)
-                }
-
-                DebugLogger.info(
-                    "ScreenshotMonitorService",
-                    "Initial media scan completed, inserted $totalInserted new items"
-                )
-            } catch (e: Exception) {
-                DebugLogger.error("ScreenshotMonitorService", "Error during initial media scan", e)
-            }
-        }
-    }
-
-    private suspend fun scanMediaType(
-        uri: Uri,
-        isVideo: Boolean,
-        existingFilePaths: Set<String>
-    ): Int {
-        var insertedCount = 0
-        // Get configured media folders
-        val configuredUris = preferences.mediaFolderUris.first()
-        val mediaFolders = if (configuredUris.isEmpty()) {
-            listOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath + "/Screenshots")
-        } else {
-            configuredUris.map { uri ->
-                if (uri.isEmpty()) {
-                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath + "/Screenshots"
-                } else {
-                    try {
-                        val decoded = java.net.URLDecoder.decode(uri, "UTF-8")
-                        when {
-                            decoded.contains("primary:") -> Environment.getExternalStorageDirectory().absolutePath + "/" + decoded.substringAfter(
-                                "primary:"
-                            ).replace(":", "/")
-
-                            decoded.contains("tree/") -> {
-                                val parts = decoded.substringAfter("tree/").split(":")
-                                if (parts.size >= 2) Environment.getExternalStorageDirectory().absolutePath + "/" + parts.drop(
-                                    1
-                                ).joinToString("/") else decoded
-                            }
-
-                            else -> decoded
-                        }
-                    } catch (_: Exception) {
-                        uri
-                    }
-                }
-            }
-        }
-
-        // Query all media (no date limit to ensure all folder contents are scanned, even old files)
-
-        val projection = if (isVideo) {
-            arrayOf(
-                MediaStore.Video.Media._ID,
-                MediaStore.Video.Media.DISPLAY_NAME,
-                MediaStore.Video.Media.SIZE,
-                MediaStore.Video.Media.DATE_ADDED,
-                MediaStore.Video.Media.DATA
-            )
-        } else {
-            arrayOf(
-                MediaStore.Images.Media._ID,
-                MediaStore.Images.Media.DISPLAY_NAME,
-                MediaStore.Images.Media.SIZE,
-                MediaStore.Images.Media.DATE_ADDED,
-                MediaStore.Images.Media.DATA
-            )
-        }
-
-        contentResolver.query(
-            uri,
-            projection,
-            null,
-            null,
-            "${MediaStore.MediaColumns.DATE_ADDED} DESC"
-        )?.use { cursor ->
-            while (cursor.moveToNext()) {
-                val id =
-                    cursor.getLong(cursor.getColumnIndexOrThrow(if (isVideo) MediaStore.Video.Media._ID else MediaStore.Images.Media._ID))
-                val contentUri = ContentUris.withAppendedId(uri, id).toString()
-                val fileName =
-                    cursor.getString(cursor.getColumnIndexOrThrow(if (isVideo) MediaStore.Video.Media.DISPLAY_NAME else MediaStore.Images.Media.DISPLAY_NAME))
-                val fileSize =
-                    cursor.getLong(cursor.getColumnIndexOrThrow(if (isVideo) MediaStore.Video.Media.SIZE else MediaStore.Images.Media.SIZE))
-                val dateAdded =
-                    cursor.getLong(cursor.getColumnIndexOrThrow(if (isVideo) MediaStore.Video.Media.DATE_ADDED else MediaStore.Video.Media.DATE_ADDED))
-                val filePath =
-                    cursor.getString(cursor.getColumnIndexOrThrow(if (isVideo) MediaStore.Video.Media.DATA else MediaStore.Images.Media.DATA))
-
-                // Create a fake Uri for processing
-                val fakeUri = Uri.parse(contentUri)
-
-                // Check if this media should be processed
-                if (isMediaFile(filePath ?: "")) {
-                    val wasInserted = filePath != null && filePath !in existingFilePaths
-                    if (wasInserted) insertedCount++
-                    processExistingMedia(
-                        fakeUri,
-                        contentUri,
-                        filePath,
-                        fileName,
-                        fileSize,
-                        dateAdded * 1000,
-                        existingFilePaths
-                    )
-                }
-            }
-        }
-        return insertedCount
-    }
-
-    private suspend fun processExistingMedia(
-        uri: Uri,
-        contentUri: String,
-        filePath: String?,
-        fileName: String,
-        fileSize: Long,
-        createdAt: Long,
-        existingFilePaths: Set<String>
-    ) {
-        try {
-            // Check if already exists in database (using preloaded set for performance)
-            if (filePath != null && filePath in existingFilePaths) {
-                DebugLogger.debug("ScreenshotMonitorService", "Media already exists: $filePath")
-                return
-            }
-
-            // Validate existence
-            val exists = contentUri.let { uriStr ->
-                try {
-                    val uri = uriStr.toUri()
-                    contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
-                        pfd.statSize > 0
-                    } ?: false
-                } catch (_: Exception) {
-                    false
-                }
-            } ?: run {
-                filePath?.let { path ->
-                    val f = File(path)
-                    f.exists() && f.length() > 0L
-                } ?: false
-            }
-
-            if (exists) {
-                DebugLogger.info("ScreenshotMonitorService", "Processing existing media: $fileName")
-
-                val mediaItem = MediaItem(
-                    filePath = filePath ?: "",
-                    fileName = fileName,
-                    fileSize = fileSize,
-                    createdAt = createdAt,
-                    deletionTimestamp = null,
-                    isKept = false,
-                    contentUri = contentUri
-                )
-
-                repository.insert(mediaItem)
-                // Don't emit refresh for each item - will emit once at the end
-
-                DebugLogger.info(
-                    "ScreenshotMonitorService",
-                    "Added existing media to database: $fileName"
-                )
-            }
-        } catch (e: Exception) {
-            DebugLogger.error(
-                "ScreenshotMonitorService",
-                "Error processing existing media $fileName",
-                e
-            )
-        }
-    }
 
     private fun handleNewMedia(uri: Uri) {
         val isVideo = uri.toString().contains("video")
@@ -427,8 +194,6 @@ class ScreenshotMonitorService : Service() {
                 DebugLogger.debug("ScreenshotMonitorService", "New media detected: $uri")
                 contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
                     if (cursor.moveToFirst()) {
-                        val mediaClass =
-                            if (isVideo) MediaStore.Video.Media::class.java else MediaStore.Images.Media::class.java
                         val idIndex =
                             cursor.getColumnIndexOrThrow(if (isVideo) MediaStore.Video.Media._ID else MediaStore.Images.Media._ID)
                         val fileName =
@@ -448,73 +213,49 @@ class ScreenshotMonitorService : Service() {
 
                         val filePath = if (dataIndex != -1) cursor.getString(dataIndex) else null
                         val fileSize = cursor.getLong(sizeIndex)
-                        val dateAdded = cursor.getLong(dateIndex) * MILLIS_PER_SECOND
+                        val dateAdded = cursor.getLong(dateIndex) * 1000L
 
-                        if (filePath?.contains(".pending") == true) {
-                            DebugLogger.debug(
-                                "ScreenshotMonitorService",
-                                "Ignoring pending file: $fileName"
-                            )
+                        if (MediaFileValidator.isPendingFile(filePath ?: "")) {
+                            DebugLogger.debug("ScreenshotMonitorService", "Ignoring pending file: $fileName")
                             return@use
                         }
 
-                        val isMedia = filePath != null && isMediaFile(filePath)
+                        val isMedia = filePath != null && MediaFileValidator.isMediaFile(filePath)
 
                         if (isMedia) {
-                            DebugLogger.info(
-                                "ScreenshotMonitorService",
-                                "Media file detected: $fileName"
-                            )
-                            delay(PROCESSING_DELAY_MS)
+                            DebugLogger.info("ScreenshotMonitorService", "Media file detected: $fileName")
+                            delay(MediaMonitorConfig.PROCESSING_DELAY_MS)
 
                             val existing = filePath?.let { repository.getByFilePath(it) }
-                            DebugLogger.debug(
-                                "ScreenshotMonitorService",
-                                "Existing screenshot for $filePath: ${existing?.id}"
-                            )
+                            DebugLogger.debug("ScreenshotMonitorService", "Existing screenshot for $filePath: ${existing?.id}")
                             if (existing == null) {
-                                // Check for recent notification to prevent duplicates (for both manual and automatic modes)
+                                // Check for recent notification to prevent duplicates
                                 val currentTime = System.currentTimeMillis()
                                 val dedupeKey = filePath ?: contentUri ?: "unknown_${currentTime}"
                                 val lastNotificationTime = recentNotifications[dedupeKey] ?: 0L
 
-                                if (currentTime - lastNotificationTime > NOTIFICATION_DEDUPE_WINDOW) {
+                                if (currentTime - lastNotificationTime > MediaMonitorConfig.NOTIFICATION_DEDUPE_WINDOW) {
                                     // Update recent notifications
                                     recentNotifications[dedupeKey] = currentTime
 
-                                    // Clean up old entries (keep only recent ones)
+                                    // Clean up old entries
                                     recentNotifications.entries.removeIf { (_, timestamp) ->
-                                        currentTime - timestamp > NOTIFICATION_DEDUPE_WINDOW
+                                        currentTime - timestamp > MediaMonitorConfig.NOTIFICATION_DEDUPE_WINDOW
                                     }
 
-                                    DebugLogger.info(
-                                        "ScreenshotMonitorService",
-                                        "Processing new screenshot: $fileName"
-                                    )
-                                    processNewScreenshot(
-                                        filePath,
-                                        contentUri,
-                                        fileName,
-                                        fileSize,
-                                        dateAdded
-                                    )
+                                    DebugLogger.info("ScreenshotMonitorService", "Processing new screenshot: $fileName")
+                                    processNewScreenshot(filePath, contentUri, fileName, fileSize, dateAdded)
                                 } else {
                                     DebugLogger.info(
                                         "ScreenshotMonitorService",
-                                        "Skipping duplicate notification for $fileName (key: $dedupeKey, last: $lastNotificationTime, current: $currentTime)"
+                                        "Skipping duplicate notification for $fileName"
                                     )
                                 }
                             } else {
-                                DebugLogger.debug(
-                                    "ScreenshotMonitorService",
-                                    "Screenshot already exists in DB: $fileName"
-                                )
+                                DebugLogger.debug("ScreenshotMonitorService", "Screenshot already exists in DB: $fileName")
                             }
                         } else {
-                            DebugLogger.debug(
-                                "ScreenshotMonitorService",
-                                "Not a screenshot file: $fileName"
-                            )
+                            DebugLogger.debug("ScreenshotMonitorService", "Not a screenshot file: $fileName")
                         }
                     }
                 }
@@ -528,60 +269,10 @@ class ScreenshotMonitorService : Service() {
         serviceScope.launch {
             preferences.mediaFolderUris.collect { uris ->
                 DebugLogger.info("ScreenshotMonitorService", "Configured folders changed: $uris")
-                scanExistingMedia()
-                refreshFlow.emit(RefreshReason.Other)
+                mediaScanner.scanExistingMedia()
+                recomposeFlow.emit(RecomposeReason.Other)
             }
         }
-    }
-
-    private suspend fun isMediaFile(filePath: String): Boolean {
-        if (filePath.isEmpty()) return false
-
-        val lowerPath = filePath.lowercase()
-
-        // Get configured media folders (same logic as in scanMediaType)
-        val configuredUris = preferences.mediaFolderUris.first()
-        val mediaFolders = if (configuredUris.isEmpty()) {
-            listOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath + "/Screenshots")
-        } else {
-            configuredUris.map { uri ->
-                if (uri.isEmpty()) {
-                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath + "/Screenshots"
-                } else {
-                    try {
-                        val decoded = java.net.URLDecoder.decode(uri, "UTF-8")
-                        when {
-                            decoded.contains("primary:") -> Environment.getExternalStorageDirectory().absolutePath + "/" + decoded.substringAfter(
-                                "primary:"
-                            )
-
-                            decoded.contains("tree/") -> {
-                                val parts = decoded.substringAfter("tree/").split(":")
-                                if (parts.size >= 2) Environment.getExternalStorageDirectory().absolutePath + "/" + parts[1] else decoded
-                            }
-
-                            else -> decoded
-                        }
-                    } catch (_: Exception) {
-                        uri
-                    }
-                }
-            }
-        }
-
-        val isInFolder = mediaFolders.any { folder -> lowerPath.contains(folder.lowercase()) }
-        val isVideo =
-            lowerPath.endsWith(".mp4") || lowerPath.endsWith(".avi") || lowerPath.endsWith(".mov") ||
-                    lowerPath.endsWith(".mkv") || lowerPath.endsWith(".webm") || lowerPath.endsWith(
-                ".3gp"
-            ) ||
-                    lowerPath.endsWith(".m4v") || lowerPath.endsWith(".mpg")
-        val isImage =
-            lowerPath.endsWith(".png") || lowerPath.endsWith(".jpg") || lowerPath.endsWith(".jpeg") ||
-                    lowerPath.endsWith(".gif") || lowerPath.endsWith(".bmp") || lowerPath.endsWith(".webp")
-
-        // Include media files that are in configured folders
-        return isInFolder && (isVideo || isImage)
     }
 
     private suspend fun processNewScreenshot(
@@ -591,38 +282,17 @@ class ScreenshotMonitorService : Service() {
         fileSize: Long,
         createdAt: Long
     ) {
-        // Validate existence: prefer contentUri, fallback to file path
-        val exists = contentUri?.let { uriStr ->
-            try {
-                val uri = uriStr.toUri()
-                contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
-                    pfd.statSize > 0
-                } ?: false
-            } catch (_: Exception) {
-                false
-            }
-        } ?: run {
-            filePath?.let { path ->
-                val f = File(path)
-                f.exists() && f.length() > 0L
-            } ?: false
-        }
-
+        // Validate existence
+        val exists = validateMediaExists(contentUri, filePath)
         if (!exists) {
-            DebugLogger.warning(
-                "ScreenshotMonitorService",
-                "File doesn't exist or is empty: $fileName"
-            )
+            DebugLogger.warning("ScreenshotMonitorService", "File doesn't exist or is empty: $fileName")
             return
         }
 
         val actualFileSize = filePath?.let { File(it).length() } ?: fileSize
         val isManualMode = preferences.isManualMarkMode.first()
         val mode = if (isManualMode) "MANUAL" else "AUTOMATIC"
-        DebugLogger.info(
-            "ScreenshotMonitorService",
-            "Processing screenshot in $mode mode: $fileName"
-        )
+        DebugLogger.info("ScreenshotMonitorService", "Processing screenshot in $mode mode: $fileName")
 
         if (isManualMode) {
             val mediaItem = MediaItem(
@@ -634,41 +304,32 @@ class ScreenshotMonitorService : Service() {
                 isKept = false,
                 contentUri = contentUri
             )
-            DebugLogger.info(
-                "ScreenshotMonitorService",
-                "Attempting to insert media item: ${mediaItem.fileName}"
-            )
+
+            // Emit detection event
+            MainViewModel.mediaEventFlow.tryEmit(MediaEvent.ItemDetected(-1L, filePath ?: ""))
+            DebugLogger.info("ScreenshotMonitorService", "Emitted ItemDetected for ${mediaItem.fileName}")
+
             val id = repository.insert(mediaItem)
-            DebugLogger.info(
-                "ScreenshotMonitorService",
-                "Media item inserted to DB with ID: $id (Manual Mode)"
-            )
+            DebugLogger.info("ScreenshotMonitorService", "Media item inserted to DB with ID: $id (Manual Mode)")
+
             if (id <= 0) {
-                DebugLogger.error(
-                    "ScreenshotMonitorService",
-                    "Failed to insert media item, invalid ID: $id"
-                )
+                DebugLogger.error("ScreenshotMonitorService", "Failed to insert media item, invalid ID: $id")
                 return
             }
 
             // Notify UI of new item
-            MainViewModel.newItemFlow.tryEmit(mediaItem.copy(id = id))
-            DebugLogger.info(
-                "ScreenshotMonitorService",
-                "Emitted new item to UI: ${mediaItem.fileName}"
-            )
+            MainViewModel.mediaEventFlow.tryEmit(MediaEvent.ItemAdded(mediaItem.copy(id = id)))
+            DebugLogger.info("ScreenshotMonitorService", "Emitted new item to UI: ${mediaItem.fileName}")
 
             // Show overlay for manual mode
             val overlayIntent = Intent(this, OverlayService::class.java).apply {
-                putExtra("screenshot_id", id)
+                putExtra("media_id", id)
                 putExtra("file_path", filePath)
             }
             startService(overlayIntent)
-            DebugLogger.info(
-                "ScreenshotMonitorService",
-                "Overlay shown for manual mode media item ID: $id"
-            )
+            DebugLogger.info("ScreenshotMonitorService", "Overlay shown for manual mode media item ID: $id")
         } else {
+            // Automatic mode
             val deletionTime = preferences.deletionTimeMillis.first()
             val deletionTimestamp = System.currentTimeMillis() + deletionTime
 
@@ -681,25 +342,23 @@ class ScreenshotMonitorService : Service() {
                 isKept = false,
                 contentUri = contentUri
             )
+
+            // Emit detection event
+            MainViewModel.mediaEventFlow.tryEmit(MediaEvent.ItemDetected(-1L, filePath ?: ""))
+            DebugLogger.info("ScreenshotMonitorService", "Emitted ItemDetected for ${mediaItem.fileName} (Automatic Mode)")
+
             val id = repository.insert(mediaItem)
-            DebugLogger.info(
-                "ScreenshotMonitorService",
-                "Media item inserted to DB with ID: $id (Automatic Mode, marked for deletion)"
-            )
+            DebugLogger.info("ScreenshotMonitorService", "Media item inserted to DB with ID: $id (Automatic Mode)")
 
             // Notify UI of new item
-            MainViewModel.newItemFlow.tryEmit(mediaItem.copy(id = id))
-            DebugLogger.info(
-                "ScreenshotMonitorService",
-                "Emitted new item to UI: ${mediaItem.fileName}"
-            )
+            MainViewModel.mediaEventFlow.tryEmit(MediaEvent.ItemAdded(mediaItem.copy(id = id)))
+            DebugLogger.info("ScreenshotMonitorService", "Emitted new item to UI: ${mediaItem.fileName}")
 
-            // Launch individual deletion timer
-            launchDeletionTimer(id, deletionTime)
+            // Launch deletion timer using manager
+            deletionTimerManager.launchDeletionTimer(id, deletionTime)
 
-            val currentTime = System.currentTimeMillis()
-            val calculatedDeletionTimestamp = currentTime + deletionTime
-
+            // Show initial notification
+            val calculatedDeletionTimestamp = System.currentTimeMillis() + deletionTime
             NotificationHelper.showScreenshotNotification(
                 this,
                 id,
@@ -710,103 +369,84 @@ class ScreenshotMonitorService : Service() {
                 isManualMode = false,
                 preferences = preferences
             )
-            DebugLogger.info(
-                "ScreenshotMonitorService",
-                "Notification shown for media item ID: $id"
-            )
+            DebugLogger.info("ScreenshotMonitorService", "Notification shown for media item ID: $id")
+        }
+    }
 
-            // Launch notification update job for live updates
-            val updateJob = serviceScope.launch {
-                while (deletionJobs[id]?.isActive == true) {
-                    delay(1000L) // Update every 1 second
-                    try {
-                        NotificationHelper.showScreenshotNotification(
-                            this@ScreenshotMonitorService,
-                            id,
-                            fileName,
-                            mediaItem.filePath,
-                            calculatedDeletionTimestamp,
-                            deletionTime,
-                            isManualMode = false,
-                            preferences = preferences
-                        )
-                    } catch (e: Exception) {
-                        DebugLogger.error(
-                            "ScreenshotMonitorService",
-                            "Error updating notification for $id",
-                            e
-                        )
-                        // Continue the loop even if one update fails
+    /**
+     * Validates media file exists and is accessible.
+     */
+    private fun validateMediaExists(contentUri: String?, filePath: String?): Boolean {
+        contentUri?.let { uriStr ->
+            try {
+                val uri = uriStr.toUri()
+                contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
+                    return pfd.statSize > 0
+                }
+            } catch (e: Exception) {
+                DebugLogger.debug("ScreenshotMonitorService", "ContentUri validation failed: ${e.message}")
+            }
+        }
+
+        return try {
+            val file = File(filePath ?: "")
+            file.exists() && file.length() >= MediaMonitorConfig.MIN_FILE_SIZE_BYTES
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Single global notification updater.
+     * Updates all active notifications in one loop instead of per-item.
+     * Reduces CPU usage and battery drain.
+     */
+    private fun startGlobalNotificationUpdater() {
+        globalNotificationUpdateJob = serviceScope.launch {
+            while (true) {
+                try {
+                    delay(MediaMonitorConfig.NOTIFICATION_UPDATE_INTERVAL_MS)
+
+                    val activeJobIds = deletionTimerManager.getActiveJobIds()
+                    if (activeJobIds.isEmpty()) continue
+
+                    // Batch update all active notifications
+                    activeJobIds.forEach { mediaId ->
+                        try {
+                            val mediaItem = repository.getById(mediaId) ?: return@forEach
+                            if (mediaItem.deletionTimestamp != null && !mediaItem.isKept) {
+                                val deletionTime = mediaItem.deletionTimestamp!! - System.currentTimeMillis()
+                                NotificationHelper.showScreenshotNotification(
+                                    this@ScreenshotMonitorService,
+                                    mediaItem.id,
+                                    mediaItem.fileName,
+                                    mediaItem.filePath,
+                                    mediaItem.deletionTimestamp!!,
+                                    preferences.deletionTimeMillis.first(),
+                                    isManualMode = false,
+                                    preferences = preferences
+                                )
+                            }
+                        } catch (e: Exception) {
+                            DebugLogger.warning(
+                                "ScreenshotMonitorService",
+                                "Error updating notification for $mediaId: ${e.message}"
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
+                    if (e !is kotlinx.coroutines.CancellationException) {
+                        DebugLogger.error("ScreenshotMonitorService", "Error in notification updater", e)
                     }
                 }
             }
-            updateJobs[id] = updateJob
-
-            // UI is already notified via newItemFlow - no need for full refresh
-            // refreshFlow.tryEmit(RefreshReason.Other)
         }
+        DebugLogger.info("ScreenshotMonitorService", "Global notification updater started")
     }
 
-    private fun launchDeletionTimer(screenshotId: Long, delayMillis: Long) {
-        // Cancel any existing timer for this screenshot
-        deletionJobs[screenshotId]?.cancel()
-
-        val job = serviceScope.launch {
-            try {
-                DebugLogger.info(
-                    "ScreenshotMonitorService",
-                    "Starting deletion timer for screenshot $screenshotId, delay: ${delayMillis}ms"
-                )
-                delay(delayMillis)
-                DebugLogger.info(
-                    "ScreenshotMonitorService",
-                    "Deletion timer expired for screenshot $screenshotId, about to delete"
-                )
-
-                // Check if media item still exists and is marked for deletion
-                val mediaItem = repository.getById(screenshotId)
-                if (mediaItem != null && mediaItem.deletionTimestamp != null && !mediaItem.isKept) {
-                    DebugLogger.info(
-                        "ScreenshotMonitorService",
-                        "Deleting expired media item $screenshotId"
-                    )
-                    deleteExpiredMediaItem(mediaItem)
-                } else {
-                    DebugLogger.info(
-                        "ScreenshotMonitorService",
-                        "Screenshot $screenshotId not found or not marked for deletion"
-                    )
-                }
-            } catch (e: Exception) {
-                if (e !is kotlinx.coroutines.CancellationException) {
-                    DebugLogger.error(
-                        "ScreenshotMonitorService",
-                        "Error in deletion timer for $screenshotId",
-                        e
-                    )
-                }
-            } finally {
-                deletionJobs.remove(screenshotId)
-                updateJobs[screenshotId]?.cancel()
-                updateJobs.remove(screenshotId)
-            }
-        }
-
-        deletionJobs[screenshotId] = job
-    }
-
-    private fun cancelDeletionTimer(screenshotId: Long) {
-        deletionJobs[screenshotId]?.cancel()
-        deletionJobs.remove(screenshotId)
-        updateJobs[screenshotId]?.cancel()
-        updateJobs.remove(screenshotId)
-        DebugLogger.info(
-            "ScreenshotMonitorService",
-            "Cancelled deletion timer for screenshot $screenshotId"
-        )
-    }
-
-
+    /**
+     * Deletion check timer: Validates and processes expired items.
+     */
     private fun startDeletionCheckTimer() {
         deletionCheckJob = serviceScope.launch {
             while (true) {
@@ -817,39 +457,31 @@ class ScreenshotMonitorService : Service() {
                     if (expiredMediaItems.isNotEmpty()) {
                         DebugLogger.info(
                             "ScreenshotMonitorService",
-                            "Found ${expiredMediaItems.size} expired media items, processing deletion"
+                            "Found ${expiredMediaItems.size} expired media items"
                         )
-
                         expiredMediaItems.forEach { mediaItem ->
-                            // Cancel any existing timer for this media item
-                            cancelDeletionTimer(mediaItem.id)
-                            deleteExpiredMediaItem(mediaItem)
+                            deletionTimerManager.cancelDeletionTimer(mediaItem.id)
                         }
                     }
 
-                    // Also check for media items that are no longer marked for deletion
+                    // Check for media items no longer marked for deletion
                     val allMarked = repository.getMarkedMediaItems().first()
-                    val currentlyTracked = deletionJobs.keys
+                    val currentlyTracked = deletionTimerManager.getActiveJobIds()
                     val stillMarked = allMarked.map { it.id }.toSet()
 
-                    // Cancel timers for media items that are no longer marked (kept or unmarked)
                     (currentlyTracked - stillMarked).forEach { mediaItemId ->
                         DebugLogger.info(
                             "ScreenshotMonitorService",
-                            "Cancelling timer for media item $mediaItemId - no longer marked for deletion"
+                            "Cancelling timer for item $mediaItemId - no longer marked for deletion"
                         )
-                        cancelDeletionTimer(mediaItemId)
+                        deletionTimerManager.cancelDeletionTimer(mediaItemId)
                     }
 
-                    delay(5000L) // Check every 5 seconds for maintenance
+                    delay(MediaMonitorConfig.DELETION_CHECK_INTERVAL_MS)
 
                 } catch (e: Exception) {
                     if (e !is kotlinx.coroutines.CancellationException) {
-                        DebugLogger.error(
-                            "ScreenshotMonitorService",
-                            "Error checking expired screenshots",
-                            e
-                        )
+                        DebugLogger.error("ScreenshotMonitorService", "Error in deletion check", e)
                     }
                 }
             }
@@ -857,73 +489,36 @@ class ScreenshotMonitorService : Service() {
         DebugLogger.info("ScreenshotMonitorService", "Deletion check timer started")
     }
 
-    private suspend fun deleteExpiredMediaItem(mediaItem: MediaItem) {
-        DebugLogger.info(
-            "ScreenshotMonitorService",
-            "Deleting expired media item: ${mediaItem.fileName}"
-        )
-
-        var deleted = false
-
-        // Prefer deleting via contentUri when available
-        mediaItem.contentUri?.let { uriStr ->
-            try {
-                val uri = uriStr.toUri()
-                val rows = contentResolver.delete(uri, null, null)
-                deleted = rows > 0
-                DebugLogger.info(
-                    "ScreenshotMonitorService",
-                    "ContentResolver delete result: $rows rows for ${mediaItem.fileName}"
-                )
-            } catch (e: Exception) {
-                DebugLogger.warning(
-                    "ScreenshotMonitorService",
-                    "ContentResolver delete failed for ${mediaItem.id}: ${e.message}"
-                )
+    /**
+     * Periodic job cleanup: Remove stale jobs that are no longer active.
+     * Prevents memory leaks from accumulating completed jobs.
+     */
+    private fun startJobCleanupTimer() {
+        jobCleanupJob = serviceScope.launch {
+            while (true) {
+                try {
+                    delay(MediaMonitorConfig.JOB_CLEANUP_INTERVAL_MS)
+                    deletionTimerManager.cleanupStaleJobs()
+                    DebugLogger.debug("ScreenshotMonitorService", "Cleaned up stale jobs")
+                } catch (e: Exception) {
+                    if (e !is kotlinx.coroutines.CancellationException) {
+                        DebugLogger.warning("ScreenshotMonitorService", "Error in job cleanup", e)
+                    }
+                }
             }
         }
-
-        if (!deleted) {
-            val file = File(mediaItem.filePath)
-            if (file.exists()) {
-                deleted = file.delete()
-                DebugLogger.info(
-                    "ScreenshotMonitorService",
-                    "File.delete() result: $deleted for ${mediaItem.filePath}"
-                )
-            } else {
-                DebugLogger.info(
-                    "ScreenshotMonitorService",
-                    "File doesn't exist, considering deleted: ${mediaItem.filePath}"
-                )
-            }
-        }
-
-        // Always remove from database to prevent stuck state
-        repository.delete(mediaItem)
-        NotificationHelper.cancelNotification(this, mediaItem.id.toInt())
-        DebugLogger.info(
-            "ScreenshotMonitorService",
-            "Removed expired media item from database: ${mediaItem.fileName}"
-        )
-
-        // Notify UI to remove item
-        DebugLogger.info(
-            "ScreenshotMonitorService",
-            "Emitting deleteItemFlow for ${mediaItem.id}"
-        )
-        MainViewModel.deleteItemFlow.tryEmit(mediaItem.id)
+        DebugLogger.info("ScreenshotMonitorService", "Job cleanup timer started")
     }
 
     override fun onDestroy() {
         super.onDestroy()
         DebugLogger.info("ScreenshotMonitorService", "Service onDestroy() called")
 
-        // Cancel all deletion timers
-        deletionJobs.values.forEach { it.cancel() }
-        deletionJobs.clear()
-        updateJobs.values.forEach { it.cancel() }
-        updateJobs.clear()
+        // Cancel all timers and jobs
+        deletionTimerManager.cancelAll()
+        globalNotificationUpdateJob?.cancel()
+        deletionCheckJob?.cancel()
+        jobCleanupJob?.cancel()
 
         // Clear notification deduplication cache
         recentNotifications.clear()
@@ -931,11 +526,9 @@ class ScreenshotMonitorService : Service() {
         if (::contentObserver.isInitialized) {
             contentResolver.unregisterContentObserver(contentObserver)
         }
-        deletionCheckJob?.cancel()
+
         serviceJob.cancel()
-        serviceScope.launch {
-            delay(CLEANUP_DELAY_MS)
-        }
+        DebugLogger.info("ScreenshotMonitorService", "All timers and observers cleaned up")
     }
 
     companion object {

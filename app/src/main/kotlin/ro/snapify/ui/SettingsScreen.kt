@@ -80,12 +80,14 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
+import com.ramcosta.composedestinations.annotation.Destination
 import ro.snapify.R
 import ro.snapify.ui.components.PermissionDialog
 import ro.snapify.ui.theme.AppTheme
 import ro.snapify.ui.theme.ThemeMode
 import ro.snapify.util.TimeUtils
 
+@Destination
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(

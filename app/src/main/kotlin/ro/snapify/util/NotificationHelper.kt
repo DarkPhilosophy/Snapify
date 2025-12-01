@@ -76,7 +76,7 @@ object NotificationHelper {
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val intent = Intent(context, NotificationActionReceiver::class.java).apply {
             action = NotificationActionReceiver.ACTION_KEEP
-            putExtra(NotificationActionReceiver.EXTRA_SCREENSHOT_ID, id)
+            putExtra(NotificationActionReceiver.EXTRA_MEDIA_ID, id)
         }
         val keepIntent = PendingIntent.getBroadcast(
             context,
@@ -87,7 +87,7 @@ object NotificationHelper {
 
         val deleteIntent = Intent(context, NotificationActionReceiver::class.java).apply {
             action = NotificationActionReceiver.ACTION_DELETE
-            putExtra(NotificationActionReceiver.EXTRA_SCREENSHOT_ID, id)
+            putExtra(NotificationActionReceiver.EXTRA_MEDIA_ID, id)
         }
         val deletePendingIntent = PendingIntent.getBroadcast(
             context,
@@ -98,7 +98,7 @@ object NotificationHelper {
 
         val dismissIntent = Intent(context, NotificationActionReceiver::class.java).apply {
             action = NotificationActionReceiver.ACTION_DISMISS
-            putExtra(NotificationActionReceiver.EXTRA_SCREENSHOT_ID, id)
+            putExtra(NotificationActionReceiver.EXTRA_MEDIA_ID, id)
         }
         val dismissPendingIntent = PendingIntent.getBroadcast(
             context,

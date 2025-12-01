@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import ro.snapify.data.preferences.AppPreferences
 import ro.snapify.data.repository.MediaRepository
-import ro.snapify.ui.RefreshReason
+import ro.snapify.ui.RecomposeReason
 import ro.snapify.util.DebugLogger
 import javax.inject.Inject
 
@@ -33,7 +33,7 @@ class ScreenshotApp : Application(), Configuration.Provider {
     lateinit var preferences: AppPreferences
 
     @Inject
-    lateinit var refreshFlow: MutableSharedFlow<RefreshReason>
+    lateinit var recomposeFlow: MutableSharedFlow<RecomposeReason>
 
     override fun onCreate() {
         super.onCreate()
@@ -70,8 +70,8 @@ class ScreenshotApp : Application(), Configuration.Provider {
         createNotificationChannels()
     }
 
-    fun emitRefresh() {
-        refreshFlow.tryEmit(RefreshReason.Other)
+    fun emitRecompose() {
+        recomposeFlow.tryEmit(RecomposeReason.Other)
     }
 
     private fun createNotificationChannels() {

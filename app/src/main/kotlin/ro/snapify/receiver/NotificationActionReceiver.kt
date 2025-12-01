@@ -12,23 +12,23 @@ import ro.snapify.util.NotificationHelper
 class NotificationActionReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        val screenshotId = intent.getLongExtra(EXTRA_SCREENSHOT_ID, -1L)
-        if (screenshotId == -1L) return
+        val mediaId = intent.getLongExtra(EXTRA_MEDIA_ID, -1L)
+        if (mediaId == -1L) return
 
         when (intent.action) {
             ACTION_DISMISS -> {
-                NotificationHelper.markNotificationDismissed(screenshotId)
+                NotificationHelper.markNotificationDismissed(mediaId)
             }
 
             ACTION_KEEP -> {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         val app = context.applicationContext as ScreenshotApp
-                        app.repository.markAsKept(screenshotId)
-                        NotificationHelper.cancelNotification(context, screenshotId.toInt())
+                        app.repository.markAsKept(mediaId)
+                        NotificationHelper.cancelNotification(context, mediaId.toInt())
 
                         // Emit refresh signal for UI update
-                        app.emitRefresh()
+                        app.emitRecompose()
                     } catch (_: Exception) {
                         // ignore errors in broadcast handling
                     }
@@ -41,15 +41,15 @@ class NotificationActionReceiver : BroadcastReceiver() {
                         val app = context.applicationContext as ScreenshotApp
 
                         // Always perform immediate deletion when "Delete Now" is pressed from notification
-                        val screenshot = app.repository.getById(screenshotId)
+                        val screenshot = app.repository.getById(mediaId)
                         screenshot?.let {
                             app.repository.delete(it)
                         }
 
-                        NotificationHelper.cancelNotification(context, screenshotId.toInt())
+                        NotificationHelper.cancelNotification(context, mediaId.toInt())
 
                         // Emit refresh signal for UI update
-                        app.emitRefresh()
+                        app.emitRecompose()
                     } catch (_: Exception) {
                         // ignore errors in broadcast handling
                     }
@@ -62,7 +62,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
         const val ACTION_DISMISS = "ro.snapify.ACTION_DISMISS"
         const val ACTION_KEEP = "ro.snapify.ACTION_KEEP"
         const val ACTION_DELETE = "ro.snapify.ACTION_DELETE"
-        const val EXTRA_SCREENSHOT_ID = "screenshot_id"
+        const val EXTRA_MEDIA_ID = "media_id"
         const val EXTRA_IS_MANUAL_MODE = "is_manual_mode"
         const val EXTRA_DELETION_TIME_MILLIS = "deletion_time_millis"
     }

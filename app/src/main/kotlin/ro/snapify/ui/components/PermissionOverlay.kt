@@ -2,6 +2,7 @@ package ro.snapify.ui.components
 
 import android.content.Intent
 import android.provider.Settings
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -50,6 +51,9 @@ fun PermissionOverlayDialog(
     onPermissionGranted: (() -> Unit)? = null,
     onPermissionDenied: (() -> Unit)? = null
 ) {
+    // Handle back press to dismiss dialog
+    BackHandler { onDismiss() }
+
     val context = LocalContext.current
     var hasRequestedPermission by remember { mutableStateOf(false) }
 

@@ -10,46 +10,53 @@ package ro.snapify.ui
 // import ro.snapify.ui.components.WelcomeDialog
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import kotlin.math.pow
 import android.os.Build
 import android.os.Environment
 import android.os.PowerManager
 import android.provider.Settings
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateTo
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.animation.Crossfade
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.Shortcut
+import ro.snapify.ui.components.DuoDrawer
+import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Folder
@@ -71,6 +78,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -93,15 +101,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import my.nanihadesuka.compose.LazyColumnScrollbar
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.preferencesDataStore
+import com.ramcosta.composedestinations.annotation.Destination
+import com.ramcosta.composedestinations.annotation.RootNavGraph
+import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import androidx.core.content.ContextCompat
+import java.io.File
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -120,6 +137,7 @@ import ro.snapify.ui.components.EmptyStateScreen
 import ro.snapify.ui.components.FolderFilterBar
 import ro.snapify.ui.components.LoadingBar
 import ro.snapify.ui.components.LoadingScreen
+import ro.snapify.ui.components.MediaInfoDialog
 import ro.snapify.ui.components.NewScreenshotDetector
 import ro.snapify.ui.components.PermissionDialog
 import ro.snapify.ui.components.PicturePreviewDialog
@@ -135,26 +153,68 @@ import ro.snapify.ui.theme.ThemeMode
 import ro.snapify.ui.theme.WarningOrange
 import ro.snapify.util.DebugLogger
 
+// Reusable bounce animation function
+suspend fun animatedBounce(
+    animatable: Animatable<Float, AnimationVector1D>,
+    startDistance: Float,
+    numBounces: Int,
+    baseDuration: Long
+) {
+    animatable.snapTo(startDistance)
+    for (i in 0 until numBounces) {
+        // Bounce to left (0)
+        animatable.animateTo(
+            targetValue = 0f,
+            animationSpec = tween(durationMillis = (baseDuration * 0.8.pow(i)).toLong().coerceAtLeast(150L).toInt())
+        )
+        if (i < numBounces - 1) {
+            // Bounce back to right with decreasing amplitude
+            val nextDist = startDistance * 0.6.pow(i + 1).toFloat()
+            animatable.animateTo(
+                targetValue = nextDist,
+                animationSpec = tween(durationMillis = (baseDuration * 0.85.pow(i)).toLong().coerceAtLeast(150L).toInt())
+            )
+        }
+    }
+}
+
+// Reusable typewriter animation function
+suspend fun animateTypewriter(
+    alphas: List<Animatable<Float, AnimationVector1D>>,
+    delays: List<Long>
+) {
+    alphas.forEach { it.snapTo(0f) }
+    alphas.forEachIndexed { index, animatable ->
+        kotlinx.coroutines.delay(delays.getOrElse(index) { 0L })
+        animatable.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 100)
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
-@UnstableApi
 @Composable
 fun MainScreen(
-    viewModel: MainViewModel = hiltViewModel(),
+    viewModel: MainViewModel? = null,
     onOpenDrawer: () -> Unit = {},
     preferences: ro.snapify.data.preferences.AppPreferences? = null,
-    isDrawerOpen: Boolean = false
+    isDrawerOpen: Boolean = false,
+    navigator: DestinationsNavigator? = null
 ) {
     DebugLogger.info("MainScreen", "RECOMPOSING")
+
+    val actualViewModel = viewModel ?: hiltViewModel()
 
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle(initialValue = MainUiState())
+    val uiState by actualViewModel.uiState.collectAsStateWithLifecycle(initialValue = MainUiState())
     val themeMode by preferences?.themeMode?.collectAsState(initial = "system")
         ?: remember { mutableStateOf("system") }
     val language by preferences?.language?.collectAsState(initial = "en")
         ?: remember { mutableStateOf("en") }
-    val currentFilterState by viewModel.currentFilterState.collectAsStateWithLifecycle(initialValue = FilterState())
+    val currentFilterState by actualViewModel.currentFilterState.collectAsStateWithLifecycle(initialValue = FilterState())
 
     // Debug currentFilterState changes
     LaunchedEffect(currentFilterState) {
@@ -163,19 +223,44 @@ fun MainScreen(
             "currentFilterState changed: folders=${currentFilterState.selectedFolders.size}, tags=${currentFilterState.selectedTags}"
         )
     }
-    val mediaItems = viewModel.mediaItems
-    val refreshTrigger by viewModel.refreshTrigger.collectAsStateWithLifecycle(initialValue = 0L)
+    val mediaItems = actualViewModel.mediaItems
+    val refreshTrigger by actualViewModel.refreshTrigger.collectAsStateWithLifecycle(initialValue = 0L)
 
     // Debug refreshTrigger changes
     LaunchedEffect(refreshTrigger) {
         DebugLogger.info("MainScreen", "RefreshTrigger changed to: $refreshTrigger")
     }
-    val mediaFolderUris by viewModel.mediaFolderUris.collectAsStateWithLifecycle(initialValue = emptySet())
-    val monitoringStatus by viewModel.monitoringStatus.collectAsState(initial = MonitoringStatus.STOPPED)
-    val liveVideoPreviewEnabled by viewModel.liveVideoPreviewEnabled.collectAsStateWithLifecycle(
+    val mediaFolderUris by actualViewModel.mediaFolderUris.collectAsStateWithLifecycle(initialValue = emptySet())
+    val monitoringStatus by actualViewModel.monitoringStatus.collectAsState(initial = MonitoringStatus.STOPPED)
+    val liveVideoPreviewEnabled by actualViewModel.liveVideoPreviewEnabled.collectAsStateWithLifecycle(
         initialValue = false
     )
-    val deletingIds by viewModel.deletingIds.collectAsStateWithLifecycle(initialValue = emptySet())
+    val deletingIds by actualViewModel.deletingIds.collectAsStateWithLifecycle(initialValue = emptySet())
+
+    // Dialog states
+    var showInfoDialog by remember { mutableStateOf(false) }
+    var selectedMediaItem by remember { mutableStateOf<MediaItem?>(null) }
+
+    // Exit handling
+    var backPressedOnce by remember { mutableStateOf(false) }
+
+    // Handle back press: exit app with confirmation
+    BackHandler {
+        if (backPressedOnce) {
+            // Exit app - TODO: implement proper exit
+            // (LocalContext.current as? android.app.Activity)?.finishAffinity()
+        } else {
+            backPressedOnce = true
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    message = "Press back again to exit",
+                    duration = SnackbarDuration.Short
+                )
+                delay(2000)
+                backPressedOnce = false
+            }
+        }
+    }
     val permanentSettingMenuEnabled by preferences?.permanentSettingMenuEnabled?.collectAsState(
         initial = false
     ) ?: remember { mutableStateOf(false) }
@@ -220,8 +305,8 @@ fun MainScreen(
                     "MainScreen",
                     "ON_RESUME: App regained focus - refreshMediaItems DISABLED, calling refreshMonitoringStatus"
                 )
-                // TEMPORARILY DISABLED: viewModel.refreshMediaItems()
-                viewModel.refreshMonitoringStatus()
+                // TEMPORARILY DISABLED: actualViewModel.refreshMediaItems()
+                actualViewModel.refreshMonitoringStatus()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -256,6 +341,32 @@ fun MainScreen(
 
     val isScrolled by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 } }
 
+    val visiblePageText by remember {
+        derivedStateOf {
+            val visibleItems = listState.layoutInfo.visibleItemsInfo
+            val viewportHeight = listState.layoutInfo.viewportSize.height
+            var startIndex = -1
+            var endIndex = -1
+            for (item in visibleItems) {
+                val visibleHeight = when {
+                    item.offset < 0 -> minOf(item.size + item.offset, viewportHeight)
+                    item.offset + item.size > viewportHeight -> viewportHeight - item.offset
+                    else -> item.size
+                }.coerceAtLeast(0)
+                val fraction = visibleHeight.toFloat() / item.size
+                if (fraction > 0.5f) {
+                    if (startIndex == -1) startIndex = item.index
+                    endIndex = item.index
+                }
+            }
+            if (startIndex != -1 && endIndex != -1) {
+                "${startIndex + 1}:${endIndex + 1}"
+            } else {
+                ""
+            }
+        }
+    }
+
     // Track if user has manually scrolled away from top
     var userHasScrolled by remember { mutableStateOf(false) }
 
@@ -275,7 +386,7 @@ fun MainScreen(
         uiState.message?.let { message ->
             scope.launch {
                 snackbarHostState.showSnackbar(message)
-                viewModel.clearMessage()
+                actualViewModel.clearMessage()
             }
         }
     }
@@ -335,8 +446,7 @@ fun MainScreen(
         modifier = Modifier.fillMaxSize(),
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
-            Box(modifier = Modifier.padding(top = 24.dp)) {
-                TopAppBar(
+            TopAppBar(
                 title = {
                     var isVisible by remember { mutableStateOf(false) }
                     LaunchedEffect(Unit) {
@@ -347,23 +457,23 @@ fun MainScreen(
                         label = "titleAlpha"
                     )
                     Text(
-                        text = BuildConfig.APP_DISPLAY_NAME,
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Serif
-                        ),
-                        modifier = Modifier
-                            .padding(start = if (isDrawerOpen) 0.dp else 60.dp)
-                            .alpha(alpha)
-                    )
+                    text = BuildConfig.APP_DISPLAY_NAME,
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Serif
+                    ),
+                    modifier = Modifier
+                    .alpha(alpha)
+                    .padding(start = 72.dp)
+        )
                 },
 
                 actions = {
                     IconButton(onClick = {
                         when (monitoringStatus) {
-                            MonitoringStatus.STOPPED -> viewModel.startMonitoring()
-                            MonitoringStatus.ACTIVE -> viewModel.stopMonitoring()
-                            MonitoringStatus.MISSING_PERMISSIONS -> viewModel.startMonitoring() // Will check permissions and start or show dialog
+                            MonitoringStatus.STOPPED -> actualViewModel.startMonitoring()
+                            MonitoringStatus.ACTIVE -> actualViewModel.stopMonitoring()
+                            MonitoringStatus.MISSING_PERMISSIONS -> actualViewModel.startMonitoring() // Will check permissions and start or show dialog
                         }
                     }) {
                         val (icon, color) = when (monitoringStatus) {
@@ -382,7 +492,7 @@ fun MainScreen(
                         )
                     }
                     IconButton(
-                        onClick = { viewModel.refreshMediaItems() }, enabled = true
+                        onClick = { actualViewModel.refreshMediaItems() }, enabled = true
                     ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
@@ -391,7 +501,7 @@ fun MainScreen(
                     }
 
                     if (!allPermissionsGranted) {
-                        IconButton(onClick = { viewModel.showPermissionsDialog() }) {
+                        IconButton(onClick = { actualViewModel.showPermissionsDialog() }) {
                             Icon(
                                 imageVector = Icons.Default.Lock,
                                 contentDescription = stringResource(R.string.permissions)
@@ -403,16 +513,36 @@ fun MainScreen(
                     containerColor = MaterialTheme.colorScheme.surface,
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
-                )
-            }
+            )
         },
+
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            // Right side: back to top and settings
+            // Right side: page indicator, back to top and settings
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
+                // Page indicator (appears when scrolled)
+                AnimatedVisibility(
+                    visible = isScrolled && visiblePageText.isNotEmpty(),
+                    enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                    exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 })
+                ) {
+                    Text(
+                        text = visiblePageText,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier
+                            .background(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                RoundedCornerShape(16.dp)
+                            )
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+
                 // Back to top FAB (appears when scrolled)
                 AnimatedVisibility(
                     visible = isScrolled,
@@ -454,7 +584,6 @@ fun MainScreen(
                 }
             }
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -467,12 +596,12 @@ fun MainScreen(
                 allPermissionsGranted = allPermissionsGranted,
                 onStatusClick = {
                     when (monitoringStatus) {
-                        MonitoringStatus.STOPPED -> viewModel.startMonitoring()
-                        MonitoringStatus.ACTIVE -> viewModel.stopMonitoring()
+                        MonitoringStatus.STOPPED -> actualViewModel.startMonitoring()
+                        MonitoringStatus.ACTIVE -> actualViewModel.stopMonitoring()
                         MonitoringStatus.MISSING_PERMISSIONS -> {} // Should not happen if permissions granted
                     }
                 },
-                onPermissionsClick = { viewModel.showPermissionsDialog() }
+                onPermissionsClick = { actualViewModel.showPermissionsDialog() }
             )
 
 
@@ -485,7 +614,7 @@ fun MainScreen(
                         ScreenshotTab.KEPT,
                         ScreenshotTab.UNMARKED
                     ) else selected
-                    viewModel.updateTagSelection(effective)
+                    actualViewModel.updateTagSelection(effective)
                 }
             )
 
@@ -493,7 +622,7 @@ fun MainScreen(
                 availableUris = availableUris,
                 availablePaths = availablePaths,
                 selectedPaths = currentFilterState.selectedFolders,
-                onFolderSelectionChanged = { viewModel.updateFolderSelection(it) }
+                onFolderSelectionChanged = { actualViewModel.updateFolderSelection(it) }
             )
 
             // Content
@@ -520,7 +649,7 @@ fun MainScreen(
                     }
                     // NewScreenshotDetector with no loading to avoid UI shift
                     NewScreenshotDetector(
-                        newScreenshotFlow = viewModel.newScreenshotDetected,
+                        newScreenshotFlow = actualViewModel.newScreenshotDetected,
                         onLoadingChange = { }, // No-op to prevent loading bar
                         onNewScreenshot = {
                             scope.launch {
@@ -533,7 +662,7 @@ fun MainScreen(
                     val refreshState = rememberPullToRefreshState()
                     PullToRefreshBox(
                         isRefreshing = uiState.isLoading,
-                        onRefresh = { viewModel.refreshMediaItems() },
+                        onRefresh = { actualViewModel.refreshMediaItems() },
                         state = refreshState
                     ) {
                         Column {
@@ -546,19 +675,19 @@ fun MainScreen(
                             val onScreenshotClickCallback =
                                 remember {
                                     { item: MediaItem, position: androidx.compose.ui.geometry.Offset ->
-                                        viewModel.openMediaItem(
+                                        actualViewModel.openMediaItem(
                                             item,
                                             position
                                         )
                                     }
                                 }
                             val onKeepClickCallback =
-                                remember { { item: MediaItem -> viewModel.keepMediaItem(item) } }
+                                remember { { item: MediaItem -> actualViewModel.keepMediaItem(item) } }
                             val onUnkeepClickCallback =
-                                remember { { item: MediaItem -> viewModel.unkeepMediaItem(item) } }
+                                remember { { item: MediaItem -> actualViewModel.unkeepMediaItem(item) } }
                             val onDeleteClickCallback =
-                                remember { { item: MediaItem -> viewModel.deleteMediaItem(item) } }
-                            val onLoadMoreCallback = remember { { viewModel.loadMoreMediaItems() } }
+                                remember { { item: MediaItem -> actualViewModel.deleteMediaItem(item) } }
+                            val onLoadMoreCallback = remember { { actualViewModel.loadMoreMediaItems() } }
 
                             ScreenshotListComposable(
                                 mediaItems = mediaItems,
@@ -571,7 +700,16 @@ fun MainScreen(
                                 onKeepClick = onKeepClickCallback,
                                 onUnkeepClick = onUnkeepClickCallback,
                                 onDeleteClick = onDeleteClickCallback,
-                                onLoadMore = onLoadMoreCallback
+                                onLoadMore = onLoadMoreCallback,
+                                showInfoDialog = showInfoDialog,
+                                selectedMediaItem = selectedMediaItem,
+                                onShowInfoDialog = { item ->
+                                    selectedMediaItem = item
+                                    showInfoDialog = true
+                                },
+                                onDismissInfoDialog = {
+                                    showInfoDialog = false
+                                }
                             )
                         }
                     }
@@ -580,62 +718,12 @@ fun MainScreen(
         }
     }
 
-    // Theme dialog
-    // if (uiState.showThemeDialog) {
-    //     ThemeDialog(
-    //         currentTheme = themeMode,
-    //         onThemeSelected = { newTheme ->
-    //             scope.launch {
-    //                 preferences?.setThemeMode(newTheme)
-    //             }
-    //             viewModel.hideThemeDialog()
-    //         },
-    //         onDismiss = { viewModel.hideThemeDialog() }
-    //     )
-    // }
-
-    // Language dialog
-    // if (uiState.showLanguageDialog) {
-    //     LanguageDialog(
-    //         currentLanguage = language,
-    //         onLanguageSelected = { newLang ->
-    //             scope.launch {
-    //                 preferences?.setLanguage(newLang)
-    //             }
-    //             viewModel.hideLanguageDialog()
-    //         },
-    //         onDismiss = { viewModel.hideLanguageDialog() }
-    //     )
-    // }
-
-    // Operation Mode dialog
-    // if (uiState.showOperationModeDialog) {
-    //     OperationModeDialog(
-    //         onDismiss = { viewModel.hideOperationModeDialog() }
-    //     )
-    // }
-
-    // Deletion Time dialog
-    // if (uiState.showDeletionTimeDialog) {
-    //     DeletionTimeDialog(
-    //         onDismiss = { viewModel.hideDeletionTimeDialog() }
-    //     )
-    // }
-
-    // Welcome dialog for first launch
-    // if (uiState.showWelcomeDialog) {
-    //     WelcomeDialog(
-    //         onDismiss = { viewModel.dismissWelcomeDialog() }
-    //     )
-    // }
-
-
     // Video preview dialog
     uiState.videoPreviewItem?.let { mediaItem ->
         VideoPreviewDialog(
             mediaItem = mediaItem,
             position = uiState.videoPreviewPosition,
-            onDismiss = { viewModel.closeVideoPreview() }
+            onDismiss = { actualViewModel.closeVideoPreview() }
         )
     }
 
@@ -643,14 +731,10 @@ fun MainScreen(
     uiState.imagePreviewItem?.let { mediaItem ->
         PicturePreviewDialog(
             mediaItem = mediaItem,
-            onDismiss = { viewModel.closeImagePreview() }
+            onDismiss = { actualViewModel.closeImagePreview() }
         )
     }
 }
-
-
-
-
 
 fun updatePermissionStatuses(
     context: Context,
@@ -693,175 +777,33 @@ fun updatePermissionStatuses(
     onUpdate(newStatuses)
 }
 
-// Old ImagePreviewDialog removed, now using PicturePreviewDialog component
-/*
-    val configuration = LocalConfiguration.current
-    val isLandscape =
-        configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-    val isOLED = MaterialTheme.colorScheme.surface == Color.Black
-    var scale by remember { mutableFloatStateOf(1f) }
-    var rotation by remember { mutableFloatStateOf(0f) }
-    var offsetX by remember { mutableFloatStateOf(0f) }
-    var offsetY by remember { mutableFloatStateOf(0f) }
-    var uiVisible by remember { mutableStateOf(true) }
-    var resetSpinning by remember { mutableStateOf(true) }
-    val dialogScale by animateFloatAsState(
-        targetValue = 1f,
-        animationSpec = tween(500, easing = EaseOutCubic),
-        label = "dialogScale"
-    )
-    val dialogAlpha by animateFloatAsState(
-        targetValue = 1f,
-        animationSpec = tween(500, easing = EaseOutCubic),
-        label = "dialogAlpha"
-    )
-
-    // Get image aspect ratio
-    val imageAspectRatio = remember(mediaItem) {
-        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeFile(mediaItem.filePath, options)
-        if (options.outWidth > 0 && options.outHeight > 0) {
-            options.outWidth.toFloat() / options.outHeight.toFloat()
-        } else {
-            1f // fallback
-        }
-    }
-
-    // Calculate dynamic height based on aspect ratio
-    val screenWidthDp = configuration.screenWidthDp
-    val dynamicHeight = (screenWidthDp / imageAspectRatio).dp.coerceIn(
-        300.dp,
-        (configuration.screenHeightDp * 0.9f).dp
-    )
-
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(dynamicHeight)
-                .graphicsLayer(
-                    scaleX = dialogScale,
-                    scaleY = dialogScale,
-                    alpha = dialogAlpha
-                )
-                .animateContentSize(),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.Transparent
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-        ) {
-            Box(
+// New composable for previewing MainScreen content without HiltViewModel
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MainScreenContentPreview() {
+    Scaffold(
+        topBar = {
+            TopAppBar(title = { Text("App Title (Preview)") })
+        },
+        content = { paddingValues ->
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clickable {
-                        // Toggle UI visibility on image click
-                        uiVisible = !uiVisible
-                    }) {
-                // Image with controls and overlays
-                Box(modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black)
-                .border(
-                width = 2.dp,
-                color = MaterialTheme.colorScheme.outline,
-                shape = RoundedCornerShape(8.dp)
+                    .padding(paddingValues)
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "Main Screen Preview Content",
+                    style = MaterialTheme.typography.headlineMedium
                 )
-                ) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .data(mediaItem.contentUri ?: "file://${mediaItem.filePath}")
-                            .build(),
-                        contentDescription = mediaItem.fileName,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .pointerInput(Unit) {
-                                detectTransformGestures { _, pan, zoom, _ ->
-                                    offsetX += pan.x
-                                    offsetY += pan.y
-                                    scale *= zoom
-                                }
-                            }
-                            .graphicsLayer(
-                                scaleX = scale,
-                                scaleY = scale,
-                                rotationZ = rotation,
-                                translationX = offsetX,
-                                translationY = offsetY
-                            ),
-                        contentScale = ContentScale.Fit
-                    )
-
-                    // Top bar
-                    if (uiVisible) {
-                        Row(
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
-                                .padding(horizontal = 16.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = mediaItem.fileName,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.weight(1f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            IconButton(
-                                onClick = {
-                                    scale = 1f
-                                    rotation = 0f
-                                    offsetX = 0f
-                                    offsetY = 0f
-                                },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = "Reset",
-                                    tint = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                            IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Close",
-                                    tint = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
-                    }
-
-
-                    // Control buttons overlay
-                    if (uiVisible) {
-                        PictureControls(
-                            onZoomOut = { scale = (scale / 1.2f).coerceAtLeast(0.5f) },
-                            onZoomIn = { scale = (scale * 1.2f).coerceAtMost(3f) },
-                            onRotate = { rotation = (rotation + 90f) % 360f },
-                            onReset = {
-                                scale = 1f
-                                rotation = 0f
-                                offsetX = 0f
-                                offsetY = 0f
-                            },
-                            modifier = Modifier.align(Alignment.BottomCenter)
-                        )
-                    }
-                }
+                Spacer(modifier = Modifier.height(16.dp))
+                CircularProgressIndicator()
             }
         }
-        }
+    )
 }
-*/
-
-
-
 
 // Preview functions
 @Suppress("UnstableApiUsage")
@@ -869,7 +811,7 @@ fun updatePermissionStatuses(
 @Composable
 fun MainScreenPreview() {
     AppTheme {
-        MainScreen()
+        MainScreenContentPreview()
     }
 }
 
@@ -898,6 +840,7 @@ fun ScreenshotCardPreview() {
         ScreenshotCard(
             screenshot = sampleScreenshot,
             onClick = {},
+            onLongPress = {},
             onKeepClick = {},
             onUnkeepClick = {},
             onDeleteClick = {}
@@ -914,6 +857,7 @@ internal fun LazyListScope.SettingsContent(
     folderPicker: ManagedActivityResultLauncher<Uri?, Uri?>,
     permissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
     developerUnlocked: Boolean,
+    navigator: DestinationsNavigator? = null,
     onDeveloperUnlocked: () -> Unit,
     onDeveloperLocked: () -> Unit,
     onOpenPermissions: () -> Unit = {},
@@ -1155,16 +1099,24 @@ fun MenuContent(
     onCloseDrawer: () -> Unit = {},
     isDrawerOpen: Boolean = false,
     preferences: ro.snapify.data.preferences.AppPreferences? = null,
-    mainViewModel: MainViewModel = hiltViewModel(),
+    mainViewModel: MainViewModel? = null,
+    settingsViewModel: SettingsViewModel? = null,
+    navigator: DestinationsNavigator? = null,
     dialogContent: @Composable () -> Unit = {}
 ) {
-    val settingsViewModel: SettingsViewModel = hiltViewModel()
+    val actualMainViewModel = mainViewModel ?: hiltViewModel()
+    val actualSettingsViewModel = settingsViewModel ?: hiltViewModel()
     var showPermissionDialog by remember { mutableStateOf(false) }
     var showFolderDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
-    val developerUnlocked by settingsViewModel.developerModeEnabled.collectAsState(initial = false)
+    val developerUnlocked by actualSettingsViewModel.developerModeEnabled.collectAsState(initial = false)
+
+    // Handle back button to close drawer
+    BackHandler {
+        onCloseDrawer()
+    }
 
     // Folder picker launcher
     val folderPicker = rememberLauncherForActivityResult(
@@ -1179,7 +1131,7 @@ fun MenuContent(
             )
             // Save the URI
             scope.launch {
-                settingsViewModel.addMediaFolder(it.toString())
+                actualSettingsViewModel.addMediaFolder(it.toString())
             }
         }
     }
@@ -1194,48 +1146,140 @@ fun MenuContent(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0)
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(horizontal = 16.dp, vertical = 16.dp)
-                .padding(padding),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
+        topBar = {
+            TopAppBar(
+                title = {
+                    // Add padding to avoid FAB overlap when drawer closed
+                    val titlePadding = if (isOpen) 0.dp else 80.dp
 
-            // Settings Content
-            SettingsContent(
-                settingsViewModel = settingsViewModel,
-                scope = scope,
-                snackbarHostState = snackbarHostState,
-                folderPicker = folderPicker,
-                permissionLauncher = permissionLauncher,
-                developerUnlocked = developerUnlocked,
-                onDeveloperUnlocked = { settingsViewModel.setDeveloperModeEnabled(true) },
-                onDeveloperLocked = { settingsViewModel.setDeveloperModeEnabled(false) },
-                onOpenPermissions = { showPermissionDialog = true },
-                onShowFolderDialog = { showFolderDialog = true },
-                onNavigateToConsole = {
-                    context.startActivity(Intent(context, DebugConsoleActivity::class.java))
-                }
+                    // Reusable bounce animation function
+                    suspend fun animatedBounce(
+                        animatable: Animatable<Float, AnimationVector1D>,
+                        startDistance: Float,
+                        numBounces: Int,
+                        baseDuration: Long
+                    ) {
+                        animatable.snapTo(startDistance)
+                        for (i in 0 until numBounces) {
+                            // Bounce to left (0)
+                            animatable.animateTo(
+                                targetValue = 0f,
+                                animationSpec = tween(durationMillis = (baseDuration * 0.8.pow(i)).toLong().coerceAtLeast(150L).toInt())
+                            )
+                            if (i < numBounces - 1) {
+                                // Bounce back to right with decreasing amplitude
+                                val nextDist = startDistance * 0.6.pow(i + 1).toFloat()
+                                animatable.animateTo(
+                                    targetValue = nextDist,
+                                    animationSpec = tween(durationMillis = (baseDuration * 0.85.pow(i)).toLong().coerceAtLeast(150L).toInt())
+                                )
+                            }
+                        }
+                    }
+
+                    // Reusable typewriter animation function
+                    suspend fun animateTypewriter(
+                        alphas: List<Animatable<Float, AnimationVector1D>>,
+                        delays: List<Long>
+                    ) {
+                        alphas.forEach { it.snapTo(0f) }
+                        alphas.forEachIndexed { index, animatable ->
+                            kotlinx.coroutines.delay(delays.getOrElse(index) { 0L })
+                            animatable.animateTo(
+                                targetValue = 1f,
+                                animationSpec = tween(durationMillis = 100)
+                            )
+                        }
+                    }
+
+                    val textXAnimatable = remember { Animatable(0f) }
+                    // Animated Settings title
+                    LaunchedEffect(isOpen) {
+                        if (isOpen) {
+                            animatedBounce(textXAnimatable, 150.dp.value, 4, 500L)
+                        }
+                    }
+
+                    val text = "Settings"
+                    val letterAlphas = remember { List(text.length) { Animatable(0f) } }
+                    val typewriterDelays = text.indices.map { 200 - it * 20L }
+                    LaunchedEffect(isOpen) {
+                        if (isOpen) {
+                            animateTypewriter(letterAlphas, typewriterDelays)
+                        }
+                    }
+                    Box(modifier = Modifier.padding(start = titlePadding)) {
+                        Row(
+                            modifier = Modifier.offset(x = textXAnimatable.value.dp)
+                        ) {
+                            text.forEachIndexed { index, char ->
+                                Text(
+                                    text = char.toString(),
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.alpha(letterAlphas[index].value),
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
             )
+        }
+    ) { padding ->
+    val listState = rememberLazyListState()
+    LazyColumnScrollbar(
+    state = listState,
+    settings = my.nanihadesuka.compose.ScrollbarSettings(alwaysShowScrollbar = true)
+    ) {
+    LazyColumn(
+    state = listState,
+    modifier = Modifier
+    .fillMaxSize()
+    .background(MaterialTheme.colorScheme.surface)
+        .padding(horizontal = 16.dp, vertical = 16.dp)
+            .padding(padding),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+
+    // Settings Content
+    SettingsContent(
+            settingsViewModel = actualSettingsViewModel,
+                    scope = scope,
+                    snackbarHostState = snackbarHostState,
+                    folderPicker = folderPicker,
+            permissionLauncher = permissionLauncher,
+        developerUnlocked = developerUnlocked,
+            navigator = navigator,
+                onDeveloperUnlocked = { actualSettingsViewModel.setDeveloperModeEnabled(true) },
+                    onDeveloperLocked = { actualSettingsViewModel.setDeveloperModeEnabled(false) },
+                    onOpenPermissions = { showPermissionDialog = true },
+                    onShowFolderDialog = { showFolderDialog = true },
+                    onNavigateToConsole = {
+                        context.startActivity(Intent(context, DebugConsoleActivity::class.java))
+                    }
+                )
 
 
 
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
         }
     }
 
     if (showFolderDialog) {
         FolderManagementDialog(
-            mediaFolderUris = settingsViewModel.mediaFolderUris.collectAsState(initial = emptySet()).value,
+            mediaFolderUris = actualSettingsViewModel.mediaFolderUris.collectAsState(initial = emptySet()).value,
             onAddFolder = { folderPicker.launch(null) },
-            onAddUri = { uri -> settingsViewModel.addMediaFolder(uri) },
-            onRemoveFolder = { settingsViewModel.removeMediaFolder(it) },
+            onAddUri = { uri -> actualSettingsViewModel.addMediaFolder(uri) },
+            onRemoveFolder = { actualSettingsViewModel.removeMediaFolder(it) },
             onDismiss = { showFolderDialog = false }
         )
     }
@@ -1423,6 +1467,7 @@ fun AnimatedScreenshotCard(
     isRefreshing: Boolean,
     liveVideoPreviewEnabled: Boolean,
     onClick: (androidx.compose.ui.geometry.Offset) -> Unit,
+    onLongPress: () -> Unit,
     onKeepClick: () -> Unit,
     onUnkeepClick: () -> Unit,
     onDeleteClick: () -> Unit,
@@ -1445,6 +1490,7 @@ fun AnimatedScreenshotCard(
                 isRefreshing = isRefreshing,
                 liveVideoPreviewEnabled = liveVideoPreviewEnabled,
                 onClick = onClick,
+                onLongPress = onLongPress,
                 onKeepClick = onKeepClick,
                 onUnkeepClick = onUnkeepClick,
                 onDeleteClick = onDeleteClick
@@ -1467,6 +1513,10 @@ fun ScreenshotListComposable(
     onUnkeepClick: (MediaItem) -> Unit,
     onDeleteClick: (MediaItem) -> Unit,
     onLoadMore: () -> Unit,
+    showInfoDialog: Boolean,
+    selectedMediaItem: MediaItem?,
+    onShowInfoDialog: (MediaItem) -> Unit,
+    onDismissInfoDialog: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val filteredMediaItems by remember(mediaItems, currentFilterState) {
@@ -1521,57 +1571,211 @@ fun ScreenshotListComposable(
         }
     }
 
-    LazyColumn(
+    LazyColumnScrollbar(
         state = listState,
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(
-            count = filteredMediaItems.size,
-            key = { index -> filteredMediaItems[index].id }
-        ) { index ->
-            val screenshot = filteredMediaItems[index]
-
-            // Remember callbacks to prevent unnecessary recompositions
-            val onClickCallback = remember(screenshot.id) {
-                { position: androidx.compose.ui.geometry.Offset ->
-                    onScreenshotClick(
-                        screenshot,
-                        position
-                    )
+        indicatorContent = { index, isThumbSelected ->
+            // Paused for now
+            /*
+            val visibleItems = listState.layoutInfo.visibleItemsInfo
+            val viewportHeight = listState.layoutInfo.viewportSize.height
+            var startIndex = -1
+            var endIndex = -1
+            for (item in visibleItems) {
+                val visibleHeight = when {
+                    item.offset < 0 -> minOf(item.size + item.offset, viewportHeight)
+                    item.offset + item.size > viewportHeight -> viewportHeight - item.offset
+                    else -> item.size
+                }.coerceAtLeast(0)
+                val fraction = visibleHeight.toFloat() / item.size
+                if (fraction > 0.5f) {
+                    if (startIndex == -1) startIndex = item.index
+                    endIndex = item.index
                 }
             }
-            val onKeepCallback = remember(screenshot.id) { { onKeepClick(screenshot) } }
-            val onUnkeepCallback = remember(screenshot.id) { { onUnkeepClick(screenshot) } }
-            val onDeleteCallback = remember(screenshot.id) { { onDeleteClick(screenshot) } }
+            val displayText = if (startIndex != -1 && endIndex != -1) {
+                "${startIndex + 1}:${endIndex + 1}"
+            } else {
+                ""
+            }
+            Text(
+                text = displayText,
+                Modifier.background(if (isThumbSelected) Color.Red else Color.Black, CircleShape)
+            )
+            */
+        }
+    ) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(
+                count = filteredMediaItems.size,
+                key = { index -> filteredMediaItems[index].id }
+            ) { index ->
+                val screenshot = filteredMediaItems[index]
 
-            AnimatedScreenshotCard(
-                screenshot = screenshot,
-                isVisible = screenshot.id !in deletingIds,
-                isRefreshing = isLoading,
-                liveVideoPreviewEnabled = liveVideoPreviewEnabled,
-                onClick = onClickCallback,
-                onKeepClick = onKeepCallback,
-                onUnkeepClick = onUnkeepCallback,
-                onDeleteClick = onDeleteCallback
+                // Remember callbacks to prevent unnecessary recompositions
+                val onClickCallback = remember(screenshot.id) {
+                    { position: androidx.compose.ui.geometry.Offset ->
+                        onScreenshotClick(
+                            screenshot,
+                            position
+                        )
+                    }
+                }
+                val onKeepCallback = remember(screenshot.id) { { onKeepClick(screenshot) } }
+                val onUnkeepCallback = remember(screenshot.id) { { onUnkeepClick(screenshot) } }
+                val onDeleteCallback = remember(screenshot.id) { { onDeleteClick(screenshot) } }
+                val onLongPressCallback = remember(screenshot.id) {
+                    {
+                        onShowInfoDialog(screenshot)
+                    }
+                }
+
+                AnimatedScreenshotCard(
+                    screenshot = screenshot,
+                    isVisible = screenshot.id !in deletingIds,
+                    isRefreshing = isLoading,
+                    liveVideoPreviewEnabled = liveVideoPreviewEnabled,
+                    onClick = onClickCallback,
+                    onLongPress = onLongPressCallback,
+                    onKeepClick = onKeepCallback,
+                    onUnkeepClick = onUnkeepCallback,
+                    onDeleteClick = onDeleteCallback
+                )
+            }
+
+            // Loading indicator at bottom
+            if (isLoading) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+            }
+        }
+        // Media Info Dialog
+        if (showInfoDialog && selectedMediaItem != null) {
+            MediaInfoDialog(
+                mediaItem = selectedMediaItem!!,
+                onKeep = {
+                    onKeepClick(selectedMediaItem!!)
+                    onDismissInfoDialog()
+                },
+                onUnkeep = {
+                    onUnkeepClick(selectedMediaItem!!)
+                    onDismissInfoDialog()
+                },
+                onDelete = {
+                    onDeleteClick(selectedMediaItem!!)
+                    onDismissInfoDialog()
+                },
+                onDismiss = onDismissInfoDialog
             )
         }
+    }
+}
 
-        // Loading indicator at bottom
-        if (isLoading) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+
+
+
+@Destination
+@RootNavGraph(start = true)
+@Composable
+fun MainScreenDestination(
+    navigator: DestinationsNavigator
+) {
+    val viewModel = androidx.hilt.navigation.compose.hiltViewModel<MainViewModel>()
+    val uiState by viewModel.uiState.collectAsState()
+
+    val localContext = LocalContext.current
+    val preferences = ro.snapify.data.preferences.AppPreferences(localContext)
+
+    var isDrawerOpen by remember { mutableStateOf(false) }
+
+    val fabX by animateDpAsState(
+        targetValue = if (isDrawerOpen) (LocalConfiguration.current.screenWidthDp.dp - 72.dp) else 16.dp,
+        animationSpec = tween(durationMillis = 600)
+    )
+
+    BackHandler(enabled = isDrawerOpen) {
+        isDrawerOpen = false
+    }
+
+    DuoDrawer(
+        isOpen = isDrawerOpen,
+        onOpenDrawer = { isDrawerOpen = true },
+        onCloseDrawer = { isDrawerOpen = false },
+        showDialog = uiState.showPermissionDialog,
+        menuContent = { drawerOpen ->
+        MenuContent(
+        isOpen = drawerOpen,
+        onHomeClick = { isDrawerOpen = false },
+        onCloseDrawer = { isDrawerOpen = false },
+        isDrawerOpen = isDrawerOpen,
+        preferences = preferences,
+        mainViewModel = viewModel,
+        navigator = navigator,
+            dialogContent = {}
+            )
+        },
+        content = {
+            MainScreen(
+                viewModel = viewModel,
+                onOpenDrawer = { isDrawerOpen = true },
+                preferences = preferences,
+                isDrawerOpen = isDrawerOpen
+            )
+        },
+        dialogContent = {
+            if (uiState.showPermissionDialog) {
+                PermissionDialog(
+                    onDismiss = { viewModel.hidePermissionsDialog() },
+                    onPermissionsUpdated = {
+                        val intent = android.content.Intent(
+                            localContext,
+                            ro.snapify.service.ScreenshotMonitorService::class.java
+                        )
+                        val activity = localContext as Activity
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                            activity.startForegroundService(intent)
+                        } else {
+                            activity.startService(intent)
+                        }
+                        viewModel.refreshMonitoringStatus()
+                    },
+                    autoCloseWhenGranted = true
+                )
             }
         }
+    )
+
+    // FAB for drawer toggle
+    FloatingActionButton(
+        onClick = { isDrawerOpen = !isDrawerOpen },
+        modifier = Modifier.offset(
+            x = fabX,
+            y = 40.dp
+        ),
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+    ) {
+        Crossfade(targetState = isDrawerOpen) { open ->
+            Icon(
+                imageVector = if (open) Icons.AutoMirrored.Filled.Shortcut else Icons.AutoMirrored.Filled.List,
+                contentDescription = if (open) "Close drawer" else "Open drawer"
+            )
+        }
     }
+
+
 }
 
 @Preview(showBackground = true)

@@ -36,10 +36,13 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.compose.rememberNavController
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.ramcosta.composedestinations.DestinationsNavHost
+
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -161,137 +164,13 @@ class MainActivity : ComponentActivity() {
             }
 
             AppTheme(themeMode = themeMode) {
-                var isDrawerOpen by remember { mutableStateOf(false) }
+                val navController = rememberNavController()
 
-                val fabX by animateDpAsState(
-                    targetValue = if (isDrawerOpen) (LocalConfiguration.current.screenWidthDp.dp - 72.dp) else 16.dp,
-                    animationSpec = tween(durationMillis = 600)
+                DestinationsNavHost(
+                navController = navController,
+                startRoute = NavGraphs.root.startRoute,
+                    navGraph = NavGraphs.root
                 )
-
-                BackHandler(enabled = isDrawerOpen) {
-                    isDrawerOpen = false
-                }
-
-                DuoDrawer(
-                    isOpen = isDrawerOpen,
-                    onOpenDrawer = { isDrawerOpen = true },
-                    onCloseDrawer = { isDrawerOpen = false },
-                    showDialog = uiState.showPermissionDialog,
-                    menuContent = { drawerOpen ->
-                        MenuContent(
-                            isOpen = drawerOpen,
-                            onHomeClick = { isDrawerOpen = false },
-                            onCloseDrawer = { isDrawerOpen = false },
-                            isDrawerOpen = isDrawerOpen,
-                            preferences = preferences,
-                            mainViewModel = viewModel,
-                            dialogContent = {}
-                        )
-                    },
-                    content = {
-                        MainScreen(
-                            viewModel = viewModel,
-                            onOpenDrawer = { isDrawerOpen = true },
-                            preferences = preferences,
-                            isDrawerOpen = isDrawerOpen
-                        )
-                    },
-                    dialogContent = {
-                        if (uiState.showPermissionDialog) {
-                            PermissionDialog(
-                                onDismiss = { viewModel.hidePermissionsDialog() },
-                                onPermissionsUpdated = {
-                                    // Start the service when permissions are granted
-                                    val intent = android.content.Intent(
-                                        this@MainActivity,
-                                        ro.snapify.service.ScreenshotMonitorService::class.java
-                                    )
-                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                                        this@MainActivity.startForegroundService(intent)
-                                    } else {
-                                        this@MainActivity.startService(intent)
-                                    }
-                                    viewModel.refreshMonitoringStatus()
-                                },
-                                autoCloseWhenGranted = true
-                            )
-                        }
-                    }
-                )
-
-                // FAB for drawer toggle
-                FloatingActionButton(
-                    onClick = { isDrawerOpen = !isDrawerOpen },
-                    modifier = Modifier.offset(
-                        x = fabX,
-                        y = 40.dp
-                    ),
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ) {
-                    Crossfade(targetState = isDrawerOpen) { open ->
-                        Icon(
-                            imageVector = if (open) Icons.AutoMirrored.Filled.Shortcut else Icons.AutoMirrored.Filled.List,
-                            contentDescription = if (open) "Close drawer" else "Open drawer"
-                        )
-                    }
-                }
-
-                // Animated Settings title with custom letter-by-letter fade animation
-                if (isDrawerOpen) {
-                    val textXAnimatable = remember { Animatable(fabX.value + 56.dp.value) }
-
-                    // After FAB animation completes, start text animation and slide
-                    LaunchedEffect(isDrawerOpen) {
-                        if (isDrawerOpen) {
-                            // Wait for FAB animation to complete, then slide text leftward
-                            kotlinx.coroutines.delay(650) // Match FAB animation timing
-                            textXAnimatable.animateTo(
-                                targetValue = 16.dp.value,
-                                animationSpec = tween(durationMillis = 600, easing = EaseOutCubic)
-                            )
-                        }
-                    }
-
-                    // Custom letter-by-letter fade animation
-                    val text = "Settings"
-                    val letterAlphas = remember { List(text.length) { Animatable(0f) } }
-
-                    // Animate each letter with staggered delay
-                    LaunchedEffect(isDrawerOpen) {
-                        if (isDrawerOpen) {
-                            kotlinx.coroutines.delay(650) // Start after FAB animation
-                            letterAlphas.forEachIndexed { index, animatable ->
-                                animatable.animateTo(
-                                    targetValue = 1f,
-                                    animationSpec = tween(
-                                        durationMillis = 200,
-                                        delayMillis = index * 80
-                                    )
-                                )
-                            }
-                        }
-                    }
-
-                    // Render each letter with its own alpha
-                    Row(
-                        modifier = Modifier
-                            .offset(
-                                x = textXAnimatable.value.dp,
-                                y = 48.dp
-                            )
-                    ) {
-                        text.forEachIndexed { index, char ->
-                            Text(
-                                text = char.toString(),
-                                style = MaterialTheme.typography.headlineMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.alpha(letterAlphas[index].value),
-                                maxLines = 1
-                            )
-                        }
-                    }
-                }
             }
 
             // Broadcast receiver removed - use refresh button for now

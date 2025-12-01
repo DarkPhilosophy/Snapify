@@ -25,6 +25,7 @@ import ro.snapify.data.model.FilterState
 import ro.snapify.data.model.ScreenshotTab
 import ro.snapify.data.preferences.AppPreferences
 import ro.snapify.data.repository.MediaRepository
+import ro.snapify.events.MediaEvent
 import ro.snapify.service.ScreenshotMonitorService
 import ro.snapify.util.DebugLogger
 import ro.snapify.util.NotificationHelper
@@ -37,8 +38,9 @@ enum class MonitoringStatus {
     MISSING_PERMISSIONS
 }
 
-enum class RefreshReason {
-    Other
+sealed class RecomposeReason {
+    data class ItemDeleted(val mediaId: Long) : RecomposeReason()
+    object Other : RecomposeReason()
 }
 
 data class MainUiState(
@@ -60,12 +62,11 @@ class MainViewModel @Inject constructor(
     private val repository: MediaRepository,
     private val preferences: AppPreferences,
     @ApplicationContext private val context: Context,
-    private val refreshFlow: MutableSharedFlow<RefreshReason>
+    private val recomposeFlow: MutableSharedFlow<RecomposeReason>
 ) : ViewModel() {
 
     companion object {
-        val newItemFlow = MutableSharedFlow<MediaItem>(replay = 1)
-        val deleteItemFlow = MutableSharedFlow<Long>(replay = 1)
+        val mediaEventFlow = MutableSharedFlow<MediaEvent>(replay = 1)
     }
 
 
@@ -112,9 +113,8 @@ class MainViewModel @Inject constructor(
     init {
         loadMediaItems()
         observeServiceStatus()
-        observeRefreshEvents()
-        observeNewItems()
-        observeDeleteItems()
+        observeRecomposeEvents()
+        observeMediaEvents()
         observeFolderChanges()
         startTimeUpdater()
         checkAndStartServiceOnLaunch()
@@ -149,47 +149,60 @@ class MainViewModel @Inject constructor(
     }
 
 
-    private fun observeDeleteItems() {
+    private fun observeMediaEvents() {
         viewModelScope.launch {
-            deleteItemFlow.collect { id ->
-                _deletingIds.value += id
-                // Delay for animation
-                kotlinx.coroutines.delay(500)
-                _mediaItems.removeIf { it.id == id }
-                _deletingIds.value -= id
+            mediaEventFlow.collect { event ->
+                when (event) {
+                    is MediaEvent.ItemAdded -> {
+                        DebugLogger.info(
+                            "MainViewModel",
+                            "ItemAdded: Adding new item ${event.mediaItem.fileName} (ID: ${event.mediaItem.id})"
+                        )
+                        _mediaItems.add(0, event.mediaItem)
+                        // Trigger new screenshot detected for UI feedback
+                        _newScreenshotDetected.emit(Unit)
+                        DebugLogger.info(
+                            "MainViewModel",
+                            "ItemAdded: Added item, mediaItems now has ${_mediaItems.size} items"
+                        )
+                    }
+                    is MediaEvent.ItemDeleted -> {
+                        _deletingIds.value += event.mediaId
+                        // Delay for animation
+                        kotlinx.coroutines.delay(500)
+                        _mediaItems.removeIf { it.id == event.mediaId }
+                        _deletingIds.value -= event.mediaId
+                        DebugLogger.info("MainViewModel", "ItemDeleted: Removed item ${event.mediaId}")
+                    }
+                    is MediaEvent.ItemUpdated -> {
+                        val index = _mediaItems.indexOfFirst { it.id == event.mediaItem.id }
+                        if (index != -1) {
+                            _mediaItems[index] = event.mediaItem
+                            DebugLogger.info("MainViewModel", "ItemUpdated: Updated item ${event.mediaItem.id} at index $index")
+                        } else {
+                            DebugLogger.warning("MainViewModel", "ItemUpdated: Item ${event.mediaItem.id} not found in list")
+                        }
+                    }
+                    is MediaEvent.ItemDetected -> {
+                        // Optional: Handle detection event if needed for UI feedback
+                        DebugLogger.info("MainViewModel", "ItemDetected: Media ${event.mediaId} detected at ${event.filePath}")
+                    }
+                }
             }
         }
     }
 
-    private fun observeNewItems() {
-        viewModelScope.launch {
-            newItemFlow.collect { item ->
-                DebugLogger.info(
-                    "MainViewModel",
-                    "observeNewItems: Adding new item ${item.fileName} (ID: ${item.id})"
-                )
-                _mediaItems.add(0, item)
-                // Trigger new screenshot detected for UI feedback
-                _newScreenshotDetected.emit(Unit)
-                DebugLogger.info(
-                    "MainViewModel",
-                    "observeNewItems: Added item, mediaItems now has ${_mediaItems.size} items"
-                )
-            }
-        }
-    }
-
-    private fun observeRefreshEvents() {
+    private fun observeRecomposeEvents() {
         viewModelScope.launch {
             DebugLogger.info(
                 "MainViewModel",
-                "observeRefreshEvents: Starting to observe refreshFlow"
+                "observeRecomposeEvents: Starting to observe recomposeFlow"
             )
-            refreshFlow.collect { reason ->
+            recomposeFlow.collect { reason ->
                 val currentTime = System.currentTimeMillis()
                 DebugLogger.info(
                     "MainViewModel",
-                    "observeRefreshEvents: Processing refresh $reason, updating refreshTrigger to $currentTime"
+                    "observeRecomposeEvents: Processing recompose $reason, updating refreshTrigger to $currentTime"
                 )
                 _refreshTrigger.value = currentTime
                 // Emit new screenshot detected event
@@ -303,12 +316,20 @@ class MainViewModel @Inject constructor(
                 // Get all media items (filter in UI)
                 val allMediaItems = repository.getAllMediaItems().first()
 
+                // Filter out:
+                // 1. Items currently being deleted (in _deletingIds)
+                // 2. Items marked for deletion (will be deleted by service)
+                val activelyDeletingIds = _deletingIds.value
+                val filteredItems = allMediaItems.filter { item ->
+                    item.id !in activelyDeletingIds && !(item.deletionTimestamp != null && !item.isKept)
+                }
+
                 // Sort by newest first (in case database order is not correct)
-                val sortedItems = allMediaItems.sortedByDescending { it.createdAt }
+                val sortedItems = filteredItems.sortedByDescending { it.createdAt }
 
                 DebugLogger.info(
                     "MainViewModel",
-                    "loadMediaItems: Clearing ${_mediaItems.size} existing items and adding ${sortedItems.size} new items"
+                    "loadMediaItems: Clearing ${_mediaItems.size} existing items and adding ${sortedItems.size} new items (filtered out ${activelyDeletingIds.size} + ${allMediaItems.count { it.deletionTimestamp != null && !it.isKept }} items)"
                 )
                 _mediaItems.clear()
                 _mediaItems.addAll(sortedItems)
@@ -565,7 +586,7 @@ class MainViewModel @Inject constructor(
     private fun startMonitoringService() {
         viewModelScope.launch {
             preferences.setServiceEnabled(true)
-            refreshFlow.emit(RefreshReason.Other) // Trigger status update
+            recomposeFlow.emit(RecomposeReason.Other) // Trigger status update
 
             val missingPermissions = PermissionUtils.getMissingPermissions(context)
             if (missingPermissions.isNotEmpty()) {
@@ -588,7 +609,7 @@ class MainViewModel @Inject constructor(
     private fun stopMonitoringService() {
         viewModelScope.launch {
             preferences.setServiceEnabled(false)
-            refreshFlow.emit(RefreshReason.Other) // Trigger status update
+            recomposeFlow.emit(RecomposeReason.Other) // Trigger status update
 
             val serviceIntent = Intent(context, ScreenshotMonitorService::class.java)
             context.stopService(serviceIntent)

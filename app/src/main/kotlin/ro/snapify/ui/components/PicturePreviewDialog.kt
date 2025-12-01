@@ -1,6 +1,7 @@
 package ro.snapify.ui.components
 
 import android.graphics.BitmapFactory
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -76,6 +77,9 @@ fun PicturePreviewDialog(
     mediaItem: MediaItem,
     onDismiss: () -> Unit
 ) {
+    // Handle back press to dismiss dialog
+    BackHandler { onDismiss() }
+
     val context = LocalContext.current
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current

@@ -1,7 +1,9 @@
 package ro.snapify.ui.components
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
+import com.google.accompanist.permissions.*
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -132,7 +134,7 @@ fun PermissionItem(
 /**
  * Permission request dialog with tabs for required and optional permissions
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun PermissionDialog(
     onDismiss: () -> Unit,
@@ -140,9 +142,7 @@ fun PermissionDialog(
     autoCloseWhenGranted: Boolean = true
 ) {
     val context = LocalContext.current
-    var permissionStatuses by remember { mutableStateOf(mapOf<String, Boolean>()) }
     var selectedTabIndex by remember { mutableStateOf(0) }
-    var permanentlyDeniedPermissions by remember { mutableStateOf(setOf<String>()) }
 
     // Define permissions
     val readPerm =
@@ -150,63 +150,83 @@ fun PermissionDialog(
 
     val requiredPermissions: List<PermissionItem> = listOfNotNull(
         PermissionItem("Read Screenshots", readPerm),
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) PermissionItem(
-            "All Files Access",
-            "manage"
-        ) else null,
-        PermissionItem("Overlay Permission", "overlay"),
-        PermissionItem("Battery Optimization", "battery")
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) PermissionItem(
+        "All Files Access",
+    "manage"
+    ) else null,
+    PermissionItem("Overlay Permission", "overlay"),
+    PermissionItem("Battery Optimization", "battery")
     )
 
     val optionalPermissions: List<PermissionItem> = listOfNotNull(
         PermissionItem("Notifications", Manifest.permission.POST_NOTIFICATIONS, isRequired = false)
     ).filter { it.permissionKey != Manifest.permission.POST_NOTIFICATIONS || Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU }
 
-    // Launcher for standard permissions
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { results ->
-        updatePermissionStatuses(
-            context,
-            (requiredPermissions + optionalPermissions).map { it.permissionKey }
-        ) { statusMap ->
-            permissionStatuses = statusMap
-            // Check which permissions were denied and might be permanently denied
-            results.forEach { (permission, granted) ->
-                if (!granted && !statusMap[permission]!!) {
-                    permanentlyDeniedPermissions = permanentlyDeniedPermissions + permission
+    val allPermissions = (requiredPermissions + optionalPermissions).map { it.permissionKey }
+    val standardPermissions = allPermissions.filter { it.startsWith("android.permission.") }
+    val multiplePermissionsState = rememberMultiplePermissionsState(permissions = standardPermissions)
+
+    // Check special permissions (not handled by Accompanist)
+    val specialPermissionStatuses = remember { mutableStateOf(mapOf<String, Boolean>()) }
+    LaunchedEffect(Unit) {
+        val statuses = mutableMapOf<String, Boolean>()
+        (requiredPermissions + optionalPermissions).forEach { item ->
+            val key = item.permissionKey
+            if (!key.startsWith("android.permission.")) {
+                statuses[key] = when (key) {
+                    "manage" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        android.os.Environment.isExternalStorageManager()
+                    } else true
+                    "overlay" -> android.provider.Settings.canDrawOverlays(context)
+                    "battery" -> {
+                        val powerManager = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+                        powerManager.isIgnoringBatteryOptimizations(context.packageName)
+                    }
+                    else -> false
                 }
             }
         }
-        onPermissionsUpdated?.invoke()
+        specialPermissionStatuses.value = statuses
     }
+
+    // Permission statuses from Accompanist
+    val permissionStatuses = multiplePermissionsState.permissions.associate { it.permission to (it.status == PermissionStatus.Granted) }
+    val permanentlyDeniedPermissions = multiplePermissionsState.permissions.filter { it.status is PermissionStatus.Denied && !(it.status as PermissionStatus.Denied).shouldShowRationale }.map { it.permission }.toSet()
+
+    // Combine standard and special permission statuses
+    val allPermissionStatuses = permissionStatuses + specialPermissionStatuses.value
 
     // Launcher for special permissions
     val specialLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { _ ->
-        updatePermissionStatuses(
-            context,
-            (requiredPermissions + optionalPermissions).map { it.permissionKey }
-        ) { statusMap ->
-            permissionStatuses = statusMap
+        // Update special permissions after settings change
+        val updatedStatuses = mutableMapOf<String, Boolean>()
+        (requiredPermissions + optionalPermissions).forEach { item ->
+            val key = item.permissionKey
+            if (!key.startsWith("android.permission.")) {
+                updatedStatuses[key] = when (key) {
+                    "manage" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    android.os.Environment.isExternalStorageManager()
+                    } else true
+                    "overlay" -> android.provider.Settings.canDrawOverlays(context)
+                    "battery" -> {
+                        val powerManager = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+                        powerManager.isIgnoringBatteryOptimizations(context.packageName)
+                    }
+                    else -> false
+                }
+            }
         }
+        specialPermissionStatuses.value = updatedStatuses
         onPermissionsUpdated?.invoke()
     }
 
-    // Update statuses
-    LaunchedEffect(Unit) {
-        val allPermissions = (requiredPermissions + optionalPermissions).map { it.permissionKey }
-        updatePermissionStatuses(context, allPermissions) { statusMap ->
-            permissionStatuses = statusMap
-        }
-    }
-
     // Check if all required permissions are already granted and auto-close if so (only for main screen usage)
-    LaunchedEffect(permissionStatuses) {
-        if (autoCloseWhenGranted && permissionStatuses.isNotEmpty()) {
+    LaunchedEffect(allPermissionStatuses) {
+        if (autoCloseWhenGranted && allPermissionStatuses.isNotEmpty()) {
             val requiredGranted =
-                requiredPermissions.all { permissionStatuses[it.permissionKey] == true }
+                requiredPermissions.all { allPermissionStatuses.getOrDefault(it.permissionKey, false) }
             if (requiredGranted) {
                 // All required permissions granted, refresh monitoring status and close dialog
                 onPermissionsUpdated?.invoke()
@@ -276,7 +296,7 @@ fun PermissionDialog(
                         ) {
                             currentPermissions.forEach { permissionItem ->
                                 val isGranted =
-                                    permissionStatuses[permissionItem.permissionKey] ?: false
+                                    allPermissionStatuses.getOrDefault(permissionItem.permissionKey, false)
                                 val isOptional = selectedTabIndex == 1 // Optional tab
                                 val isPermanentlyDenied =
                                     permanentlyDeniedPermissions.contains(permissionItem.permissionKey) && !isGranted
@@ -296,13 +316,13 @@ fun PermissionDialog(
                                         }
                                     } else null,
                                     onClick = {
-                                        when (permissionItem.permissionKey) {
-                                            Manifest.permission.READ_EXTERNAL_STORAGE,
-                                            Manifest.permission.READ_MEDIA_IMAGES,
-                                            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                                            Manifest.permission.POST_NOTIFICATIONS -> {
-                                                permissionLauncher.launch(arrayOf(permissionItem.permissionKey))
-                                            }
+                                    when (permissionItem.permissionKey) {
+                                    Manifest.permission.READ_EXTERNAL_STORAGE,
+                                    Manifest.permission.READ_MEDIA_IMAGES,
+                                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                                    Manifest.permission.POST_NOTIFICATIONS -> {
+                                    multiplePermissionsState.launchMultiplePermissionRequest()
+                                    }
 
                                             "manage" -> {
                                                 @Suppress("NewApi") val intent =

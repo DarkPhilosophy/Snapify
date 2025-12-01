@@ -882,23 +882,6 @@ private fun ThumbnailSection(
                             .size(32.dp),
                         tint = Color.White.copy(alpha = 0.7f)
                     )
-
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(2.dp)
-                            .size(24.dp)
-                            .background(Color.Red.copy(alpha = 0.9f), RoundedCornerShape(12.dp))
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Play Video",
-                            modifier = Modifier
-                                .align(Alignment.Center)
-                                .size(16.dp),
-                            tint = Color.White
-                        )
-                    }
                 }
             }
         } else {
@@ -971,6 +954,7 @@ fun ScreenshotCard(
     isRefreshing: Boolean = false,
     liveVideoPreviewEnabled: Boolean = false,
     onClick: (androidx.compose.ui.geometry.Offset) -> Unit,
+    onLongPress: () -> Unit,
     onKeepClick: () -> Unit,
     onUnkeepClick: () -> Unit,
     onDeleteClick: () -> Unit,
@@ -993,7 +977,12 @@ fun ScreenshotCard(
             .fillMaxWidth()
             .height(120.dp)
             .alpha(alpha)
-            .animateContentSize(), // Add smooth animation for content changes
+            .animateContentSize() // Add smooth animation for content changes
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onLongPress = { onLongPress() }
+                )
+            },
         shape = RoundedCornerShape(16.dp)
     ) {
         Row(

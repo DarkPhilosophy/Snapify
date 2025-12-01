@@ -2,7 +2,9 @@ package ro.snapify.service
 
 import android.annotation.SuppressLint
 import android.app.Service
+import android.graphics.BitmapFactory
 import android.graphics.PixelFormat
+import android.media.MediaMetadataRetriever
 import android.os.Build
 import android.os.IBinder
 import android.view.Gravity
@@ -44,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ComposeView
@@ -63,6 +66,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -70,7 +74,10 @@ import kotlinx.coroutines.withContext
 import ro.snapify.ScreenshotApp
 import ro.snapify.data.preferences.AppPreferences
 import ro.snapify.data.repository.MediaRepository
-import ro.snapify.ui.RefreshReason
+import ro.snapify.events.MediaEvent
+import ro.snapify.ui.MainViewModel
+import ro.snapify.ui.RecomposeReason
+import ro.snapify.ui.components.ScreenshotDetectionOverlay
 import ro.snapify.ui.theme.AppTheme
 import ro.snapify.ui.theme.ThemeMode
 import ro.snapify.util.DebugLogger
@@ -119,273 +126,7 @@ private fun formatTime(minutes: Int): String {
     return parts.joinToString(" ")
 }
 
-/**
- * Composable function that displays the overlay UI for screenshot management.
- * Provides buttons for quick deletion times, custom time picker, and keep option.
- */
-@Composable
-private fun OverlayContent(
-    on15Minutes: () -> Unit,
-    on2Hours: () -> Unit,
-    on3Days: () -> Unit,
-    on1Week: () -> Unit,
-    onKeep: () -> Unit,
-    onClose: () -> Unit,
-    onDismiss: () -> Unit,
-    onCustomTime: (Int) -> Unit
-) {
-    val alphaAnimatable = remember { Animatable(0f) }
-    val translationYAnimatable = remember { Animatable(100f) }
 
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        alphaAnimatable.animateTo(1f, animationSpec = tween(300))
-        translationYAnimatable.animateTo(0f, animationSpec = tween(300))
-    }
-
-    val isOLED = MaterialTheme.colorScheme.surface == Color.Black
-    Card(
-        modifier = Modifier
-            .fillMaxWidth(0.9f)
-            .padding(16.dp)
-            .alpha(alphaAnimatable.value)
-            .graphicsLayer(translationY = translationYAnimatable.value)
-            .then(
-                if (isOLED) Modifier.border(
-                    1.dp,
-                    Color.White,
-                    RoundedCornerShape(16.dp)
-                ) else Modifier
-            ),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Title with close button
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Screenshot Detect",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                IconButton(
-                    onClick = onClose,
-                    modifier = Modifier.padding(0.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Close",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(4.dp)
-                    )
-                }
-            }
-
-            androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(4.dp))
-
-            Text(
-                text = "Select a time when the screenshot should be deleted otherwise you can keep",
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(4.dp))
-
-            // Row 1: 1 Week | 3 Days
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = on1Week,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                ) {
-                    Text(text = "1 Week")
-                }
-                Button(
-                    onClick = on3Days,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                ) {
-                    Text(text = "3 Days")
-                }
-            }
-
-            // Row 2: 2 Hours | 15 Min
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = on2Hours,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                ) {
-                    Text(text = "2 Hours")
-                }
-                Button(
-                    onClick = on15Minutes,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                ) {
-                    Text(text = "15 Min")
-                }
-            }
-
-            androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(8.dp))
-
-            // Row 3: Custom Time Picker
-            CustomTimePicker(
-                onTimeSelected = onCustomTime,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(8.dp))
-
-            // Keep Button
-            Button(
-                onClick = onKeep,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
-                Text(text = "Keep")
-            }
-        }
-    }
-}
-
-@Composable
-private fun CustomTimePicker(
-    onTimeSelected: (Int) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var minutes by remember { mutableIntStateOf(30) }
-    var scrollTrigger by remember { mutableIntStateOf(0) }
-    var initialY by remember { mutableFloatStateOf(0f) }
-    var adjustmentMode by remember { mutableIntStateOf(0) } // 0 none, 1 increase, -1 decrease
-    var currentDistance by remember { mutableFloatStateOf(0f) }
-    var modeStartTime by remember { mutableStateOf(0L) }
-    val textScale = remember { Animatable(1f) }
-    val gearRotation = remember { Animatable(0f) }
-
-    androidx.compose.runtime.LaunchedEffect(scrollTrigger) {
-// Animate text scale in/out
-        textScale.animateTo(1.2f, tween(150))
-        textScale.animateTo(1f, tween(150))
-// Animate gear spin clockwise
-        gearRotation.animateTo(gearRotation.value + 360f, tween(400))
-    }
-
-    androidx.compose.runtime.LaunchedEffect(adjustmentMode) {
-        while (adjustmentMode != 0) {
-            val elapsed = System.currentTimeMillis() - modeStartTime
-            val baseSpeed = min(1f + (elapsed / 1000f) * 1f + (currentDistance / 100f) * 1f, 50f)
-            val dayMultiplier = if (minutes >= 1440) 5f else 1f
-            val speedFactor = min(baseSpeed * dayMultiplier, 200f)
-            val increment = min(speedFactor.toInt() / 5, 60).coerceAtLeast(1)
-            if (adjustmentMode == 1) {
-                minutes = (minutes + increment).coerceAtMost(Int.MAX_VALUE)
-                scrollTrigger++
-            } else if (adjustmentMode == -1) {
-                minutes = (minutes - increment).coerceAtLeast(1)
-                scrollTrigger++
-            }
-            val delay = (200L / speedFactor).toLong().coerceAtLeast(5L)
-            kotlinx.coroutines.delay(delay)
-        }
-    }
-
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-        ),
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .pointerInput(Unit) {
-                    detectDragGestures(
-                        onDragStart = { offset ->
-                            initialY = offset.y
-                            adjustmentMode = 0
-                            currentDistance = 0f
-                        },
-                        onDragEnd = { adjustmentMode = 0 },
-                        onDragCancel = { adjustmentMode = 0 }
-                    ) { change, _ ->
-                        val currentY = change.position.y
-                        val newDistance = abs(currentY - initialY)
-                        currentDistance = newDistance
-                        val newMode =
-                            if (currentY < initialY) 1 else if (currentY > initialY) -1 else 0
-                        if (adjustmentMode != newMode) {
-                            modeStartTime = System.currentTimeMillis()
-                            adjustmentMode = newMode
-                        }
-                        change.consume()
-                    }
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "Wheel",
-                    modifier = Modifier
-                        .size(24.dp)
-                        .graphicsLayer(rotationZ = gearRotation.value),
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer
-                )
-                androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(horizontal = 8.dp))
-                Text(
-                    text = formatTime(minutes),
-                    modifier = Modifier
-                        .clickable { onTimeSelected(minutes) }
-                        .graphicsLayer(scaleX = textScale.value, scaleY = textScale.value),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    }
-}
 
 class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
 
@@ -393,9 +134,9 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
     private var overlayView: ComposeView? = null
     private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
     private lateinit var repository: MediaRepository
-    private lateinit var refreshFlow: kotlinx.coroutines.flow.MutableSharedFlow<RefreshReason>
+    private lateinit var recomposeFlow: kotlinx.coroutines.flow.MutableSharedFlow<RecomposeReason>
     private lateinit var preferences: AppPreferences
-    private var screenshotId: Long = -1L
+    private var mediaId: Long = -1L
     private var filePath: String = ""
 
     private fun handleOverlayException(e: Exception, tag: String = "OverlayService") {
@@ -423,21 +164,21 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
     override fun onBind(intent: android.content.Intent?): IBinder? = null
 
     override fun onStartCommand(intent: android.content.Intent?, flags: Int, startId: Int): Int {
-        screenshotId = intent?.getLongExtra("screenshot_id", -1L) ?: -1L
+        mediaId = intent?.getLongExtra("media_id", -1L) ?: -1L
         filePath = intent?.getStringExtra("file_path") ?: ""
 
         DebugLogger.info(
             "OverlayService",
-            "onStartCommand called with screenshot ID: $screenshotId, path: $filePath"
+            "onStartCommand called with screenshot ID: $mediaId, path: $filePath"
         )
 
         // Initialize dependencies from application
         val app = application as ScreenshotApp
         repository = app.repository
         preferences = app.preferences
-        refreshFlow = app.refreshFlow
+        recomposeFlow = app.recomposeFlow
 
-        if (screenshotId > 0L) {
+        if (mediaId > 0L) {
             try {
                 if (PermissionUtils.hasOverlayPermission(this)) {
                     showOverlay()
@@ -469,7 +210,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
                 stopSelf()
             }
         } else {
-            DebugLogger.error("OverlayService", "Invalid screenshot ID: $screenshotId")
+            DebugLogger.error("OverlayService", "Invalid screenshot ID: $mediaId")
             stopSelf()
         }
 
@@ -507,6 +248,43 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
                 gravity = Gravity.CENTER
             }
 
+            val mediaItem = runBlocking { repository.getById(mediaId) }
+            val bitmap = mediaItem?.contentUri?.let { contentUriStr ->
+                val uri = android.net.Uri.parse(contentUriStr)
+                try {
+                    if (mediaItem.filePath.lowercase().endsWith(".mp4") || mediaItem.filePath.lowercase().endsWith(".avi") || mediaItem.filePath.lowercase().endsWith(".mkv")) {
+                        // Video thumbnail
+                        val retriever = MediaMetadataRetriever()
+                        retriever.setDataSource(this@OverlayService, uri)
+                        val bmp = retriever.frameAtTime
+                        retriever.release()
+                        bmp
+                    } else {
+                        // Image
+                        this@OverlayService.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
+                    }
+                } catch (e: Exception) {
+                    DebugLogger.error("OverlayService", "Error loading bitmap from URI", e)
+                    null
+                }
+            } ?: run {
+                // Fallback to file path
+                if (filePath.endsWith(".mp4", ignoreCase = true) || filePath.endsWith(".avi", ignoreCase = true) || filePath.endsWith(".mkv", ignoreCase = true)) {
+                    try {
+                        val retriever = MediaMetadataRetriever()
+                        retriever.setDataSource(filePath)
+                        val bmp = retriever.frameAtTime
+                        retriever.release()
+                        bmp
+                    } catch (e: Exception) {
+                        null
+                    }
+                } else {
+                    BitmapFactory.decodeFile(filePath)
+                }
+            }
+            val imageBitmap = bitmap?.asImageBitmap()
+
             // Create ComposeView for the overlay
             overlayView = ComposeView(this).apply {
                 setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
@@ -533,7 +311,8 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
                                 .clickable { dismissWithNotification() },
                             contentAlignment = Alignment.Center
                         ) {
-                            OverlayContent(
+                            ScreenshotDetectionOverlay(
+                                detectedImage = imageBitmap,
                                 on15Minutes = {
                                     handleDeletionTime(
                                         java.util.concurrent.TimeUnit.MINUTES.toMillis(
@@ -563,6 +342,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
                                     )
                                 },
                                 onKeep = { handleKeep() },
+                                onShare = { handleShare() },
                                 onClose = { handleClose() },
                                 onDismiss = dismissWithNotification,
                                 onCustomTime = { minutes ->
@@ -612,58 +392,129 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
 
             // Update DB synchronously
             runBlocking {
-                repository.markForDeletion(screenshotId, deletionTimestamp)
+                repository.markForDeletion(mediaId, deletionTimestamp)
             }
 
             // The service's deletion check timer will handle the deletion
 
             // Show notification to confirm the scheduled deletion
-            val screenshot = repository.getById(screenshotId)
+            val screenshot = repository.getById(mediaId)
             screenshot?.let {
-                NotificationHelper.showScreenshotNotification(
-                    this@OverlayService,
-                    screenshotId,
-                    it.fileName,
-                    it.filePath,
-                    deletionTimestamp,
-                    timeMillis,
-                    isManualMode = false, // Show countdown like automatic mode
-                    preferences = preferences
-                )
-                DebugLogger.info(
-                    "OverlayService",
-                    "Notification shown after time selection in manual mode"
-                )
-            }
+            NotificationHelper.showScreenshotNotification(
+            this@OverlayService,
+            mediaId,
+            it.fileName,
+            it.filePath,
+            deletionTimestamp,
+            timeMillis,
+            isManualMode = false, // Show countdown like automatic mode
+            preferences = preferences
+            )
+            DebugLogger.info(
+            "OverlayService",
+            "Notification shown after time selection in manual mode"
+            )
 
-            withContext(Dispatchers.Main) {
-                // Notify UI to refresh
-                DebugLogger.info(
+                // Launch notification update job for live countdown updates
+                kotlinx.coroutines.GlobalScope.launch {
+                    while (System.currentTimeMillis() < deletionTimestamp) {
+                        kotlinx.coroutines.delay(1000L) // Update every 1 second
+                        try {
+                            NotificationHelper.showScreenshotNotification(
+                                this@OverlayService,
+                                mediaId,
+                            it.fileName,
+                            it.filePath,
+                            deletionTimestamp,
+                            timeMillis,
+                            isManualMode = false,
+                            preferences = preferences
+                        )
+                } catch (e: Exception) {
+                    DebugLogger.error(
+                            "OverlayService",
+                                "Error updating notification for $mediaId",
+                                e
+                        )
+                }
+                }
+                }
+
+                withContext(Dispatchers.Main) {
+                    // Notify UI to update the specific item
+                    DebugLogger.info(
                     "OverlayService",
-                    "Emitting refreshFlow after marking for deletion"
-                )
-                refreshFlow.tryEmit(RefreshReason.Other)
-                dismissOverlay(showFallbackNotification = false)
+                    "Emitting ItemUpdated event after marking for deletion"
+                    )
+                    MainViewModel.mediaEventFlow.tryEmit(MediaEvent.ItemUpdated(it))
+                    dismissOverlay(showFallbackNotification = false)
+                }
             }
         }
     }
 
     private fun handleKeep() {
         serviceScope.launch(Dispatchers.IO) {
-            repository.markAsKept(screenshotId)
+                repository.markAsKept(mediaId)
+        val updatedItem = repository.getById(mediaId)
 
-            withContext(Dispatchers.Main) {
-                // Notify UI to refresh
-                DebugLogger.info("OverlayService", "Emitting refreshFlow after keeping screenshot")
-                refreshFlow.tryEmit(RefreshReason.Other)
+                withContext(Dispatchers.Main) {
+                    // Notify UI to update the specific item
+                    DebugLogger.info("OverlayService", "Emitting ItemUpdated event after keeping media")
+                    updatedItem?.let { MainViewModel.mediaEventFlow.tryEmit(MediaEvent.ItemUpdated(it)) }
                 dismissOverlay(showFallbackNotification = false)
+            }
+        }
+    }
+
+    private fun handleShare() {
+        val file = java.io.File(filePath)
+        if (file.exists()) {
+            // Get the media item for deletion
+            val mediaItem = runBlocking { repository.getById(mediaId) }
+            // Copy to cache for sharing
+            val cacheDir = cacheDir
+            val shareFile = java.io.File(cacheDir, "share_${System.currentTimeMillis()}.png")
+            try {
+                file.inputStream().use { input ->
+                    shareFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                val shareUri = androidx.core.content.FileProvider.getUriForFile(this, "${packageName}.fileprovider", shareFile)
+                val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                    type = "image/*"
+                    putExtra(android.content.Intent.EXTRA_STREAM, shareUri)
+                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                val chooserIntent = android.content.Intent.createChooser(intent, "Share Screenshot").apply {
+                    addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                startActivity(chooserIntent)
+                // Delete the original file immediately
+                file.delete()
+                // Delete from database and notify UI to remove item
+                runBlocking {
+                    mediaItem?.let { repository.delete(it) }
+                    DebugLogger.info("OverlayService", "Emitting ItemDeleted event after sharing and deleting media")
+                    MainViewModel.mediaEventFlow.tryEmit(MediaEvent.ItemDeleted(mediaId))
+                }
+                // Delete the cached file after a delay to allow sharing
+                serviceScope.launch {
+                    kotlinx.coroutines.delay(30000L) // 30 seconds
+                    shareFile.delete()
+                }
+                dismissOverlay(showFallbackNotification = false)
+            } catch (e: Exception) {
+                DebugLogger.error("OverlayService", "Error sharing screenshot", e)
             }
         }
     }
 
     private fun handleClose() {
         serviceScope.launch(Dispatchers.IO) {
-            repository.markAsKept(screenshotId)
+            repository.markAsKept(mediaId)
 
             withContext(Dispatchers.Main) {
                 dismissOverlay(showFallbackNotification = false)
@@ -706,13 +557,13 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
 
     private fun showFallbackNotification() {
         serviceScope.launch(Dispatchers.IO) {
-            val screenshot = repository.getById(screenshotId)
+            val screenshot = repository.getById(mediaId)
             screenshot?.let {
                 val deletionTime = preferences.deletionTimeMillis.first()
                 val deletionTimestamp = System.currentTimeMillis() + deletionTime
                 NotificationHelper.showScreenshotNotification(
                     this@OverlayService,
-                    screenshotId,
+                    mediaId,
                     it.fileName,
                     it.filePath,
                     deletionTimestamp,
@@ -728,6 +579,8 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
     override fun onDestroy() {
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
         super.onDestroy()
+        // Clean up any remaining share files
+        cacheDir?.listFiles { file -> file.name.startsWith("share_") }?.forEach { it.delete() }
         // Cancel any running coroutines to avoid leaks
         try {
             serviceScope.cancel()
