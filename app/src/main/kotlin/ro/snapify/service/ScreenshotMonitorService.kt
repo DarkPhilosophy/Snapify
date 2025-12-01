@@ -47,22 +47,27 @@ class ScreenshotMonitorService : Service() {
         startJobCleanupTimer()
 
         serviceScope.launch {
-            DebugLogger.info(
-                "ScreenshotMonitorService",
-                "Scanning existing media on service start"
-            )
-            val inserted = mediaScanner.scanExistingMedia()
-            observeConfiguredFolders()
-            mediaScanner.cleanUpExpiredMediaItems()
-            mediaScanner.cleanUpMissingMediaItems()
-            
-            // Trigger UI refresh after scan completes
-            if (inserted > 0) {
+            try {
                 DebugLogger.info(
                     "ScreenshotMonitorService",
-                    "Scan completed with $inserted new items, triggering UI refresh"
+                    "Scanning existing media on service start"
+                )
+                val inserted = mediaScanner.scanExistingMedia()
+                observeConfiguredFolders()
+                mediaScanner.cleanUpExpiredMediaItems()
+                mediaScanner.cleanUpMissingMediaItems()
+                
+                // Add small delay to ensure database write operations are fully committed
+                delay(100)
+                
+                // Always trigger UI refresh after initial scan completes to ensure UI shows database contents
+                DebugLogger.info(
+                    "ScreenshotMonitorService",
+                    "Initial scan completed ($inserted new items), triggering UI refresh"
                 )
                 recomposeFlow.emit(RecomposeReason.Other)
+            } catch (e: Exception) {
+                DebugLogger.error("ScreenshotMonitorService", "Error in initial setup", e)
             }
         }
     }
