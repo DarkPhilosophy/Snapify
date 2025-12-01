@@ -178,7 +178,8 @@ class ScreenshotMonitorService : Service() {
                 MediaStore.Video.Media.DISPLAY_NAME,
                 MediaStore.Video.Media.SIZE,
                 MediaStore.Video.Media.DATE_ADDED,
-                MediaStore.Video.Media.DATA
+                MediaStore.Video.Media.DATA,
+                MediaStore.MediaColumns.RELATIVE_PATH  // For Android 11+
             )
         } else {
             arrayOf(
@@ -186,7 +187,8 @@ class ScreenshotMonitorService : Service() {
                 MediaStore.Images.Media.DISPLAY_NAME,
                 MediaStore.Images.Media.SIZE,
                 MediaStore.Images.Media.DATE_ADDED,
-                MediaStore.Images.Media.DATA
+                MediaStore.Images.Media.DATA,
+                MediaStore.MediaColumns.RELATIVE_PATH  // For Android 11+
             )
         }
         serviceScope.launch {
@@ -211,7 +213,28 @@ class ScreenshotMonitorService : Service() {
                             id
                         ).toString()
 
-                        val filePath = if (dataIndex != -1) cursor.getString(dataIndex) else null
+                        // Extract file path with fallbacks for Android 11+
+                        var filePath: String? = null
+                        try {
+                            // Try DATA column first
+                            if (dataIndex != -1) {
+                                filePath = cursor.getString(dataIndex)
+                            }
+                            
+                            // Fallback: try RELATIVE_PATH for Android 11+
+                            if (filePath.isNullOrEmpty()) {
+                                val relativePathIndex = cursor.getColumnIndex(MediaStore.MediaColumns.RELATIVE_PATH)
+                                if (relativePathIndex != -1) {
+                                    val relativePath = cursor.getString(relativePathIndex)
+                                    if (!relativePath.isNullOrEmpty()) {
+                                        filePath = "${android.os.Environment.getExternalStorageDirectory().absolutePath}/${relativePath}${fileName}"
+                                    }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            DebugLogger.warning("ScreenshotMonitorService", "Error extracting file path: ${e.message}")
+                        }
+                        
                         val fileSize = cursor.getLong(sizeIndex)
                         val dateAdded = cursor.getLong(dateIndex) * 1000L
 
