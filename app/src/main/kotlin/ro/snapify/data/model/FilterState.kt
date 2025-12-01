@@ -14,8 +14,13 @@ data class FilterState(
 ) {
     /**
      * Returns true if all possible tags are selected.
+     * This includes either: ALL tag selected, or MARKED + KEPT + UNMARKED all selected
      */
-    fun isAllTagsSelected(): Boolean = selectedTags.size == 3 // MARKED, KEPT, UNMARKED
+    fun isAllTagsSelected(): Boolean = 
+        ScreenshotTab.ALL in selectedTags || 
+        (selectedTags.contains(ScreenshotTab.MARKED) && 
+         selectedTags.contains(ScreenshotTab.KEPT) && 
+         selectedTags.contains(ScreenshotTab.UNMARKED))
 
     /**
      * Returns true if no tags are selected (treat as all).

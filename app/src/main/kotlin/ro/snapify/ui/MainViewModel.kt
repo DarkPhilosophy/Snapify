@@ -102,9 +102,7 @@ class MainViewModel @Inject constructor(
         val loaded = preferences.selectedFolders.first()
         val configuredUris = preferences.mediaFolderUris.first()
         val parsedConfigured = configuredUris.mapNotNull { getFolderPathFromUri(it) }.toSet()
-        // Use loaded folders if any exist, otherwise use configured folders
-        // This ensures we always have at least one folder selected when folders are configured
-        if (loaded.isNotEmpty()) loaded else parsedConfigured
+        if (loaded.isNotEmpty() || parsedConfigured.isEmpty()) loaded else parsedConfigured
     }
 
     private val _currentFilterState =
