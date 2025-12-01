@@ -47,28 +47,14 @@ class ScreenshotMonitorService : Service() {
         startJobCleanupTimer()
 
         serviceScope.launch {
-            try {
-                DebugLogger.info(
-                    "ScreenshotMonitorService",
-                    "Scanning existing media on service start"
-                )
-                val inserted = mediaScanner.scanExistingMedia()
-                observeConfiguredFolders()
-                mediaScanner.cleanUpExpiredMediaItems()
-                mediaScanner.cleanUpMissingMediaItems()
-                
-                // Add small delay to ensure database write operations are fully committed
-                delay(100)
-                
-                // Always trigger UI refresh after initial scan completes to ensure UI shows database contents
-                DebugLogger.info(
-                    "ScreenshotMonitorService",
-                    "Initial scan completed ($inserted new items), triggering UI refresh"
-                )
-                recomposeFlow.emit(RecomposeReason.Other)
-            } catch (e: Exception) {
-                DebugLogger.error("ScreenshotMonitorService", "Error in initial setup", e)
-            }
+            DebugLogger.info(
+                "ScreenshotMonitorService",
+                "Scanning existing media on service start"
+            )
+            mediaScanner.scanExistingMedia()
+            observeConfiguredFolders()
+            mediaScanner.cleanUpExpiredMediaItems()
+            mediaScanner.cleanUpMissingMediaItems()
         }
     }
 
@@ -332,12 +318,15 @@ class ScreenshotMonitorService : Service() {
         DebugLogger.info("ScreenshotMonitorService", "Processing screenshot in $mode mode: $fileName")
 
         if (isManualMode) {
+            val deletionTime = preferences.deletionTimeMillis.first()
+            val deletionTimestamp = System.currentTimeMillis() + deletionTime
+
             val mediaItem = MediaItem(
                 filePath = filePath ?: "",
                 fileName = fileName,
                 fileSize = actualFileSize,
                 createdAt = createdAt,
-                deletionTimestamp = null,
+                deletionTimestamp = deletionTimestamp,
                 isKept = false,
                 contentUri = contentUri
             )
@@ -357,6 +346,22 @@ class ScreenshotMonitorService : Service() {
             // Notify UI of new item
             MainViewModel.mediaEventFlow.tryEmit(MediaEvent.ItemAdded(mediaItem.copy(id = id)))
             DebugLogger.info("ScreenshotMonitorService", "Emitted new item to UI: ${mediaItem.fileName}")
+
+            // Launch deletion timer using manager
+            deletionTimerManager.launchDeletionTimer(id, deletionTime)
+
+            // Show notification for manual mode
+            NotificationHelper.showScreenshotNotification(
+                this,
+                id,
+                fileName,
+                mediaItem.filePath,
+                deletionTimestamp,
+                deletionTime,
+                isManualMode = true,
+                preferences = preferences
+            )
+            DebugLogger.info("ScreenshotMonitorService", "Notification shown for manual mode media item ID: $id")
 
             // Show overlay for manual mode
             val overlayIntent = Intent(this, OverlayService::class.java).apply {
