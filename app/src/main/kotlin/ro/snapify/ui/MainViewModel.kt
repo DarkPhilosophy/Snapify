@@ -585,16 +585,24 @@ class MainViewModel @Inject constructor(
 
     private fun startMonitoringService() {
         viewModelScope.launch {
-            preferences.setServiceEnabled(true)
-            recomposeFlow.emit(RecomposeReason.Other) // Trigger status update
-
             val missingPermissions = PermissionUtils.getMissingPermissions(context)
             if (missingPermissions.isNotEmpty()) {
-                // Permissions missing, show dialog but don't start service (it will stop itself)
+                // Permissions missing, show dialog but don't start service
                 showPermissionsDialog()
                 return@launch
             }
 
+            // Check if folders are configured
+            val configuredUris = preferences.mediaFolderUris.first()
+            if (configuredUris.isEmpty()) {
+                _uiState.update { it.copy(message = "No screenshot folders configured. Please configure folders in settings first.") }
+                return@launch
+            }
+
+            // Set service enabled (must be before starting service)
+            preferences.setServiceEnabled(true)
+
+            // Start the service
             val serviceIntent = Intent(context, ScreenshotMonitorService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(serviceIntent)
@@ -602,7 +610,11 @@ class MainViewModel @Inject constructor(
                 context.startService(serviceIntent)
             }
 
+            // Trigger UI update - status will be observed via preference flow
             _uiState.update { it.copy(message = "Screenshot monitoring started") }
+            
+            // Emit recompose event to trigger UI refresh
+            recomposeFlow.emit(RecomposeReason.Other)
         }
     }
 
