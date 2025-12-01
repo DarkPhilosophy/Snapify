@@ -318,15 +318,12 @@ class ScreenshotMonitorService : Service() {
         DebugLogger.info("ScreenshotMonitorService", "Processing screenshot in $mode mode: $fileName")
 
         if (isManualMode) {
-            val deletionTime = preferences.deletionTimeMillis.first()
-            val deletionTimestamp = System.currentTimeMillis() + deletionTime
-
             val mediaItem = MediaItem(
                 filePath = filePath ?: "",
                 fileName = fileName,
                 fileSize = actualFileSize,
                 createdAt = createdAt,
-                deletionTimestamp = deletionTimestamp,
+                deletionTimestamp = null,
                 isKept = false,
                 contentUri = contentUri
             )
@@ -346,22 +343,6 @@ class ScreenshotMonitorService : Service() {
             // Notify UI of new item
             MainViewModel.mediaEventFlow.tryEmit(MediaEvent.ItemAdded(mediaItem.copy(id = id)))
             DebugLogger.info("ScreenshotMonitorService", "Emitted new item to UI: ${mediaItem.fileName}")
-
-            // Launch deletion timer using manager
-            deletionTimerManager.launchDeletionTimer(id, deletionTime)
-
-            // Show notification for manual mode
-            NotificationHelper.showScreenshotNotification(
-                this,
-                id,
-                fileName,
-                mediaItem.filePath,
-                deletionTimestamp,
-                deletionTime,
-                isManualMode = true,
-                preferences = preferences
-            )
-            DebugLogger.info("ScreenshotMonitorService", "Notification shown for manual mode media item ID: $id")
 
             // Show overlay for manual mode
             val overlayIntent = Intent(this, OverlayService::class.java).apply {

@@ -1522,13 +1522,17 @@ fun ScreenshotListComposable(
     val filteredMediaItems by remember(mediaItems, currentFilterState) {
         DebugLogger.info(
             "ScreenshotListComposable",
-            "Recalculating filteredMediaItems: mediaItems.size=${mediaItems.size}"
+            "Recalculating filteredMediaItems: mediaItems.size=${mediaItems.size}, selectedFolders=${currentFilterState.selectedFolders}"
         )
         derivedStateOf {
             val result = mediaItems.filter { item ->
                 // Folder filter: only include items from selected folders
-                val folderMatches = currentFilterState.selectedFolders.any { selectedPath ->
-                    item.filePath.lowercase().startsWith(selectedPath.lowercase())
+                val folderMatches = if (currentFilterState.selectedFolders.isEmpty()) {
+                    true // Empty folder filter means all folders
+                } else {
+                    currentFilterState.selectedFolders.any { selectedPath ->
+                        item.filePath.lowercase().startsWith(selectedPath.lowercase())
+                    }
                 }
 
                 // Tag filter: if selectedTags is empty or contains all, include all; otherwise filter by tags
@@ -1547,7 +1551,7 @@ fun ScreenshotListComposable(
 
                 folderMatches && tagMatches
             }
-            DebugLogger.info("ScreenshotListComposable", "Filtered to ${result.size} items")
+            DebugLogger.info("ScreenshotListComposable", "Filtered to ${result.size} items (tagMatches, folderMatches applied)")
             result
         }
     }
