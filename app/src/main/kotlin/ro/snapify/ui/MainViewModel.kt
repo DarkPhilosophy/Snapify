@@ -592,13 +592,6 @@ class MainViewModel @Inject constructor(
                 return@launch
             }
 
-            // Check if folders are configured
-            val configuredUris = preferences.mediaFolderUris.first()
-            if (configuredUris.isEmpty()) {
-                _uiState.update { it.copy(message = "No screenshot folders configured. Please configure folders in settings first.") }
-                return@launch
-            }
-
             // Set service enabled (must be before starting service)
             preferences.setServiceEnabled(true)
 
