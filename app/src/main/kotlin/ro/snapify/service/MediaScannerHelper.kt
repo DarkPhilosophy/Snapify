@@ -250,7 +250,8 @@ class MediaScannerHelper(
                 MediaStore.Video.Media.DISPLAY_NAME,
                 MediaStore.Video.Media.SIZE,
                 MediaStore.Video.Media.DATE_ADDED,
-                MediaStore.Video.Media.DATA
+                MediaStore.Video.Media.DATA,
+                MediaStore.MediaColumns.RELATIVE_PATH  // For Android 11+
             )
         } else {
             arrayOf(
@@ -258,7 +259,8 @@ class MediaScannerHelper(
                 MediaStore.Images.Media.DISPLAY_NAME,
                 MediaStore.Images.Media.SIZE,
                 MediaStore.Images.Media.DATE_ADDED,
-                MediaStore.Images.Media.DATA
+                MediaStore.Images.Media.DATA,
+                MediaStore.MediaColumns.RELATIVE_PATH  // For Android 11+
             )
         }
     }
@@ -280,15 +282,57 @@ class MediaScannerHelper(
         val dateAdded = cursor.getLong(
             cursor.getColumnIndexOrThrow(if (isVideo) MediaStore.Video.Media.DATE_ADDED else MediaStore.Images.Media.DATE_ADDED)
         ) * 1000L // Convert to milliseconds
-        val dataIndex = cursor.getColumnIndex(if (isVideo) MediaStore.Video.Media.DATA else MediaStore.Images.Media.DATA)
-        val filePath = if (dataIndex != -1) cursor.getString(dataIndex) else null
+
+        // Try to get file path from cursor
+        // For Android 11+: use RELATIVE_PATH + DISPLAY_NAME
+        // For older: try DATA column
+        var filePath = ""
+        try {
+            // Try DATA column first (works on Android 10 and older)
+            val dataIndex = cursor.getColumnIndex(if (isVideo) MediaStore.Video.Media.DATA else MediaStore.Images.Media.DATA)
+            if (dataIndex != -1) {
+                val dataPath = cursor.getString(dataIndex)
+                if (!dataPath.isNullOrEmpty()) {
+                    filePath = dataPath
+                }
+            }
+            
+            // If DATA column failed, construct path from RELATIVE_PATH (Android 11+)
+            if (filePath.isEmpty()) {
+                try {
+                    val relativePathIndex = cursor.getColumnIndex(MediaStore.MediaColumns.RELATIVE_PATH)
+                    if (relativePathIndex != -1) {
+                        val relativePath = cursor.getString(relativePathIndex)
+                        if (!relativePath.isNullOrEmpty()) {
+                            filePath = "${android.os.Environment.getExternalStorageDirectory().absolutePath}/${relativePath}${fileName}"
+                        }
+                    }
+                } catch (e: Exception) {
+                    DebugLogger.debug(TAG, "Failed to get RELATIVE_PATH: ${e.message}")
+                }
+            }
+            
+            // Last resort: construct from standard locations
+            if (filePath.isEmpty()) {
+                val defaultPath = if (isVideo) {
+                    "${android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_MOVIES).absolutePath}/${fileName}"
+                } else {
+                    "${android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_PICTURES).absolutePath}/${fileName}"
+                }
+                if (java.io.File(defaultPath).exists()) {
+                    filePath = defaultPath
+                }
+            }
+        } catch (e: Exception) {
+            DebugLogger.warning(TAG, "Error extracting file path: ${e.message}")
+        }
 
         return MediaData(
             contentUri = contentUri,
             fileName = fileName,
             fileSize = fileSize,
             createdAt = dateAdded,
-            filePath = filePath ?: ""
+            filePath = filePath
         )
     }
 
