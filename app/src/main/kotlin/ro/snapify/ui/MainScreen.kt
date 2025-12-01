@@ -278,14 +278,12 @@ fun MainScreen(
     val filteredItemCount by remember(mediaItems.size, currentFilterState) {
         derivedStateOf {
             mediaItems.count { item ->
-                // Folder filter: only include items from selected folders
-                val folderMatches = if (currentFilterState.selectedFolders.isEmpty()) {
-                    true // Empty folder filter means all folders
-                } else {
-                    currentFilterState.selectedFolders.any { selectedPath ->
-                        item.filePath.lowercase().startsWith(selectedPath.lowercase())
-                    }
-                }
+               // Folder filter: only include items from selected folders
+               val folderMatches = if (currentFilterState.selectedFolders.isEmpty()) {
+                   true // Empty folder filter means all folders
+               } else {
+                   UriPathConverter.isInMediaFolder(item.filePath, currentFilterState.selectedFolders)
+               }
 
                 // Tag filter: if selectedTags is empty or contains all, include all; otherwise filter by tags
                 val tagMatches =
@@ -1497,9 +1495,7 @@ fun ScreenshotListComposable(
                 val folderMatches = if (currentFilterState.selectedFolders.isEmpty()) {
                     true // Empty folder filter means all folders
                 } else {
-                    currentFilterState.selectedFolders.any { selectedPath ->
-                        item.filePath.lowercase().startsWith(selectedPath.lowercase())
-                    }
+                    UriPathConverter.isInMediaFolder(item.filePath, currentFilterState.selectedFolders)
                 }
 
                 // Tag filter: if selectedTags is empty or contains all, include all; otherwise filter by tags

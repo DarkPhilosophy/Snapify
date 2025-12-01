@@ -91,6 +91,17 @@ object UriPathConverter {
                     }
                 }
                 
+                // Handle file paths (for default folder display)
+                decoded.startsWith("/storage") -> {
+                    val parts = decoded.removePrefix("/storage/emulated/0/")
+                        .removePrefix("/storage/")
+                    if (parts != decoded) {
+                        parts.ifEmpty { "Pictures/Screenshots" }
+                    } else {
+                        decoded.substringAfterLast("/")
+                    }
+                }
+                
                 else -> decoded
             }
         } catch (e: Exception) {
@@ -100,24 +111,44 @@ object UriPathConverter {
     
     /**
      * Checks if a file path is within any of the configured media folders
+     * Handles both exact paths and normalized paths with proper boundary checking
      */
     fun isInMediaFolder(filePath: String, mediaFolders: Set<String>): Boolean {
+        val normalizedPath = normalizePath(filePath)
         return mediaFolders.any { folder ->
-            filePath.startsWith(folder) && 
-            (filePath.length == folder.length || 
-             filePath[folder.length] == '/')
+            val normalizedFolder = normalizePath(folder)
+            normalizedPath.startsWith(normalizedFolder) && 
+            (normalizedPath.length == normalizedFolder.length || 
+             normalizedPath[normalizedFolder.length] == '/')
         }
     }
     
     /**
      * Checks if a file path is within any of the configured media folders (accepts List)
+     * Handles both exact paths and normalized paths with proper boundary checking
      */
     fun isInMediaFolder(filePath: String, mediaFolders: List<String>): Boolean {
+        val normalizedPath = normalizePath(filePath)
         return mediaFolders.any { folder ->
-            filePath.startsWith(folder) && 
-            (filePath.length == folder.length || 
-             filePath[folder.length] == '/')
+            val normalizedFolder = normalizePath(folder)
+            normalizedPath.startsWith(normalizedFolder) && 
+            (normalizedPath.length == normalizedFolder.length || 
+             normalizedPath[normalizedFolder.length] == '/')
         }
+    }
+    
+    /**
+     * Normalizes a path by:
+     * - Converting to lowercase
+     * - Removing trailing slashes
+     * - Converting backslashes to forward slashes (Windows compatibility)
+     * - Removing redundant slashes
+     */
+    private fun normalizePath(path: String): String {
+        return path.lowercase()
+            .replace("\\", "/")
+            .replace(Regex("/+"), "/")
+            .removeSuffix("/")
     }
     
     /**
