@@ -114,8 +114,12 @@ class SettingsViewModel @Inject constructor(
 
     fun addMediaFolder(uri: String) {
         viewModelScope.launch {
+            // Reconstruct incomplete SAF URIs to complete paths before storing
+            // This ensures consistent resolved paths are stored, not partial URIs like "primary:Seal"
+            val resolvedUri = UriPathConverter.reconstructSafUri(context, uri)
+            
             val current = preferences.mediaFolderUris.first()
-            val updated = UriPathConverter.deduplicateMediaFolderUris(current + uri)
+            val updated = UriPathConverter.deduplicateMediaFolderUris(current + resolvedUri)
             preferences.setMediaFolderUris(updated)
 
             // If monitoring is enabled, start the service to scan the new folder
