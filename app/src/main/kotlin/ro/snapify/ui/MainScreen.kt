@@ -627,14 +627,19 @@ fun MainScreen(
                 }
 
                 filteredItemCount == 0 -> {
-                    // Convert selected folder URIs to resolved file paths for empty state message
+                    // Always reconstruct incomplete SAF URIs first, then convert to file paths
                     val selectedFolderDisplayPaths = remember(currentFilterState.selectedFolders) {
                         val paths = currentFilterState.selectedFolders.mapNotNull { folderUri ->
-                            val resolved = UriPathConverter.uriToFilePath(folderUri, context)
-                            DebugLogger.debug("EmptyState", "Folder URI: '$folderUri' -> Resolved: '$resolved'")
-                            resolved
+                            // ALWAYS reconstruct to ensure complete URI
+                            val reconstructed = UriPathConverter.reconstructSafUri(context, folderUri)
+                            DebugLogger.debug("EmptyState", "Original URI: '$folderUri' -> Reconstructed: '$reconstructed'")
+                            
+                            // Then convert to file path
+                            val filePath = UriPathConverter.uriToFilePath(reconstructed, context)
+                            DebugLogger.debug("EmptyState", "Reconstructed URI: '$reconstructed' -> File path: '$filePath'")
+                            filePath
                         }
-                        DebugLogger.info("EmptyState", "Selected folder URIs: ${currentFilterState.selectedFolders}, Resolved paths: $paths")
+                        DebugLogger.info("EmptyState", "Selected folder URIs: ${currentFilterState.selectedFolders}, Final paths: $paths")
                         paths
                     }
                     EmptyStateScreen(
