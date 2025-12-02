@@ -265,8 +265,16 @@ class MainViewModel @Inject constructor(
                   val configuredUris = preferences.mediaFolderUris.first()
                   val parsedConfigured =
                       configuredUris.mapNotNull { UriPathConverter.resolveUriToFilePath(it, context) }.toSet()
+                  
+                  // Deduplicate folders: remove parent directories when child directories exist
+                  val dedupFolders = folders.filter { path ->
+                      !folders.any { other ->
+                          other != path && other.startsWith(path + "/")
+                      }
+                  }.toSet()
+                  
                   val effectiveFolders =
-                      if (folders.isNotEmpty() || parsedConfigured.isEmpty()) folders else parsedConfigured
+                      if (dedupFolders.isNotEmpty() || parsedConfigured.isEmpty()) dedupFolders else parsedConfigured
                   _currentFilterState.update { it.copy(selectedFolders = effectiveFolders) }
               }
           }
