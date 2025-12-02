@@ -627,19 +627,28 @@ fun MainScreen(
                 }
 
                 filteredItemCount == 0 -> {
-                    // Always reconstruct incomplete SAF URIs first, then convert to file paths
+                    // Selected folders may be either file paths or URIs - handle both
                     val selectedFolderDisplayPaths = remember(currentFilterState.selectedFolders) {
-                        val paths = currentFilterState.selectedFolders.mapNotNull { folderUri ->
-                            // ALWAYS reconstruct to ensure complete URI
-                            val reconstructed = UriPathConverter.reconstructSafUri(context, folderUri)
-                            DebugLogger.debug("EmptyState", "Original URI: '$folderUri' -> Reconstructed: '$reconstructed'")
-                            
-                            // Then convert to file path
-                            val filePath = UriPathConverter.uriToFilePath(reconstructed, context)
-                            DebugLogger.debug("EmptyState", "Reconstructed URI: '$reconstructed' -> File path: '$filePath'")
-                            filePath
+                        val paths = currentFilterState.selectedFolders.mapNotNull { folderItem ->
+                            val path = when {
+                                // Already a file path (starts with /)
+                                folderItem.startsWith("/") -> {
+                                    DebugLogger.debug("EmptyState", "Already a file path: '$folderItem'")
+                                    folderItem
+                                }
+                                // It's a URI - reconstruct and convert
+                                else -> {
+                                    val reconstructed = UriPathConverter.reconstructSafUri(context, folderItem)
+                                    DebugLogger.debug("EmptyState", "Original URI: '$folderItem' -> Reconstructed: '$reconstructed'")
+                                    
+                                    val filePath = UriPathConverter.uriToFilePath(reconstructed, context)
+                                    DebugLogger.debug("EmptyState", "Reconstructed URI: '$reconstructed' -> File path: '$filePath'")
+                                    filePath
+                                }
+                            }
+                            path
                         }
-                        DebugLogger.info("EmptyState", "Selected folder URIs: ${currentFilterState.selectedFolders}, Final paths: $paths")
+                        DebugLogger.info("EmptyState", "Selected folders: ${currentFilterState.selectedFolders}, Final paths: $paths")
                         paths
                     }
                     EmptyStateScreen(
