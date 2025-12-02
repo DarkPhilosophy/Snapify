@@ -15,6 +15,12 @@ object UriPathConverter {
     /**
      * Converts a content:// URI or tree URI to an actual file path
      * Returns null if the URI format is not recognized
+     * Handles formats:
+     * - primary:Path -> /storage/emulated/0/Path
+     * - tree/primary:Path -> /storage/emulated/0/Path
+     * - tree/B68D-37C9:Path -> /storage/emulated/0/Path
+     * - B68D-37C9:Path -> /storage/emulated/0/Path (direct SAF format)
+     * - 53FC-3FF3:Path -> /storage/emulated/0/Path (direct SAF format)
      */
     fun uriToFilePath(uri: String): String? {
         return try {
@@ -22,7 +28,7 @@ object UriPathConverter {
             
             when {
                 // Handle primary: format (direct folder selection)
-                decoded.contains("primary:") -> {
+                decoded.contains("primary:") && !decoded.contains("tree/") -> {
                     val folderPath = decoded.substringAfter("primary:")
                         .replace("%2F", "/")
                         .replace("%3A", ":")
@@ -44,6 +50,28 @@ object UriPathConverter {
                         val basePath = when {
                             volume == "primary" -> "/storage/emulated/0"
                             // Hex volume IDs (e.g., B68D-37C9) are primary storage
+                            volume.matches(Regex("[A-F0-9]{4}-[A-F0-9]{4}|[A-Fa-f0-9]+")) -> "/storage/emulated/0"
+                            else -> "/storage/$volume"
+                        }
+                        "$basePath/$path"
+                    } else {
+                        null
+                    }
+                }
+                
+                // Handle direct SAF format without tree/ (e.g., "B68D-37C9:Download/Seal" or "53FC-3FF3:Download/Seal")
+                decoded.contains(":") && !decoded.startsWith("/") && !decoded.contains("content://") -> {
+                    val parts = decoded.split(":")
+                    if (parts.size >= 2) {
+                        val volume = parts[0]
+                        val path = parts.drop(1).joinToString(":")
+                            .replace("%2F", "/")
+                            .replace("%3A", ":")
+                        
+                        // Map volume IDs to their actual mount points
+                        val basePath = when {
+                            volume == "primary" -> "/storage/emulated/0"
+                            // Hex volume IDs are primary storage
                             volume.matches(Regex("[A-F0-9]{4}-[A-F0-9]{4}|[A-Fa-f0-9]+")) -> "/storage/emulated/0"
                             else -> "/storage/$volume"
                         }
