@@ -943,11 +943,12 @@ internal fun LazyListScope.SettingsContent(
         val folderUris =
             settingsViewModel.mediaFolderUris.collectAsState(initial = emptySet()).value
         val folderCount = folderUris.size
+        val context = androidx.compose.ui.platform.LocalContext.current
         val summaryText = when {
             folderCount == 0 -> "No folders configured"
             folderCount == 1 -> {
                 val uri = folderUris.first()
-                UriPathConverter.uriToDisplayName(uri)
+                UriPathConverter.uriToDisplayName(uri, context)
             }
 
             else -> "$folderCount folders selected"
@@ -1355,10 +1356,11 @@ private fun FolderManagementDialog(
                             folderItems.forEach { item ->
                                 val (uri, _) = item
                                 item {
+                                    val context = androidx.compose.ui.platform.LocalContext.current
                                     val formattedPath = if (uri.isEmpty()) {
                                         "Default (Pictures/Screenshots)"
                                     } else {
-                                        UriPathConverter.uriToDisplayName(uri)
+                                        UriPathConverter.uriToDisplayName(uri, context)
                                     }
 
                                     MediaFolderItem(
