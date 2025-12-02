@@ -1,5 +1,6 @@
 package ro.snapify.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -137,28 +139,36 @@ fun FolderFilterBar(
     ) {
         availableUris.zip(availablePaths).forEach { (uri, path) ->
             val folderName = UriPathConverter.uriToDisplayName(uri)
-            FilterChip(
-                selected = path in selectedPaths,
-                onClick = { }, // Empty - handled by combinedClickable
-                label = { Text(folderName) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                    selectedLabelColor = MaterialTheme.colorScheme.onTertiaryContainer
-                ),
-                modifier = Modifier.combinedClickable(
-                    onClick = {
-                        val newSelection = if (path in selectedPaths) {
-                            selectedPaths - path
-                        } else {
-                            selectedPaths + path
+            val isSelected = path in selectedPaths
+            
+            Row(
+                modifier = Modifier
+                    .background(
+                        color = if (isSelected) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .combinedClickable(
+                        onClick = {
+                            val newSelection = if (isSelected) {
+                                selectedPaths - path
+                            } else {
+                                selectedPaths + path
+                            }
+                            onFolderSelectionChanged(newSelection)
+                        },
+                        onLongClick = {
+                            setSelectedUri(uri)
                         }
-                        onFolderSelectionChanged(newSelection)
-                    },
-                    onLongClick = {
-                        setSelectedUri(uri)
-                    }
+                    )
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = folderName,
+                    color = if (isSelected) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelSmall
                 )
-            )
+            }
         }
     }
 }
