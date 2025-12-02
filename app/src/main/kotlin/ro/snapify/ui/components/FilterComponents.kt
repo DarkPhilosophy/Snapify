@@ -85,28 +85,56 @@ fun FolderFilterBar(
     
     // Show dialog for long-pressed folder
     if (selectedUri != null) {
+        val context = androidx.compose.ui.platform.LocalContext.current
         val resolvedPath = UriPathConverter.uriToFilePath(selectedUri) ?: selectedUri
+        val displayName = UriPathConverter.uriToDisplayName(selectedUri)
+        
         AlertDialog(
             onDismissRequest = { setSelectedUri(null) },
-            title = { Text("Folder Information") },
+            title = { 
+                Text(
+                    "Folder Information",
+                    color = MaterialTheme.colorScheme.onSurface
+                ) 
+            },
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    // Original URI
+                    Text(
+                        text = "Original URI:",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = selectedUri,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(4.dp))
+                            .padding(8.dp),
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    // Display Name
                     Text(
                         text = "Display Name:",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = UriPathConverter.uriToDisplayName(selectedUri),
+                        text = displayName,
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp)
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.fillMaxWidth()
                     )
                     
+                    // Resolved Path
                     Text(
                         text = "Resolved Path:",
                         style = MaterialTheme.typography.labelSmall,
@@ -115,18 +143,27 @@ fun FolderFilterBar(
                     Text(
                         text = resolvedPath,
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                        modifier = Modifier.fillMaxWidth(),
-                        maxLines = 4,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(4.dp))
+                            .padding(8.dp),
+                        maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             },
             confirmButton = {
                 TextButton(onClick = { setSelectedUri(null) }) {
-                    Text("Close")
+                    Text(
+                        "Close",
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
-            }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface
         )
     }
     

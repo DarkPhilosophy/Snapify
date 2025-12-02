@@ -1,6 +1,9 @@
 package ro.snapify.util
 
+import android.content.ContentResolver
+import android.content.Context
 import android.os.Environment
+import android.provider.MediaStore
 import java.net.URLDecoder
 
 /**
@@ -234,5 +237,75 @@ object UriPathConverter {
         }
         
         return deduplicated
+    }
+    
+    /**
+     * Reconstructs a complete SAF URI from an incomplete one by querying MediaStore
+     * E.g., "B68D-37C9:Seal" → "tree/B68D-37C9:Download/Seal"
+     * Returns the original URI if reconstruction fails
+     */
+    fun reconstructSafUri(context: Context, incompleteSafUri: String): String {
+        // If it already looks complete, return as-is
+        if (incompleteSafUri.contains("tree/") || incompleteSafUri.startsWith("content://")) {
+            return incompleteSafUri
+        }
+        
+        // Try to find the folder in MediaStore
+        try {
+            val parts = incompleteSafUri.split(":")
+            if (parts.size < 2) return incompleteSafUri
+            
+            val volumeId = parts[0]
+            val folderName = parts.drop(1).joinToString(":").split("/").lastOrNull() ?: return incompleteSafUri
+            
+            // Query MediaStore to find where this folder actually is
+            val contentResolver = context.contentResolver
+            val projection = arrayOf(
+                MediaStore.MediaColumns.RELATIVE_PATH,
+                MediaStore.MediaColumns.DATA
+            )
+            
+            // Query both images and videos
+            for (mediaUri in listOf(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+            )) {
+                contentResolver.query(
+                    mediaUri,
+                    projection,
+                    null,
+                    null,
+                    null
+                )?.use { cursor ->
+                    while (cursor.moveToNext()) {
+                        val dataPath = try {
+                            cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA))
+                        } catch (e: Exception) {
+                            null
+                        } ?: continue
+                        
+                        // Check if this path contains our folder name
+                        if (dataPath.contains("/$folderName/") || dataPath.endsWith("/$folderName")) {
+                            // Found it! Extract the relative path
+                            val relativePath = try {
+                                cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.RELATIVE_PATH))
+                            } catch (e: Exception) {
+                                null
+                            }
+                            
+                            if (!relativePath.isNullOrEmpty()) {
+                                // Reconstruct: tree/volumeId:relativePath
+                                val cleanPath = relativePath.trimEnd('/').replace("%2F", "/")
+                                return "tree/$volumeId:$cleanPath"
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            DebugLogger.debug("UriPathConverter", "Error reconstructing SAF URI: ${e.message}")
+        }
+        
+        return incompleteSafUri
     }
 }
