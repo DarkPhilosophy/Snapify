@@ -302,12 +302,10 @@ fun MainScreen(
         derivedStateOf {
             mediaItems.count { item ->
                // Folder filter logic:
-                // - If no folders configured: show all (user can't filter)
-                // - If folders configured but none selected: show nothing (explicit filter)
-                // - If folders selected: show only those folders
+                // - Always filter by selectedFolders if not empty
+                // - If selectedFolders is empty: show nothing (no folders selected)
                 val folderMatches = when {
-                    mediaFolderUris.isEmpty() -> true // No folders configured, show all
-                    currentFilterState.selectedFolders.isEmpty() -> false // Folders exist but none selected, show nothing
+                    currentFilterState.selectedFolders.isEmpty() -> false // No folders selected, show nothing
                     else -> UriPathConverter.isInMediaFolder(item.filePath, currentFilterState.selectedFolders)
                 }
 
