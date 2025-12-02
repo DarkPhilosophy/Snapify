@@ -139,14 +139,7 @@ fun FolderFilterBar(
             val folderName = UriPathConverter.uriToDisplayName(uri)
             FilterChip(
                 selected = path in selectedPaths,
-                onClick = {
-                    val newSelection = if (path in selectedPaths) {
-                        selectedPaths - path
-                    } else {
-                        selectedPaths + path
-                    }
-                    onFolderSelectionChanged(newSelection)
-                },
+                onClick = { }, // Empty - handled by combinedClickable
                 label = { Text(folderName) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
