@@ -87,7 +87,7 @@ fun FolderFilterBar(
     if (selectedUri != null) {
         val context = androidx.compose.ui.platform.LocalContext.current
         val resolvedPath = UriPathConverter.uriToFilePath(selectedUri, context) ?: selectedUri
-        val displayName = UriPathConverter.uriToDisplayName(selectedUri)
+        val displayName = UriPathConverter.uriToDisplayName(selectedUri, context)
         
         AlertDialog(
             onDismissRequest = { setSelectedUri(null) },
@@ -167,6 +167,8 @@ fun FolderFilterBar(
         )
     }
     
+    val context = androidx.compose.ui.platform.LocalContext.current
+    
     Row(
         modifier = modifier
             .horizontalScroll(rememberScrollState())
@@ -175,7 +177,7 @@ fun FolderFilterBar(
         verticalAlignment = Alignment.CenterVertically
     ) {
         availableUris.zip(availablePaths).forEach { (uri, path) ->
-            val folderName = UriPathConverter.uriToDisplayName(uri)
+            val folderName = UriPathConverter.uriToDisplayName(uri, context)
             val isSelected = path in selectedPaths
             
             Row(

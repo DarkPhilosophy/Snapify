@@ -160,12 +160,12 @@ object UriPathConverter {
      * Converts a URI to a display name in the format "Volume:Path"
      * Used for folder filter chips and settings display
      */
-    fun uriToDisplayName(uri: String): String {
+    fun uriToDisplayName(uri: String, context: Context? = null): String {
         return try {
             val decoded = URLDecoder.decode(uri, "UTF-8")
             
             when {
-                decoded.contains("primary:") -> {
+                decoded.contains("primary:") && !decoded.contains("tree/") -> {
                     "Primary:" + decoded.substringAfter("primary:")
                         .replace("%2F", "/")
                         .replace("%3A", ":")
@@ -180,9 +180,23 @@ object UriPathConverter {
                         val path = parts.drop(1).joinToString(":")
                             .replace("%2F", "/")
                             .replace("%3A", ":")
+                        
+                        // If path is incomplete (single folder name) and we have context, try to reconstruct
+                        val finalPath = if (!path.contains("/") && context != null) {
+                            val reconstructedPath = findMediaFolderPath(context, volume, path)
+                            if (reconstructedPath != null) {
+                                // Extract just the relative path part after /storage/emulated/0/
+                                reconstructedPath.removePrefix("/storage/emulated/0/")
+                            } else {
+                                path
+                            }
+                        } else {
+                            path
+                        }
+                        
                         // Map volume IDs: primary is shown as "Primary", others as their hex ID
                         val displayVolume = if (volume == "primary") "Primary" else volume
-                        "$displayVolume:$path"
+                        "$displayVolume:$finalPath"
                     } else {
                         decoded
                     }
