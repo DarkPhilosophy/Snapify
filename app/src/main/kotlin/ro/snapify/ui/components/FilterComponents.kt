@@ -1,19 +1,28 @@
 package ro.snapify.ui.components
 
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import ro.snapify.R
 import ro.snapify.data.model.ScreenshotTab
 import ro.snapify.util.UriPathConverter
@@ -70,6 +79,55 @@ fun FolderFilterBar(
     onFolderSelectionChanged: (Set<String>) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val (selectedUri, setSelectedUri) = remember { mutableStateOf<String?>(null) }
+    
+    // Show dialog for long-pressed folder
+    if (selectedUri != null) {
+        val resolvedPath = UriPathConverter.uriToFilePath(selectedUri) ?: selectedUri
+        AlertDialog(
+            onDismissRequest = { setSelectedUri(null) },
+            title = { Text("Folder Information") },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Display Name:",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = UriPathConverter.uriToDisplayName(selectedUri),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    )
+                    
+                    Text(
+                        text = "Resolved Path:",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = resolvedPath,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 4,
+                        overflow = TextOverflow.Ellipsis,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { setSelectedUri(null) }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
+    
     Row(
         modifier = modifier
             .horizontalScroll(rememberScrollState())
@@ -93,6 +151,19 @@ fun FolderFilterBar(
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
                     selectedLabelColor = MaterialTheme.colorScheme.onTertiaryContainer
+                ),
+                modifier = Modifier.combinedClickable(
+                    onClick = {
+                        val newSelection = if (path in selectedPaths) {
+                            selectedPaths - path
+                        } else {
+                            selectedPaths + path
+                        }
+                        onFolderSelectionChanged(newSelection)
+                    },
+                    onLongClick = {
+                        setSelectedUri(uri)
+                    }
                 )
             )
         }
