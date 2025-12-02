@@ -352,8 +352,11 @@ object UriPathConverter {
      * Returns the original URI if reconstruction fails
      */
     fun reconstructSafUri(context: Context, incompleteSafUri: String): String {
+        DebugLogger.debug("UriPathConverter.reconstructSafUri", "Input: '$incompleteSafUri'")
+        
         // If it already looks complete, return as-is
         if (incompleteSafUri.contains("tree/") || incompleteSafUri.startsWith("content://")) {
+            DebugLogger.debug("UriPathConverter.reconstructSafUri", "Already complete, returning as-is")
             return incompleteSafUri
         }
         
@@ -401,18 +404,21 @@ object UriPathConverter {
                             }
                             
                             if (!relativePath.isNullOrEmpty()) {
-                                // Reconstruct: tree/volumeId:relativePath
-                                val cleanPath = relativePath.trimEnd('/').replace("%2F", "/")
-                                return "tree/$volumeId:$cleanPath"
+                                 // Reconstruct: tree/volumeId:relativePath
+                                 val cleanPath = relativePath.trimEnd('/').replace("%2F", "/")
+                                 val result = "tree/$volumeId:$cleanPath"
+                                 DebugLogger.debug("UriPathConverter.reconstructSafUri", "Reconstructed: '$result'")
+                                 return result
+                             }
                             }
-                        }
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            DebugLogger.debug("UriPathConverter", "Error reconstructing SAF URI: ${e.message}")
-        }
-        
-        return incompleteSafUri
+                            }
+                            }
+                            }
+                            } catch (e: Exception) {
+                            DebugLogger.debug("UriPathConverter", "Error reconstructing SAF URI: ${e.message}")
+                            }
+                            
+                            DebugLogger.debug("UriPathConverter.reconstructSafUri", "Could not reconstruct, returning original: '$incompleteSafUri'")
+                            return incompleteSafUri
     }
 }

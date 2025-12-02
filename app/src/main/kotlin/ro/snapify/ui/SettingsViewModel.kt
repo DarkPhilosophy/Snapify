@@ -14,6 +14,7 @@ import ro.snapify.data.preferences.AppPreferences
 import ro.snapify.data.repository.MediaRepository
 import ro.snapify.service.ScreenshotMonitorService
 import ro.snapify.ui.theme.ThemeMode
+import ro.snapify.util.DebugLogger
 import ro.snapify.util.UriPathConverter
 import javax.inject.Inject
 
@@ -117,9 +118,11 @@ class SettingsViewModel @Inject constructor(
             // Reconstruct incomplete SAF URIs to complete paths before storing
             // This ensures consistent resolved paths are stored, not partial URIs like "primary:Seal"
             val resolvedUri = UriPathConverter.reconstructSafUri(context, uri)
+            DebugLogger.info("SettingsViewModel.addMediaFolder", "Original URI: '$uri' -> Resolved: '$resolvedUri'")
             
             val current = preferences.mediaFolderUris.first()
             val updated = UriPathConverter.deduplicateMediaFolderUris(current + resolvedUri)
+            DebugLogger.info("SettingsViewModel.addMediaFolder", "Storing in preferences: $updated")
             preferences.setMediaFolderUris(updated)
 
             // If monitoring is enabled, start the service to scan the new folder
