@@ -27,6 +27,7 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
         private val KEY_DELETION_TIME_MILLIS = longPreferencesKey("deletion_time_millis")
         private val KEY_MANUAL_MARK_MODE = booleanPreferencesKey("manual_mark_mode")
         private val KEY_MEDIA_FOLDER_URIS = stringSetPreferencesKey("media_folder_uris")
+        private val KEY_MEDIA_FOLDER_PATHS = stringPreferencesKey("media_folder_paths") // JSON encoded Set<String>
 
         private val KEY_SERVICE_ENABLED = booleanPreferencesKey("service_enabled")
 
@@ -141,6 +142,22 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
     suspend fun setMediaFolderUris(uris: Set<String>) {
         context.dataStore.edit { preferences ->
             preferences[KEY_MEDIA_FOLDER_URIS] = uris
+            // Also store resolved paths for matching
+            val resolvedPaths = uris.mapNotNull { uri ->
+                ro.snapify.util.UriPathConverter.uriToFilePath(uri)
+            }.toSet()
+            preferences[KEY_MEDIA_FOLDER_PATHS] = Gson().toJson(resolvedPaths)
+        }
+    }
+    
+    // Get resolved folder paths (not URIs)
+    val mediaFolderPaths: Flow<Set<String>> = context.dataStore.data.map { preferences ->
+        val jsonString = preferences[KEY_MEDIA_FOLDER_PATHS] ?: "[]"
+        try {
+            val type = object : TypeToken<Set<String>>() {}.type
+            Gson().fromJson(jsonString, type) ?: emptySet()
+        } catch (e: Exception) {
+            emptySet()
         }
     }
 

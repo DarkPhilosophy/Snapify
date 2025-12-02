@@ -312,19 +312,30 @@ class ScreenshotMonitorService : Service() {
             return
         }
 
-        // Get configured media folders and validate file is in one of them
-        val configuredFolders = try {
-            preferences.mediaFolderUris.first().let { uris ->
-                UriPathConverter.decodeMediaFolderUris(uris.toList())
-            }
+        // Get configured media folder paths and validate file is in one of them
+        val configuredFolderPaths = try {
+            preferences.mediaFolderPaths.first()
         } catch (e: Exception) {
-            DebugLogger.warning("ScreenshotMonitorService", "Error getting configured folders: ${e.message}")
-            listOf(UriPathConverter.getDefaultScreenshotUri())
+            DebugLogger.warning("ScreenshotMonitorService", "Error getting configured folder paths: ${e.message}")
+            setOf(UriPathConverter.getDefaultScreenshotUri())
+        }
+
+        // If no resolved paths available, fall back to URIs
+        val foldersToCheck = if (configuredFolderPaths.isNotEmpty()) {
+            configuredFolderPaths.toList()
+        } else {
+            try {
+                preferences.mediaFolderUris.first().let { uris ->
+                    UriPathConverter.decodeMediaFolderUris(uris.toList())
+                }
+            } catch (e: Exception) {
+                listOf(UriPathConverter.getDefaultScreenshotUri())
+            }
         }
 
         // Validate file is in one of the configured folders
-        if (!filePath.isNullOrEmpty() && !UriPathConverter.isInMediaFolder(filePath, configuredFolders)) {
-            DebugLogger.debug("ScreenshotMonitorService", "File not in configured folders, ignoring: $fileName")
+        if (!filePath.isNullOrEmpty() && !UriPathConverter.isInMediaFolder(filePath, foldersToCheck)) {
+            DebugLogger.debug("ScreenshotMonitorService", "File not in configured folders, ignoring: $fileName (checked: $foldersToCheck)")
             return
         }
 
