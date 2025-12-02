@@ -413,7 +413,7 @@ fun MainScreen(
 
     val availablePaths = remember(mediaFolderUris) {
         mediaFolderUris.mapNotNull { uri ->
-            UriPathConverter.uriToFilePath(uri)
+            UriPathConverter.uriToFilePath(uri, context)
         }.toList()
     }
 
