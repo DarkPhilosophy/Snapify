@@ -41,6 +41,8 @@ class SettingsViewModel @Inject constructor(
     val language = preferences.language
 
     val mediaFolderUris = preferences.mediaFolderUris
+    
+    val mediaFolderPaths = preferences.mediaFolderPaths
 
     val autoCleanupEnabled = preferences.autoCleanupEnabled
 

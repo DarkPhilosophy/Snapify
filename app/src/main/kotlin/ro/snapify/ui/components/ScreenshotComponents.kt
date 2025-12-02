@@ -73,6 +73,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
 import androidx.core.net.toUri
@@ -560,7 +561,10 @@ fun ServiceStatusIndicator(
  */
 @Composable
 fun EmptyStateScreen(
-    tab: ScreenshotTab,
+    tab: ScreenshotTab = ScreenshotTab.ALL,
+    configuredPath: String? = null,
+    filterState: ro.snapify.data.model.FilterState? = null,
+    selectedFolderPaths: List<String> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     val icon = when (tab) {
@@ -610,6 +614,57 @@ fun EmptyStateScreen(
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            
+            // Show filter information when applicable
+            if (filterState != null && selectedFolderPaths.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = if (selectedFolderPaths.size == 1) "Filtering path:" else "Filtering paths:",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(4.dp))
+                        .padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    selectedFolderPaths.forEach { path ->
+                        Text(
+                            text = path,
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                            textAlign = TextAlign.Center,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            } else if (tab == ScreenshotTab.ALL && configuredPath != null) {
+                // Legacy support for single path display
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Monitoring path:",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = configuredPath,
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(4.dp))
+                        .padding(8.dp),
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

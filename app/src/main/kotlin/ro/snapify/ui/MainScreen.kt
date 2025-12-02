@@ -627,7 +627,17 @@ fun MainScreen(
                 }
 
                 filteredItemCount == 0 -> {
-                    EmptyStateScreen(ScreenshotTab.ALL) // TODO: Update EmptyStateScreen to handle FilterState
+                    // Convert selected folder URIs to display paths for empty state message
+                    val selectedFolderDisplayPaths = remember(currentFilterState.selectedFolders) {
+                        currentFilterState.selectedFolders.mapNotNull { folderUri ->
+                            UriPathConverter.uriToDisplayName(folderUri, context)
+                        }
+                    }
+                    EmptyStateScreen(
+                        tab = ScreenshotTab.ALL,
+                        filterState = currentFilterState,
+                        selectedFolderPaths = selectedFolderDisplayPaths
+                    )
                 }
 
                 else -> {
