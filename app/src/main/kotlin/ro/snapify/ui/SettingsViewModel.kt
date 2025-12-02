@@ -121,7 +121,7 @@ class SettingsViewModel @Inject constructor(
             DebugLogger.info("SettingsViewModel.addMediaFolder", "Original URI: '$uri' -> Resolved: '$resolvedUri'")
             
             val current = preferences.mediaFolderUris.first()
-            val updated = UriPathConverter.deduplicateMediaFolderUris(current + resolvedUri)
+            val updated = UriPathConverter.deduplicateMediaFolderUris(current + resolvedUri, context)
             DebugLogger.info("SettingsViewModel.addMediaFolder", "Storing in preferences: $updated")
             preferences.setMediaFolderUris(updated)
 
