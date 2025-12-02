@@ -121,7 +121,37 @@ class SettingsViewModel @Inject constructor(
             DebugLogger.info("SettingsViewModel.addMediaFolder", "Original URI: '$uri' -> Resolved: '$resolvedUri'")
             
             val current = preferences.mediaFolderUris.first()
-            val updated = UriPathConverter.deduplicateMediaFolderUris(current + resolvedUri, context)
+            val newResolvedPath = UriPathConverter.resolveUriToFilePath(resolvedUri, context)
+            
+            // Check if this path already exists with a different URI
+            var updated = current
+            if (newResolvedPath != null) {
+                val normalizedNewPath = newResolvedPath.lowercase()
+                
+                // Find if any existing URI resolves to the same path
+                val existingUriWithSamePath = current.firstOrNull { existingUri ->
+                    val existingPath = UriPathConverter.resolveUriToFilePath(existingUri, context)
+                    existingPath?.lowercase() == normalizedNewPath
+                }
+                
+                if (existingUriWithSamePath != null) {
+                    // URI already exists (resolves to same path), update it with the new one
+                    DebugLogger.info(
+                        "SettingsViewModel.addMediaFolder",
+                        "Duplicate path detected. Replacing old URI: '$existingUriWithSamePath' with new URI: '$resolvedUri'"
+                    )
+                    updated = (current - existingUriWithSamePath) + resolvedUri
+                } else {
+                    // New path, just add it
+                    updated = current + resolvedUri
+                }
+            } else {
+                // Can't resolve path, just add it anyway
+                updated = current + resolvedUri
+            }
+            
+            // Final deduplication to be safe
+            updated = UriPathConverter.deduplicateMediaFolderUris(updated, context)
             DebugLogger.info("SettingsViewModel.addMediaFolder", "Storing in preferences: $updated")
             preferences.setMediaFolderUris(updated)
 
