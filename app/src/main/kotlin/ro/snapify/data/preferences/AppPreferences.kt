@@ -116,9 +116,9 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
         // This handles legacy data where incomplete paths like "/storage/emulated/0/Seal" 
         // may have been stored alongside complete paths like "/storage/emulated/0/Download/Seal"
         stored.filter { path ->
-            // Keep this path only if NO OTHER path starts with it as a prefix
+            // Keep this path only if NO OTHER path is a child of it
             !stored.any { other ->
-                other != path && other.startsWith(path)
+                other != path && other.startsWith(path + "/")
             }
         }.toSet()
     }
