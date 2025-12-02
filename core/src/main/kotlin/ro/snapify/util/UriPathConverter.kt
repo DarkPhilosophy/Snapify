@@ -24,8 +24,9 @@ object UriPathConverter {
      * - tree/B68D-37C9:Path -> /storage/emulated/0/Path
      * - B68D-37C9:Path -> /storage/emulated/0/Path (direct SAF format)
      * - 53FC-3FF3:Path -> /storage/emulated/0/Path (direct SAF format)
+     * - content://com.mixplorer.doc/tree/B68D-37C9:Seal -> uses context-aware reconstruction
      */
-    fun uriToFilePath(uri: String): String? {
+    fun uriToFilePath(uri: String, context: Context? = null): String? {
         return try {
             val decoded = URLDecoder.decode(uri, "UTF-8")
             
@@ -48,6 +49,17 @@ object UriPathConverter {
                         val path = parts.drop(1).joinToString(":")
                             .replace("%2F", "/")
                             .replace("%3A", ":")
+                        
+                        // Check if path is incomplete (single folder name only, from MixPlorer or similar)
+                        val isIncomplete = !path.contains("/") && context != null
+                        
+                        if (isIncomplete) {
+                            // Try to find the actual path in MediaStore
+                            val resolvedPath = findMediaFolderPath(context, volume, path)
+                            if (resolvedPath != null) {
+                                return resolvedPath
+                            }
+                        }
                         
                         // Map volume IDs to their actual mount points
                         val basePath = when {
@@ -92,6 +104,56 @@ object UriPathConverter {
         } catch (e: Exception) {
             null
         }
+    }
+    
+    /**
+     * Finds the actual media folder path by searching MediaStore for a folder name
+     * E.g., findMediaFolderPath(context, "B68D-37C9", "Seal") -> "/storage/emulated/0/Download/Seal"
+     */
+    private fun findMediaFolderPath(context: Context, volumeId: String, folderName: String): String? {
+        try {
+            val contentResolver = context.contentResolver
+            val projection = arrayOf(
+                MediaStore.MediaColumns.RELATIVE_PATH,
+                MediaStore.MediaColumns.DATA
+            )
+            
+            // Query both images and videos
+            for (mediaUri in listOf(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+            )) {
+                contentResolver.query(
+                    mediaUri,
+                    projection,
+                    null,
+                    null,
+                    null
+                )?.use { cursor ->
+                    while (cursor.moveToNext()) {
+                        try {
+                            val dataPath = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA))
+                            
+                            // Check if this path contains our folder name
+                            if (dataPath.contains("/$folderName/") || dataPath.endsWith("/$folderName")) {
+                                // Found it! Extract the relative path
+                                val relativePath = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.RELATIVE_PATH))
+                                if (!relativePath.isNullOrEmpty()) {
+                                    val cleanPath = relativePath.trimEnd('/').replace("%2F", "/")
+                                    return "/storage/emulated/0/$cleanPath"
+                                }
+                            }
+                        } catch (e: Exception) {
+                            continue
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            DebugLogger.debug("UriPathConverter", "Error finding media folder path: ${e.message}")
+        }
+        
+        return null
     }
     
     /**

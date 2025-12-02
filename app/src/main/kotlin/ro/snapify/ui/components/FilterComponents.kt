@@ -86,7 +86,7 @@ fun FolderFilterBar(
     // Show dialog for long-pressed folder
     if (selectedUri != null) {
         val context = androidx.compose.ui.platform.LocalContext.current
-        val resolvedPath = UriPathConverter.uriToFilePath(selectedUri) ?: selectedUri
+        val resolvedPath = UriPathConverter.uriToFilePath(selectedUri, context) ?: selectedUri
         val displayName = UriPathConverter.uriToDisplayName(selectedUri)
         
         AlertDialog(

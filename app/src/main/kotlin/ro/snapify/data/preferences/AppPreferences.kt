@@ -144,7 +144,7 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
             preferences[KEY_MEDIA_FOLDER_URIS] = uris
             // Also store resolved paths for matching
             val resolvedPaths = uris.mapNotNull { uri ->
-                ro.snapify.util.UriPathConverter.uriToFilePath(uri)
+                ro.snapify.util.UriPathConverter.uriToFilePath(uri, context)
             }.toSet()
             preferences[KEY_MEDIA_FOLDER_PATHS] = Gson().toJson(resolvedPaths)
         }
