@@ -208,4 +208,31 @@ object UriPathConverter {
     fun decodeMediaFolderUris(uris: List<String>): List<String> {
         return uris.mapNotNull { uri -> uriToFilePath(uri) }
     }
+    
+    /**
+     * Deduplicates and normalizes a list of media folder URIs.
+     * Removes URIs that point to the same file path, keeping the first occurrence.
+     * This handles cases where different SAF volume IDs (e.g., 53FC-3FF3 vs B68D-37C9)
+     * point to the same physical location (e.g., /storage/emulated/0/Download).
+     */
+    fun deduplicateMediaFolderUris(uris: Set<String>): Set<String> {
+        val seenPaths = mutableSetOf<String>()
+        val deduplicated = mutableSetOf<String>()
+        
+        uris.forEach { uri ->
+            val filePath = uriToFilePath(uri)
+            if (filePath != null) {
+                val normalizedPath = normalizePath(filePath)
+                if (!seenPaths.contains(normalizedPath)) {
+                    seenPaths.add(normalizedPath)
+                    deduplicated.add(uri)
+                }
+            } else {
+                // If we can't convert to path, keep the original
+                deduplicated.add(uri)
+            }
+        }
+        
+        return deduplicated
+    }
 }

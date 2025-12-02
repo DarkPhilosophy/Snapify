@@ -113,7 +113,7 @@ class SettingsViewModel @Inject constructor(
     fun addMediaFolder(uri: String) {
         viewModelScope.launch {
             val current = preferences.mediaFolderUris.first()
-            val updated = current + uri
+            val updated = UriPathConverter.deduplicateMediaFolderUris(current + uri)
             preferences.setMediaFolderUris(updated)
 
             // If monitoring is enabled, start the service to scan the new folder
