@@ -627,10 +627,10 @@ fun MainScreen(
                 }
 
                 filteredItemCount == 0 -> {
-                    // Convert selected folder URIs to display paths for empty state message
+                    // Convert selected folder URIs to resolved file paths for empty state message
                     val selectedFolderDisplayPaths = remember(currentFilterState.selectedFolders) {
                         currentFilterState.selectedFolders.mapNotNull { folderUri ->
-                            UriPathConverter.uriToDisplayName(folderUri, context)
+                            UriPathConverter.uriToFilePath(folderUri, context)
                         }
                     }
                     EmptyStateScreen(
