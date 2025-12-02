@@ -240,7 +240,26 @@ fun MainScreen(
     LaunchedEffect(refreshTrigger) {
         DebugLogger.info("MainScreen", "RefreshTrigger changed to: $refreshTrigger")
     }
-    val mediaFolderUris by actualViewModel.mediaFolderUris.collectAsStateWithLifecycle(initialValue = emptySet())
+    val rawMediaFolderUris by actualViewModel.mediaFolderUris.collectAsStateWithLifecycle(initialValue = emptySet())
+    
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    
+    // Deduplicate URIs to remove incomplete versions when complete ones exist
+    val mediaFolderUris by remember(rawMediaFolderUris, context) {
+        derivedStateOf {
+            val resolved = rawMediaFolderUris
+                .mapNotNull { uri -> 
+                    uri to UriPathConverter.resolveUriToFilePath(uri, context)
+                }
+            
+            // Keep only one URI per resolved path (prefer the one that came first)
+            resolved
+                .distinctBy { (_, path) -> path }
+                .map { (uri, _) -> uri }
+                .toSet()
+        }
+    }
     val monitoringStatus by actualViewModel.monitoringStatus.collectAsState(initial = MonitoringStatus.STOPPED)
     val liveVideoPreviewEnabled by actualViewModel.liveVideoPreviewEnabled.collectAsStateWithLifecycle(
         initialValue = false
@@ -307,9 +326,6 @@ fun MainScreen(
             }
         }
     }
-
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
 
     // Refresh screenshots and monitoring status when app resumes
     DisposableEffect(lifecycleOwner) {

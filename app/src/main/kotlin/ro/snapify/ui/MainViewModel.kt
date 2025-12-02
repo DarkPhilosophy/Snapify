@@ -302,7 +302,7 @@ class MainViewModel @Inject constructor(
 
     fun updateFolderSelection(selectedFolders: Set<String>) {
         viewModelScope.launch {
-            // Deduplicate: remove incomplete paths that are subsets of complete paths
+            // Deduplicate: remove incomplete paths that are prefixes of complete paths
             // E.g., if we have both "/storage/emulated/0/Seal" and "/storage/emulated/0/Download/Seal",
             // keep only "/storage/emulated/0/Download/Seal"
             val deduplicated = selectedFolders.filter { path ->

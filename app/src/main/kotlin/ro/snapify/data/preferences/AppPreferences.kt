@@ -112,12 +112,13 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
     val selectedFolders: Flow<Set<String>> = context.dataStore.data.map { preferences ->
         val stored = preferences[KEY_SELECTED_FOLDERS] ?: emptySet()
         
-        // Deduplicate: remove incomplete paths that are subsets of complete paths
+        // Deduplicate: remove incomplete paths that are prefixes of complete paths
         // This handles legacy data where incomplete paths like "/storage/emulated/0/Seal" 
         // may have been stored alongside complete paths like "/storage/emulated/0/Download/Seal"
         stored.filter { path ->
+            // Keep this path only if NO OTHER path starts with it as a prefix
             !stored.any { other ->
-                other != path && other.startsWith(path + "/")
+                other != path && other.startsWith(path)
             }
         }.toSet()
     }
