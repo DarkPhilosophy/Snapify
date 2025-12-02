@@ -413,9 +413,7 @@ fun MainScreen(
 
     val availablePaths = remember(mediaFolderUris) {
         mediaFolderUris.mapNotNull { uri ->
-            // ALWAYS reconstruct incomplete URIs first to ensure complete paths
-            val reconstructed = UriPathConverter.reconstructSafUri(context, uri)
-            UriPathConverter.uriToFilePath(reconstructed, context)
+            UriPathConverter.resolveUriToFilePath(uri, context)
         }.toList()
     }
 
@@ -629,29 +627,9 @@ fun MainScreen(
                 }
 
                 filteredItemCount == 0 -> {
-                    // Selected folders may be either file paths or URIs - handle both
+                    // Selected folders are already file paths from the filter logic
                     val selectedFolderDisplayPaths = remember(currentFilterState.selectedFolders) {
-                        val paths = currentFilterState.selectedFolders.mapNotNull { folderItem ->
-                            val path = when {
-                                // Already a file path (starts with /)
-                                folderItem.startsWith("/") -> {
-                                    DebugLogger.debug("EmptyState", "Already a file path: '$folderItem'")
-                                    folderItem
-                                }
-                                // It's a URI - reconstruct and convert
-                                else -> {
-                                    val reconstructed = UriPathConverter.reconstructSafUri(context, folderItem)
-                                    DebugLogger.debug("EmptyState", "Original URI: '$folderItem' -> Reconstructed: '$reconstructed'")
-                                    
-                                    val filePath = UriPathConverter.uriToFilePath(reconstructed, context)
-                                    DebugLogger.debug("EmptyState", "Reconstructed URI: '$reconstructed' -> File path: '$filePath'")
-                                    filePath
-                                }
-                            }
-                            path
-                        }
-                        DebugLogger.info("EmptyState", "Selected folders: ${currentFilterState.selectedFolders}, Final paths: $paths")
-                        paths
+                        currentFilterState.selectedFolders.toList()
                     }
                     EmptyStateScreen(
                         tab = ScreenshotTab.ALL,

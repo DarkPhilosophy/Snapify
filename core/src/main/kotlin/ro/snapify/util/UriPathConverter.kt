@@ -16,6 +16,21 @@ import java.net.URLDecoder
 object UriPathConverter {
     
     /**
+     * Resolves a URI to a complete file path by reconstructing incomplete URIs first.
+     * This is the main function to use for converting any URI format to an actual file path.
+     * 
+     * Process:
+     * 1. Reconstruct incomplete URIs (e.g., "primary:Seal" -> "tree/B68D-37C9:Download/Seal")
+     * 2. Convert to file path (e.g., "tree/B68D-37C9:Download/Seal" -> "/storage/emulated/0/Download/Seal")
+     * 
+     * Returns null if reconstruction or conversion fails.
+     */
+    fun resolveUriToFilePath(uri: String, context: Context): String? {
+        val reconstructed = reconstructSafUri(context, uri)
+        return uriToFilePath(reconstructed, context)
+    }
+    
+    /**
      * Converts a content:// URI or tree URI to an actual file path
      * Returns null if the URI format is not recognized
      * Handles formats:
