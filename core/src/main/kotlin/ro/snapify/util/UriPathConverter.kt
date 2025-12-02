@@ -109,8 +109,10 @@ object UriPathConverter {
     /**
      * Finds the actual media folder path by searching MediaStore for a folder name
      * E.g., findMediaFolderPath(context, "B68D-37C9", "Seal") -> "/storage/emulated/0/Download/Seal"
+     * Falls back to checking common locations if no files found
      */
     private fun findMediaFolderPath(context: Context, volumeId: String, folderName: String): String? {
+        // First try: search MediaStore for files in this folder
         try {
             val contentResolver = context.contentResolver
             val projection = arrayOf(
@@ -140,6 +142,7 @@ object UriPathConverter {
                                 val relativePath = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.RELATIVE_PATH))
                                 if (!relativePath.isNullOrEmpty()) {
                                     val cleanPath = relativePath.trimEnd('/').replace("%2F", "/")
+                                    DebugLogger.debug("UriPathConverter", "Found folder path via MediaStore: /storage/emulated/0/$cleanPath")
                                     return "/storage/emulated/0/$cleanPath"
                                 }
                             }
@@ -150,7 +153,26 @@ object UriPathConverter {
                 }
             }
         } catch (e: Exception) {
-            DebugLogger.debug("UriPathConverter", "Error finding media folder path: ${e.message}")
+            DebugLogger.debug("UriPathConverter", "Error searching MediaStore: ${e.message}")
+        }
+        
+        // Fallback: check common locations on the file system
+        val commonParents = listOf(
+            "/storage/emulated/0/Download",
+            "/storage/emulated/0/Pictures",
+            "/storage/emulated/0/DCIM",
+            "/storage/emulated/0/Documents",
+            "/storage/emulated/0/Movies",
+            "/storage/emulated/0"
+        )
+        
+        for (parent in commonParents) {
+            val possiblePath = "$parent/$folderName"
+            val file = java.io.File(possiblePath)
+            if (file.exists() && file.isDirectory) {
+                DebugLogger.debug("UriPathConverter", "Found folder path via file system: $possiblePath")
+                return possiblePath
+            }
         }
         
         return null

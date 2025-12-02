@@ -143,7 +143,7 @@ fun SettingsScreen(
             listOf("Default (Pictures/Screenshots)")
         } else {
             mediaFolderUris.map { uri ->
-                UriPathConverter.uriToDisplayName(uri)
+                UriPathConverter.uriToDisplayName(uri, context)
             }
         }
     }
