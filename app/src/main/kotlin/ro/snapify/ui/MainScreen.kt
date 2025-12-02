@@ -112,6 +112,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.combinedClickable
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.preferencesDataStore
 import com.ramcosta.composedestinations.annotation.Destination
@@ -1333,13 +1336,29 @@ private fun FolderManagementDialog(
     onRemoveFolder: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
 
-
-    // Create a stable list of URI-path pairs, sorted by formatted path for consistent display
+    // Create a stable list of URI-path pairs, deduplicated and sorted
     val folderItems = remember(mediaFolderUris) {
-        mediaFolderUris.map { uri ->
-            Pair(uri, uri) // Simple mapping for now: display URI as-is
-        }.sortedBy { it.first }
+        // Deduplicate: remove URIs that resolve to the same file path
+        val seenPaths = mutableSetOf<String>()
+        val deduplicated = mutableSetOf<String>()
+        
+        mediaFolderUris.forEach { uri ->
+            val filePath = UriPathConverter.resolveUriToFilePath(uri, context)
+            if (filePath != null) {
+                val normalizedPath = filePath.lowercase()
+                if (!seenPaths.contains(normalizedPath)) {
+                    seenPaths.add(normalizedPath)
+                    deduplicated.add(uri)
+                }
+            } else {
+                // If we can't resolve to path, keep the original
+                deduplicated.add(uri)
+            }
+        }
+        
+        deduplicated.sortedBy { it }
     }
 
     val isOLED = MaterialTheme.colorScheme.surface == Color.Black
@@ -1377,10 +1396,8 @@ private fun FolderManagementDialog(
                                 .fillMaxWidth()
                                 .heightIn(max = 300.dp)
                         ) {
-                            folderItems.forEach { item ->
-                                val (uri, _) = item
+                            folderItems.forEach { uri ->
                                 item {
-                                    val context = androidx.compose.ui.platform.LocalContext.current
                                     val formattedPath = if (uri.isEmpty()) {
                                         "Default (Pictures/Screenshots)"
                                     } else {
@@ -1389,6 +1406,7 @@ private fun FolderManagementDialog(
 
                                     MediaFolderItem(
                                         path = formattedPath,
+                                        uri = uri,
                                         onRemove = { onRemoveFolder(uri) }
                                     )
                                 }
@@ -1420,17 +1438,105 @@ private fun FolderManagementDialog(
 @Composable
 private fun MediaFolderItem(
     path: String,
+    uri: String,
     onRemove: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var showInfo by remember { mutableStateOf(false) }
+    
+    if (showInfo) {
+        val resolvedPath = UriPathConverter.uriToFilePath(uri, context) ?: uri
+        val displayName = UriPathConverter.uriToDisplayName(uri, context)
+        
+        AlertDialog(
+            onDismissRequest = { showInfo = false },
+            title = { 
+                Text(
+                    "Folder Information",
+                    color = MaterialTheme.colorScheme.onSurface
+                ) 
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Original URI
+                    Text(
+                        text = "Original URI:",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = uri,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(4.dp))
+                            .padding(8.dp),
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    // Display Name
+                    Text(
+                        text = "Display Name:",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = displayName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    // Resolved Path
+                    Text(
+                        text = "Resolved Path:",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = resolvedPath,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(4.dp))
+                            .padding(8.dp),
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showInfo = false }) {
+                    Text(
+                        "Close",
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface
+        )
+    }
+    
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(16.dp)
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = { showInfo = true }
+                ),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
-
             Icon(
                 Icons.Default.Folder,
                 contentDescription = null,
