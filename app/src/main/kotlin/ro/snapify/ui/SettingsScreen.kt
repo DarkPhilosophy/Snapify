@@ -138,13 +138,11 @@ fun SettingsScreen(
     )
     var showPermissionDialog by remember { mutableStateOf(false) }
 
-    val formattedFolderPaths = remember(mediaFolderUris) {
-        if (mediaFolderUris.isEmpty()) {
-            listOf("Default (Pictures/Screenshots)")
-        } else {
-            mediaFolderUris.map { uri ->
-                UriPathConverter.uriToDisplayName(uri, context)
-            }
+    val formattedFolderPaths = if (mediaFolderUris.isEmpty()) {
+        listOf("Default (Pictures/Screenshots)")
+    } else {
+        mediaFolderUris.map { uri ->
+            UriPathConverter.uriToDisplayName(uri, context)
         }
     }
 
