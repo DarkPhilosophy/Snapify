@@ -108,7 +108,6 @@ object NotificationHelper {
         )
 
         val remainingTime = deletionTimestamp - System.currentTimeMillis()
-        val remainingSeconds = remainingTime / 1000
 
         // Notification actions are always immediate: Keep = mark as kept, Delete Now = immediate delete
         val keepButtonText: String
@@ -124,7 +123,7 @@ object NotificationHelper {
         if (isManualMode) {
             notificationText = "Choose action"
         } else {
-            notificationText = "Auto-delete in ${remainingSeconds}s"
+            notificationText = "Auto-delete in ${TimeUtils.formatTimeRemaining(remainingTime)}"
         }
 
         // Load screenshot bitmap for notification
@@ -218,9 +217,25 @@ object NotificationHelper {
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancel(notificationId)
     }
+
+    fun showDeletedNotification(context: Context, fileName: String) {
+        createNotificationChannel(context)
+        val notificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID_SCREENSHOT)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle("Media Deleted")
+            .setContentText("$fileName was deleted")
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+            .build()
+
+        notificationManager.notify(DELETED_NOTIFICATION_ID, notification)
+    }
 }
 
 private const val CHANNEL_ID_SCREENSHOT = "screenshot_channel"
 private const val ERROR_NOTIFICATION_ID = 9999
 private const val CLEANUP_NOTIFICATION_ID = 9997
+private const val DELETED_NOTIFICATION_ID = 9998
 

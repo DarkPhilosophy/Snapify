@@ -228,6 +228,42 @@ class MediaScannerHelper(
     }
 
     /**
+     * Cleans up media items that are not in any of the configured media folders.
+     * Called when media folders are changed to remove items from deleted folders.
+     */
+    suspend fun cleanUpItemsNotInConfiguredFolders() {
+        try {
+            val configuredFolders = getConfiguredMediaFolders()
+            
+            if (configuredFolders.isEmpty()) {
+                // If no folders configured, don't delete items (user may re-add folders)
+                DebugLogger.info(TAG, "No configured folders, skipping cleanup of unconfigured items")
+                return
+            }
+
+            val allItems = repository.getAllMediaItems().first()
+            val itemsNotInFolders = allItems.filter { item ->
+                !UriPathConverter.isInMediaFolder(item.filePath, configuredFolders)
+            }
+
+            itemsNotInFolders.forEach { mediaItem ->
+                try {
+                    repository.delete(mediaItem)
+                    DebugLogger.info(TAG, "Cleaned up item not in configured folders: ${mediaItem.fileName}")
+                } catch (e: Exception) {
+                    DebugLogger.error(TAG, "Error cleaning up unconfigured item ${mediaItem.fileName}", e)
+                }
+            }
+
+            if (itemsNotInFolders.isNotEmpty()) {
+                DebugLogger.info(TAG, "Cleaned up ${itemsNotInFolders.size} items not in configured folders")
+            }
+        } catch (e: Exception) {
+            DebugLogger.error(TAG, "Error in cleanup of items not in configured folders", e)
+        }
+    }
+
+    /**
      * Gets configured media folder paths.
      */
     private suspend fun getConfiguredMediaFolders(): List<String> {
@@ -236,7 +272,8 @@ class MediaScannerHelper(
             UriPathConverter.decodeMediaFolderUris(configuredUris.toList())
         } catch (e: Exception) {
             DebugLogger.warning(TAG, "Error getting configured folders, using default", e)
-            listOf(UriPathConverter.getDefaultScreenshotsPath())
+            val defaultUri = UriPathConverter.getDefaultScreenshotUri()
+            UriPathConverter.decodeMediaFolderUris(listOf(defaultUri))
         }
     }
 

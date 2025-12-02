@@ -41,8 +41,10 @@ object UriPathConverter {
                             .replace("%3A", ":")
                         
                         // Map volume IDs to their actual mount points
-                        val basePath = when (volume) {
-                            "primary" -> "/storage/emulated/0"
+                        val basePath = when {
+                            volume == "primary" -> "/storage/emulated/0"
+                            // Hex volume IDs (e.g., B68D-37C9) are primary storage
+                            volume.matches(Regex("[A-F0-9]{4}-[A-F0-9]{4}|[A-Fa-f0-9]+")) -> "/storage/emulated/0"
                             else -> "/storage/$volume"
                         }
                         "$basePath/$path"
@@ -85,21 +87,20 @@ object UriPathConverter {
                         val path = parts.drop(1).joinToString(":")
                             .replace("%2F", "/")
                             .replace("%3A", ":")
-                        "$volume:$path"
+                        // Map volume IDs: primary is shown as "Primary", others as their hex ID
+                        val displayVolume = if (volume == "primary") "Primary" else volume
+                        "$displayVolume:$path"
                     } else {
                         decoded
                     }
                 }
                 
-                // Handle file paths (for default folder display)
+                // Handle file paths (old format migration - should be rare after migration)
                 decoded.startsWith("/storage") -> {
-                    val parts = decoded.removePrefix("/storage/emulated/0/")
+                    val path = decoded.removePrefix("/storage/emulated/0/")
                         .removePrefix("/storage/")
-                    if (parts != decoded) {
-                        parts.ifEmpty { "Pictures/Screenshots" }
-                    } else {
-                        decoded.substringAfterLast("/")
-                    }
+                    // Always prefix with Primary for storage paths
+                    "Primary:$path".takeIf { path.isNotEmpty() } ?: "Primary:Pictures/Screenshots"
                 }
                 
                 else -> decoded
@@ -111,12 +112,19 @@ object UriPathConverter {
     
     /**
      * Checks if a file path is within any of the configured media folders
-     * Handles both exact paths and normalized paths with proper boundary checking
+     * Handles both exact paths and URI-based folder selections (e.g., Primary:Download/Seal, B68D-37C9:Download/Seal)
      */
     fun isInMediaFolder(filePath: String, mediaFolders: Set<String>): Boolean {
         val normalizedPath = normalizePath(filePath)
         return mediaFolders.any { folder ->
-            val normalizedFolder = normalizePath(folder)
+            // Convert folder URI to actual file path for comparison
+            val folderPath = if (folder.contains(":")) {
+                uriToFilePath(folder) ?: folder
+            } else {
+                folder
+            }
+            
+            val normalizedFolder = normalizePath(folderPath)
             normalizedPath.startsWith(normalizedFolder) && 
             (normalizedPath.length == normalizedFolder.length || 
              normalizedPath[normalizedFolder.length] == '/')
@@ -125,12 +133,19 @@ object UriPathConverter {
     
     /**
      * Checks if a file path is within any of the configured media folders (accepts List)
-     * Handles both exact paths and normalized paths with proper boundary checking
+     * Handles both exact paths and URI-based folder selections (e.g., Primary:Download/Seal, B68D-37C9:Download/Seal)
      */
     fun isInMediaFolder(filePath: String, mediaFolders: List<String>): Boolean {
         val normalizedPath = normalizePath(filePath)
         return mediaFolders.any { folder ->
-            val normalizedFolder = normalizePath(folder)
+            // Convert folder URI to actual file path for comparison
+            val folderPath = if (folder.contains(":")) {
+                uriToFilePath(folder) ?: folder
+            } else {
+                folder
+            }
+            
+            val normalizedFolder = normalizePath(folderPath)
             normalizedPath.startsWith(normalizedFolder) && 
             (normalizedPath.length == normalizedFolder.length || 
              normalizedPath[normalizedFolder.length] == '/')
@@ -152,11 +167,11 @@ object UriPathConverter {
     }
     
     /**
-     * Gets the default Screenshots folder path
+     * Gets the default Screenshots folder as a SAF URI
+     * Format: content://com.android.externalstorage.documents/tree/primary%3APictures%2FScreenshots
      */
-    fun getDefaultScreenshotsPath(): String {
-        val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-        return "${picturesDir.absolutePath}/Screenshots"
+    fun getDefaultScreenshotUri(): String {
+        return "content://com.android.externalstorage.documents/tree/primary%3APictures%2FScreenshots"
     }
     
     /**

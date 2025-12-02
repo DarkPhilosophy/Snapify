@@ -216,6 +216,7 @@ fun MainScreen(
     val language by preferences?.language?.collectAsState(initial = "en")
         ?: remember { mutableStateOf("en") }
     val currentFilterState by actualViewModel.currentFilterState.collectAsStateWithLifecycle(initialValue = FilterState())
+    val currentTime by actualViewModel.currentTime.collectAsStateWithLifecycle(initialValue = System.currentTimeMillis())
 
     // Debug currentFilterState changes
     // Observe mediaItems list changes - force recomposition when SnapshotStateList mutates
@@ -275,15 +276,18 @@ fun MainScreen(
     ) ?: remember { mutableStateOf(false) }
 
     // Calculate filtered item count for UI logic
-    val filteredItemCount by remember(mediaItems.size, currentFilterState) {
+    val filteredItemCount by remember(mediaItems.size, currentFilterState, mediaFolderUris) {
         derivedStateOf {
             mediaItems.count { item ->
-               // Folder filter: only include items from selected folders
-               val folderMatches = if (currentFilterState.selectedFolders.isEmpty()) {
-                   true // Empty folder filter means all folders
-               } else {
-                   UriPathConverter.isInMediaFolder(item.filePath, currentFilterState.selectedFolders)
-               }
+               // Folder filter logic:
+                // - If no folders configured: show all (user can't filter)
+                // - If folders configured but none selected: show nothing (explicit filter)
+                // - If folders selected: show only those folders
+                val folderMatches = when {
+                    mediaFolderUris.isEmpty() -> true // No folders configured, show all
+                    currentFilterState.selectedFolders.isEmpty() -> false // Folders exist but none selected, show nothing
+                    else -> UriPathConverter.isInMediaFolder(item.filePath, currentFilterState.selectedFolders)
+                }
 
                 // Tag filter: if selectedTags is empty or contains all, include all; otherwise filter by tags
                 val tagMatches =
@@ -683,10 +687,12 @@ fun MainScreen(
                             ScreenshotListComposable(
                                 mediaItems = mediaItems,
                                 currentFilterState = currentFilterState,
+                                currentTime = currentTime,
                                 listState = listState,
                                 isLoading = uiState.isLoading,
                                 liveVideoPreviewEnabled = liveVideoPreviewEnabled,
                                 deletingIds = deletingIds,
+                                mediaFolderUris = mediaFolderUris,
                                 onScreenshotClick = onScreenshotClickCallback,
                                 onKeepClick = onKeepClickCallback,
                                 onUnkeepClick = onUnkeepClickCallback,
@@ -830,6 +836,7 @@ fun ScreenshotCardPreview() {
     AppTheme {
         ScreenshotCard(
             screenshot = sampleScreenshot,
+            currentTime = System.currentTimeMillis(),
             onClick = {},
             onLongPress = {},
             onKeepClick = {},
@@ -940,13 +947,7 @@ internal fun LazyListScope.SettingsContent(
             folderCount == 0 -> "No folders configured"
             folderCount == 1 -> {
                 val uri = folderUris.first()
-                val decoded = java.net.URLDecoder.decode(uri, "UTF-8")
-                val folderName = when {
-                    decoded.contains("primary:") -> "Primary:" + decoded.substringAfter("primary:")
-                    decoded.contains("tree/") -> "Tree:" + decoded.substringAfter("tree/")
-                    else -> uri
-                }
-                folderName
+                UriPathConverter.uriToDisplayName(uri)
             }
 
             else -> "$folderCount folders selected"
@@ -1431,6 +1432,7 @@ private fun MediaFolderItem(
 @Composable
 fun AnimatedScreenshotCard(
     screenshot: MediaItem,
+    currentTime: Long,
     isVisible: Boolean,
     isRefreshing: Boolean,
     liveVideoPreviewEnabled: Boolean,
@@ -1455,6 +1457,7 @@ fun AnimatedScreenshotCard(
         ) {
             ScreenshotCard(
                 screenshot = screenshot,
+                currentTime = currentTime,
                 isRefreshing = isRefreshing,
                 liveVideoPreviewEnabled = liveVideoPreviewEnabled,
                 onClick = onClick,
@@ -1472,10 +1475,12 @@ fun AnimatedScreenshotCard(
 fun ScreenshotListComposable(
     mediaItems: SnapshotStateList<MediaItem>,
     currentFilterState: ro.snapify.data.model.FilterState,
+    currentTime: Long,
     listState: androidx.compose.foundation.lazy.LazyListState,
     isLoading: Boolean,
     liveVideoPreviewEnabled: Boolean,
     deletingIds: Set<Long>,
+    mediaFolderUris: Set<String>,
     onScreenshotClick: (MediaItem, androidx.compose.ui.geometry.Offset) -> Unit,
     onKeepClick: (MediaItem) -> Unit,
     onUnkeepClick: (MediaItem) -> Unit,
@@ -1488,14 +1493,17 @@ fun ScreenshotListComposable(
     modifier: Modifier = Modifier
 ) {
     // Use remember with mediaItems.size as key to force recomposition when list changes
-    val filteredMediaItems by remember(mediaItems.size, currentFilterState) {
+    val filteredMediaItems by remember(mediaItems.size, currentFilterState, mediaFolderUris) {
         derivedStateOf {
             mediaItems.filter { item ->
-                // Folder filter: only include items from selected folders
-                val folderMatches = if (currentFilterState.selectedFolders.isEmpty()) {
-                    true // Empty folder filter means all folders
-                } else {
-                    UriPathConverter.isInMediaFolder(item.filePath, currentFilterState.selectedFolders)
+                // Folder filter logic:
+                // - If no folders configured: show all (user can't filter)
+                // - If folders configured but none selected: show nothing (explicit filter)
+                // - If folders selected: show only those folders
+                val folderMatches = when {
+                    mediaFolderUris.isEmpty() -> true // No folders configured, show all
+                    currentFilterState.selectedFolders.isEmpty() -> false // Folders exist but none selected, show nothing
+                    else -> UriPathConverter.isInMediaFolder(item.filePath, currentFilterState.selectedFolders)
                 }
 
                 // Tag filter: if selectedTags is empty or contains all, include all; otherwise filter by tags
@@ -1606,6 +1614,7 @@ fun ScreenshotListComposable(
 
                 AnimatedScreenshotCard(
                     screenshot = screenshot,
+                    currentTime = currentTime,
                     isVisible = screenshot.id !in deletingIds,
                     isRefreshing = isLoading,
                     liveVideoPreviewEnabled = liveVideoPreviewEnabled,

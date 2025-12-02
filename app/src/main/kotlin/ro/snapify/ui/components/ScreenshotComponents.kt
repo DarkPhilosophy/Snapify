@@ -665,7 +665,7 @@ fun StatusChip(
  * Status section showing the current state of a screenshot
  */
 @Composable
-private fun StatusSection(screenshot: MediaItem) {
+private fun StatusSection(screenshot: MediaItem, currentTime: Long) {
     when {
         screenshot.id == -1L -> {
             StatusChip(
@@ -682,21 +682,7 @@ private fun StatusSection(screenshot: MediaItem) {
         }
 
         screenshot.deletionTimestamp != null -> {
-            // Only update timer for items with deletion timestamps
-            var currentTimeForTimer by remember(screenshot.deletionTimestamp) {
-                mutableStateOf(
-                    System.currentTimeMillis()
-                )
-            }
-
-            LaunchedEffect(screenshot.deletionTimestamp) {
-                while (true) {
-                    delay(1000) // Update every second
-                    currentTimeForTimer = System.currentTimeMillis()
-                }
-            }
-
-            val remaining = screenshot.deletionTimestamp!! - currentTimeForTimer
+            val remaining = screenshot.deletionTimestamp!! - currentTime
             if (remaining > 0) {
                 StatusChip(
                     text = stringResource(
@@ -918,6 +904,7 @@ private fun ThumbnailSection(
 @Composable
 private fun ContentSection(
     screenshot: MediaItem,
+    currentTime: Long,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -940,7 +927,7 @@ private fun ContentSection(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        StatusSection(screenshot)
+        StatusSection(screenshot, currentTime)
     }
 }
 
@@ -951,6 +938,7 @@ private fun ContentSection(
 @Composable
 fun ScreenshotCard(
     screenshot: MediaItem,
+    currentTime: Long,
     isRefreshing: Boolean = false,
     liveVideoPreviewEnabled: Boolean = false,
     onClick: (androidx.compose.ui.geometry.Offset) -> Unit,
@@ -993,7 +981,7 @@ fun ScreenshotCard(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            ContentSection(screenshot, modifier = Modifier.weight(1f))
+            ContentSection(screenshot, currentTime, modifier = Modifier.weight(1f))
 
             ActionButtons(screenshot, onKeepClick, onUnkeepClick, onDeleteClick)
         }

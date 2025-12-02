@@ -101,15 +101,34 @@ class MainViewModel @Inject constructor(
 
     private val initialSelectedFolders = runBlocking {
         val loaded = preferences.selectedFolders.first()
+        val configuredUris = preferences.mediaFolderUris.first()
+        val parsedConfigured = configuredUris.mapNotNull { getFolderPathFromUri(it) }.toSet()
         
-        // Convert any content:// URIs in loaded folders to file paths
-        loaded.mapNotNull { folder ->
-            if (folder.startsWith("content://")) {
-                UriPathConverter.uriToFilePath(folder)
-            } else {
-                folder
-            }
-        }.toSet()
+        // Use loaded folders if available, otherwise fall back to configured folders
+        if (loaded.isNotEmpty() || parsedConfigured.isEmpty()) loaded else parsedConfigured
+    }
+    
+    private fun getFolderPathFromUri(uri: String): String? {
+        return try {
+            val decoded = java.net.URLDecoder.decode(uri, "UTF-8")
+            when {
+                decoded.contains("primary:") -> "/storage/emulated/0/" + decoded.substringAfter("primary:")
+                    .replace("%2F", "/").replace("%3A", ":")
+
+                decoded.contains("tree/") -> {
+                    val parts = decoded.substringAfter("tree/").split(":")
+                    if (parts.size >= 2) {
+                        val volume = parts[0]
+                        val path = parts[1].replace("%2F", "/").replace("%3A", ":")
+                        "/storage/emulated/0/$path" // Assuming primary for now
+                    } else null
+                }
+
+                else -> null
+            }?.removeSuffix("/") // Remove trailing slash if any
+        } catch (e: Exception) {
+            null
+        }
     }
 
     private val _currentFilterState =
@@ -118,49 +137,13 @@ class MainViewModel @Inject constructor(
 
 
     init {
-        observeMediaItemsFromDatabase()
         observeServiceStatus()
         observeRecomposeEvents()
         observeMediaEvents()
         observeFolderChanges()
         startTimeUpdater()
         checkAndStartServiceOnLaunch()
-    }
-    
-    private fun observeMediaItemsFromDatabase() {
-        viewModelScope.launch {
-            DebugLogger.info("MainViewModel", "Starting database observation")
-            repository.getAllMediaItems().collect { allMediaItems ->
-                DebugLogger.info(
-                    "MainViewModel",
-                    "Database Flow emitted: ${allMediaItems.size} items from query"
-                )
-                
-                if (allMediaItems.isNotEmpty()) {
-                    DebugLogger.info("MainViewModel", "First item: ${allMediaItems.first().fileName}")
-                }
-                
-                // Filter out items being deleted
-                val activelyDeletingIds = _deletingIds.value
-                val filteredItems = allMediaItems.filter { item ->
-                    item.id !in activelyDeletingIds && !(item.deletionTimestamp != null && !item.isKept)
-                }
-                
-                // Sort by newest first
-                val sortedItems = filteredItems.sortedByDescending { it.createdAt }
-                
-                // Update UI list
-                DebugLogger.info("MainViewModel", "Clearing ${_mediaItems.size} items from _mediaItems")
-                _mediaItems.clear()
-                DebugLogger.info("MainViewModel", "Adding ${sortedItems.size} items to _mediaItems")
-                _mediaItems.addAll(sortedItems)
-                
-                DebugLogger.info(
-                    "MainViewModel",
-                    "Updated _mediaItems: now has ${_mediaItems.size} items"
-                )
-            }
-        }
+        loadMediaItems()
     }
 
     private fun checkAndStartServiceOnLaunch() {
@@ -300,21 +283,12 @@ class MainViewModel @Inject constructor(
         }
         viewModelScope.launch {
              preferences.selectedFolders.collect { folders ->
-                 // Convert any content:// URIs to file paths
-                 val normalizedFolders = folders.mapNotNull { folder ->
-                     if (folder.startsWith("content://")) {
-                         UriPathConverter.uriToFilePath(folder)
-                     } else {
-                         folder
-                     }
-                 }.toSet()
-                 
-                 // Auto-save normalized folders if any content:// URIs were found
-                 if (normalizedFolders != folders) {
-                     preferences.setSelectedFolders(normalizedFolders)
-                 }
-                 
-                 _currentFilterState.update { it.copy(selectedFolders = normalizedFolders) }
+                 val configuredUris = preferences.mediaFolderUris.first()
+                 val parsedConfigured =
+                     configuredUris.mapNotNull { getFolderPathFromUri(it) }.toSet()
+                 val effectiveFolders =
+                     if (folders.isNotEmpty() || parsedConfigured.isEmpty()) folders else parsedConfigured
+                 _currentFilterState.update { it.copy(selectedFolders = effectiveFolders) }
              }
          }
         }
@@ -347,20 +321,12 @@ class MainViewModel @Inject constructor(
                 // Get all media items (filter in UI)
                 val allMediaItems = repository.getAllMediaItems().first()
 
-                // Filter out:
-                // 1. Items currently being deleted (in _deletingIds)
-                // 2. Items marked for deletion (will be deleted by service)
-                val activelyDeletingIds = _deletingIds.value
-                val filteredItems = allMediaItems.filter { item ->
-                    item.id !in activelyDeletingIds && !(item.deletionTimestamp != null && !item.isKept)
-                }
-
                 // Sort by newest first (in case database order is not correct)
-                val sortedItems = filteredItems.sortedByDescending { it.createdAt }
+                val sortedItems = allMediaItems.sortedByDescending { it.createdAt }
 
                 DebugLogger.info(
                     "MainViewModel",
-                    "loadMediaItems: Clearing ${_mediaItems.size} existing items and adding ${sortedItems.size} new items (filtered out ${activelyDeletingIds.size} + ${allMediaItems.count { it.deletionTimestamp != null && !it.isKept }} items)"
+                    "loadMediaItems: Clearing ${_mediaItems.size} existing items and adding ${sortedItems.size} new items"
                 )
                 _mediaItems.clear()
                 _mediaItems.addAll(sortedItems)
@@ -544,6 +510,10 @@ class MainViewModel @Inject constructor(
                 FirebaseAnalytics.getInstance(context).logEvent("media_delete", bundle)
 
                 _uiState.update { it.copy(message = "Media item deleted") }
+                
+                // Show deletion notification
+                NotificationHelper.showDeletedNotification(context, mediaItem.fileName)
+                
                 DebugLogger.info("MainViewModel", "Media item ${mediaItem.id} deleted")
 
                 // Remove from deleting ids

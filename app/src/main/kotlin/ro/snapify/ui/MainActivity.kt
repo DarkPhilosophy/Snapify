@@ -149,16 +149,35 @@ class MainActivity : ComponentActivity() {
                 viewModel.uiState.collect { uiState = it }
             }
 
-            // Add default folder if none configured and not initialized
+            // Initialize folder URIs and migrate old file paths to SAF URIs
             LaunchedEffect(Unit) {
                 val hasInit = preferences.hasInitializedFolders.first()
                 if (!hasInit) {
                     val current = preferences.mediaFolderUris.first()
-                    if (current.isEmpty()) {
-                        val defaultUri =
-                            "content://com.android.externalstorage.documents/tree/primary%3APictures%2FScreenshots"
-                        preferences.setMediaFolderUris(setOf(defaultUri))
+                    val migratedUris = current
+                        .filter { it.isNotEmpty() }
+                        .map { uri ->
+                            // Migrate old file paths (starting with /) to SAF URIs
+                            if (uri.startsWith("/storage")) {
+                                // Convert file path back to SAF URI format
+                                // /storage/emulated/0/Pictures/Screenshots -> primary:Pictures/Screenshots
+                                val relativePath = uri
+                                    .removePrefix("/storage/emulated/0/")
+                                    .removePrefix("/storage/")
+                                "primary:$relativePath"
+                            } else {
+                                uri // Already in URI format
+                            }
+                        }
+                        .toSet()
+                    
+                    val finalUris = if (migratedUris.isEmpty()) {
+                        setOf(ro.snapify.util.UriPathConverter.getDefaultScreenshotUri())
+                    } else {
+                        migratedUris
                     }
+                    
+                    preferences.setMediaFolderUris(finalUris)
                     preferences.setHasInitializedFolders(true)
                 }
             }

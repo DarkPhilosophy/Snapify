@@ -40,8 +40,8 @@ class ScreenshotApp : Application(), Configuration.Provider {
         super.onCreate()
         instance = this
 
-        // Initialize default media folders on first launch
-        initializeDefaultMediaFolders()
+        // Default media folders are initialized in MainActivity
+        // to ensure proper SAF URI format (not file paths)
 
         // Initialize language manager synchronously to avoid delays
         CoroutineScope(Dispatchers.Default).launch {
@@ -72,22 +72,6 @@ class ScreenshotApp : Application(), Configuration.Provider {
         WorkManager.initialize(this, workManagerConfiguration)
 
         createNotificationChannels()
-    }
-
-    private fun initializeDefaultMediaFolders() {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val currentFolders = preferences.mediaFolderUris.first()
-                // If no folders configured, set default Screenshots folder
-                if (currentFolders.isEmpty()) {
-                    val defaultPath = ro.snapify.util.UriPathConverter.getDefaultScreenshotsPath()
-                    preferences.setMediaFolderUris(setOf(defaultPath))
-                    DebugLogger.info("ScreenshotApp", "Initialized default media folder: $defaultPath")
-                }
-            } catch (e: Exception) {
-                DebugLogger.error("ScreenshotApp", "Error initializing default media folders", e)
-            }
-        }
     }
 
     fun emitRecompose() {

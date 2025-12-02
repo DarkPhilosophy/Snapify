@@ -312,6 +312,22 @@ class ScreenshotMonitorService : Service() {
             return
         }
 
+        // Get configured media folders and validate file is in one of them
+        val configuredFolders = try {
+            preferences.mediaFolderUris.first().let { uris ->
+                UriPathConverter.decodeMediaFolderUris(uris.toList())
+            }
+        } catch (e: Exception) {
+            DebugLogger.warning("ScreenshotMonitorService", "Error getting configured folders: ${e.message}")
+            listOf(UriPathConverter.getDefaultScreenshotUri())
+        }
+
+        // Validate file is in one of the configured folders
+        if (!filePath.isNullOrEmpty() && !UriPathConverter.isInMediaFolder(filePath, configuredFolders)) {
+            DebugLogger.debug("ScreenshotMonitorService", "File not in configured folders, ignoring: $fileName")
+            return
+        }
+
         val actualFileSize = filePath?.let { File(it).length() } ?: fileSize
         val isManualMode = preferences.isManualMarkMode.first()
         val mode = if (isManualMode) "MANUAL" else "AUTOMATIC"
@@ -480,10 +496,14 @@ class ScreenshotMonitorService : Service() {
                     if (expiredMediaItems.isNotEmpty()) {
                         DebugLogger.info(
                             "ScreenshotMonitorService",
-                            "Found ${expiredMediaItems.size} expired media items"
+                            "Found ${expiredMediaItems.size} expired media items, initiating deletion"
                         )
                         expiredMediaItems.forEach { mediaItem ->
+                            // Cancel the timer first
                             deletionTimerManager.cancelDeletionTimer(mediaItem.id)
+                            // Then delete the item (this will be handled by the deletion manager)
+                            // Trigger immediate deletion since timer has expired
+                            launchDeletionTimer(mediaItem.id, 0L)
                         }
                     }
 
@@ -510,6 +530,14 @@ class ScreenshotMonitorService : Service() {
             }
         }
         DebugLogger.info("ScreenshotMonitorService", "Deletion check timer started")
+    }
+
+    /**
+     * Launches a deletion timer (wrapper for deletion manager).
+     * Used for both automatic and manual mode deletions.
+     */
+    private fun launchDeletionTimer(mediaId: Long, delayMillis: Long) {
+        deletionTimerManager.launchDeletionTimer(mediaId, delayMillis)
     }
 
     /**

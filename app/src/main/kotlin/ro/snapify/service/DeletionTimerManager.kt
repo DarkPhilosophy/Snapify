@@ -98,6 +98,10 @@ class DeletionTimerManager(
             try {
                 if (deleteMediaItem(mediaItem)) {
                     DebugLogger.info(TAG, "Successfully deleted media item ${mediaItem.id}: ${mediaItem.fileName}")
+                    // Cancel the notification for this item
+                    NotificationHelper.cancelNotification(context, mediaItem.id.toInt())
+                    // Remove from database
+                    removeFromDatabase(mediaItem)
                     onItemDeleted(mediaItem.id)
                     return
                 }

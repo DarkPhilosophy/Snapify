@@ -138,9 +138,29 @@ class SettingsViewModel @Inject constructor(
             // Remove media items from the database that are in the removed folder
             val folderPath = UriPathConverter.uriToFilePath(uri)
             if (folderPath != null) {
+                val normalizedFolderPath = folderPath.removeSuffix("/").lowercase()
                 val allItems = mediaRepository.getAllMediaItems().first()
-                val itemsToDelete = allItems.filter { it.filePath.startsWith(folderPath) }
-                itemsToDelete.forEach { mediaRepository.deleteById(it.id) }
+                val itemsToDelete = allItems.filter { item ->
+                    val normalizedItemPath = item.filePath.removeSuffix("/").lowercase()
+                    normalizedItemPath.startsWith(normalizedFolderPath) &&
+                    (normalizedItemPath.length == normalizedFolderPath.length ||
+                     normalizedItemPath[normalizedFolderPath.length] == '/')
+                }
+                itemsToDelete.forEach { 
+                    mediaRepository.deleteById(it.id)
+                }
+            }
+
+            // Also clean up any items that are no longer in configured folders
+            // (in case there are orphaned items from previously removed folders)
+            val allItems = mediaRepository.getAllMediaItems().first()
+            if (allItems.isNotEmpty()) {
+                val itemsNotInFolders = allItems.filter { item ->
+                    !UriPathConverter.isInMediaFolder(item.filePath, updated.toList())
+                }
+                itemsNotInFolders.forEach { 
+                    mediaRepository.deleteById(it.id)
+                }
             }
 
             // If no folders left, stop the service
