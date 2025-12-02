@@ -629,9 +629,13 @@ fun MainScreen(
                 filteredItemCount == 0 -> {
                     // Convert selected folder URIs to resolved file paths for empty state message
                     val selectedFolderDisplayPaths = remember(currentFilterState.selectedFolders) {
-                        currentFilterState.selectedFolders.mapNotNull { folderUri ->
-                            UriPathConverter.uriToFilePath(folderUri, context)
+                        val paths = currentFilterState.selectedFolders.mapNotNull { folderUri ->
+                            val resolved = UriPathConverter.uriToFilePath(folderUri, context)
+                            DebugLogger.debug("EmptyState", "Folder URI: '$folderUri' -> Resolved: '$resolved'")
+                            resolved
                         }
+                        DebugLogger.info("EmptyState", "Selected folder URIs: ${currentFilterState.selectedFolders}, Resolved paths: $paths")
+                        paths
                     }
                     EmptyStateScreen(
                         tab = ScreenshotTab.ALL,

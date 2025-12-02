@@ -29,8 +29,9 @@ object UriPathConverter {
     fun uriToFilePath(uri: String, context: Context? = null): String? {
         return try {
             val decoded = URLDecoder.decode(uri, "UTF-8")
+            DebugLogger.debug("UriPathConverter.uriToFilePath", "Input URI: '$uri', Decoded: '$decoded'")
             
-            when {
+            val result = when {
                 // Handle primary: format (direct folder selection)
                 decoded.contains("primary:") && !decoded.contains("tree/") -> {
                     val folderPath = decoded.substringAfter("primary:")
@@ -50,13 +51,17 @@ object UriPathConverter {
                             .replace("%2F", "/")
                             .replace("%3A", ":")
                         
+                        DebugLogger.debug("UriPathConverter.uriToFilePath", "Tree URI - volume='$volume', path='$path'")
+                        
                         // Check if path is incomplete (single folder name only, from MixPlorer or similar)
                         val isIncomplete = !path.contains("/") && context != null
                         
                         if (isIncomplete) {
+                            DebugLogger.debug("UriPathConverter.uriToFilePath", "Path is incomplete, searching MediaStore...")
                             // Try to find the actual path in MediaStore
                             val resolvedPath = findMediaFolderPath(context, volume, path)
                             if (resolvedPath != null) {
+                                DebugLogger.debug("UriPathConverter.uriToFilePath", "Found in MediaStore: $resolvedPath")
                                 return resolvedPath
                             }
                         }
@@ -101,7 +106,11 @@ object UriPathConverter {
                 
                 else -> null
             }?.removeSuffix("/") // Remove trailing slash if any
+            
+            DebugLogger.debug("UriPathConverter.uriToFilePath", "Result: '$result'")
+            result
         } catch (e: Exception) {
+            DebugLogger.error("UriPathConverter.uriToFilePath", "Error: ${e.message}")
             null
         }
     }
