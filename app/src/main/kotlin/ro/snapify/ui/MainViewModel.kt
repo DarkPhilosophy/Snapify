@@ -102,33 +102,12 @@ class MainViewModel @Inject constructor(
     private val initialSelectedFolders = runBlocking {
         val loaded = preferences.selectedFolders.first()
         val configuredUris = preferences.mediaFolderUris.first()
-        val parsedConfigured = configuredUris.mapNotNull { getFolderPathFromUri(it) }.toSet()
+        val parsedConfigured = configuredUris.mapNotNull { 
+            UriPathConverter.resolveUriToFilePath(it, context) 
+        }.toSet()
         
         // Use loaded folders if available, otherwise fall back to configured folders
         if (loaded.isNotEmpty() || parsedConfigured.isEmpty()) loaded else parsedConfigured
-    }
-    
-    private fun getFolderPathFromUri(uri: String): String? {
-        return try {
-            val decoded = java.net.URLDecoder.decode(uri, "UTF-8")
-            when {
-                decoded.contains("primary:") -> "/storage/emulated/0/" + decoded.substringAfter("primary:")
-                    .replace("%2F", "/").replace("%3A", ":")
-
-                decoded.contains("tree/") -> {
-                    val parts = decoded.substringAfter("tree/").split(":")
-                    if (parts.size >= 2) {
-                        val volume = parts[0]
-                        val path = parts[1].replace("%2F", "/").replace("%3A", ":")
-                        "/storage/emulated/0/$path" // Assuming primary for now
-                    } else null
-                }
-
-                else -> null
-            }?.removeSuffix("/") // Remove trailing slash if any
-        } catch (e: Exception) {
-            null
-        }
     }
 
     private val _currentFilterState =
@@ -283,15 +262,15 @@ class MainViewModel @Inject constructor(
         }
         viewModelScope.launch {
              preferences.selectedFolders.collect { folders ->
-                 val configuredUris = preferences.mediaFolderUris.first()
-                 val parsedConfigured =
-                     configuredUris.mapNotNull { getFolderPathFromUri(it) }.toSet()
-                 val effectiveFolders =
-                     if (folders.isNotEmpty() || parsedConfigured.isEmpty()) folders else parsedConfigured
-                 _currentFilterState.update { it.copy(selectedFolders = effectiveFolders) }
-             }
+                  val configuredUris = preferences.mediaFolderUris.first()
+                  val parsedConfigured =
+                      configuredUris.mapNotNull { UriPathConverter.resolveUriToFilePath(it, context) }.toSet()
+                  val effectiveFolders =
+                      if (folders.isNotEmpty() || parsedConfigured.isEmpty()) folders else parsedConfigured
+                  _currentFilterState.update { it.copy(selectedFolders = effectiveFolders) }
+              }
+          }
          }
-        }
 
 
 
