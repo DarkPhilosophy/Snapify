@@ -413,7 +413,9 @@ fun MainScreen(
 
     val availablePaths = remember(mediaFolderUris) {
         mediaFolderUris.mapNotNull { uri ->
-            UriPathConverter.uriToFilePath(uri, context)
+            // ALWAYS reconstruct incomplete URIs first to ensure complete paths
+            val reconstructed = UriPathConverter.reconstructSafUri(context, uri)
+            UriPathConverter.uriToFilePath(reconstructed, context)
         }.toList()
     }
 
