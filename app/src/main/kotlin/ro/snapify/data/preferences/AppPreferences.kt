@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import ro.snapify.data.model.FilterState
+import ro.snapify.util.DebugLogger
 import java.util.Locale
 import javax.inject.Inject
 
@@ -144,8 +145,13 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
             preferences[KEY_MEDIA_FOLDER_URIS] = uris
             // Also store resolved paths for matching
             val resolvedPaths = uris.mapNotNull { uri ->
-                ro.snapify.util.UriPathConverter.uriToFilePath(uri, context)
+                val resolvedPath = ro.snapify.util.UriPathConverter.uriToFilePath(uri, context)
+                if (resolvedPath != null) {
+                    DebugLogger.info("AppPreferences", "Resolved URI to path: $uri -> $resolvedPath")
+                }
+                resolvedPath
             }.toSet()
+            DebugLogger.info("AppPreferences", "Storing ${resolvedPaths.size} resolved folder paths: $resolvedPaths")
             preferences[KEY_MEDIA_FOLDER_PATHS] = Gson().toJson(resolvedPaths)
         }
     }
