@@ -1,20 +1,11 @@
 # Screenshot Manager
 
-<<<<<<< HEAD
-<!-- LATEST-PRE-BUILD-STATUS-START -->
-![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen)
-<!-- LATEST-PRE-BUILD-STATUS-END -->
-=======
 <!-- LATEST-BUILD-STATUS-START -->
 [![PreBuild](https://img.shields.io/badge/PreBuild-Passing-brightgreen)](https://github.com/DarkPhilosophy/Ko/actions)
 [![Build Status](https://github.com/DarkPhilosophy/Ko/actions/workflows/build-apk.yaml/badge.svg)](https://github.com/DarkPhilosophy/Ko/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Version 1.0.0](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://github.com/DarkPhilosophy/android-Snapify)
 <!-- LATEST-BUILD-STATUS-END -->
->>>>>>> a78c4e3 (chore: Rename README markers to LATEST-BUILD-STATUS)
-[![Build Status](https://github.com/DarkPhilosophy/Ko/actions/workflows/build-apk.yaml/badge.svg)](https://github.com/DarkPhilosophy/Ko/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version 1.0.0](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://github.com/DarkPhilosophy/android-Snapify)
 
 A modern, intelligent Android application to automatically manage and organize your screenshots. Keep what matters, delete the rest automatically.
 
