@@ -80,7 +80,7 @@ $BADGE
 <!-- LATEST-PRE-BUILD-STATUS-END -->"
         
         # 1. Initial Replacement: If strictly the placeholder exists
-        perl -i -pe "s|<!-- LATEST-PRE-BUILD-STATUS -->|$BADGE_BLOCK|g" "$README_FILE"
+        perl -i -0777 -pe "s|<!-- LATEST-PRE-BUILD-STATUS -->|$BADGE_BLOCK|g" "$README_FILE"
         
         # 2. Subsequent Updates: Replace content between START/END markers
         perl -i -0777 -pe "s|<!-- LATEST-PRE-BUILD-STATUS-START -->.*<!-- LATEST-PRE-BUILD-STATUS-END -->|$(echo "$BADGE_BLOCK" | sed 's/|/\\|/g')|gs" "$README_FILE"
