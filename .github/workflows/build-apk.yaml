@@ -41,20 +41,24 @@ jobs:
 
       - name: Run Lint & Tests
         id: lint_step
-        continue-on-error: true # Allow getting to the report step even if lint fails
+        shell: bash
         run: |
-            set -o pipefail
-            ./gradlew spotlessCheck detekt test 2>&1 | tee lint_output.txt
+          set +e
+          ./gradlew spotlessCheck detekt test --continue 2>&1 | tee lint_output.txt
+          EXIT_CODE=${PIPESTATUS[0]}
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          exit $EXIT_CODE
 
       - name: Update Lint Status in README
         if: always() # Always run to report pass OR fail
         run: |
-            if [ "${{ steps.lint_step.outcome }}" == "success" ]; then
-                STATUS="success"
-            else
-                STATUS="failure"
-            fi
-            ./scripts/update_lint_status.sh lint_output.txt "$STATUS"
+          # Determine status based on the exit code of the previous step
+          if [ "${{ steps.lint_step.outputs.exit_code }}" == "0" ]; then
+             STATUS="success"
+          else
+             STATUS="failure"
+          fi
+          ./scripts/update_lint_status.sh lint_output.txt "$STATUS"
 
       - name: Commit Validation Status
         if: always()
@@ -68,7 +72,7 @@ jobs:
           fi
 
       - name: Fail Workflow if Lint Failed
-        if: steps.lint_step.outcome != 'success'
+        if: steps.lint_step.outputs.exit_code != '0'
         run: |
             echo "❌ Validation Failed. Stopping Workflow."
             exit 1
