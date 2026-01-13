@@ -288,32 +288,39 @@ fun PicturePreviewDialog(
                         contentScale = ContentScale.Fit,
                         modifier = Modifier
                             .fillMaxSize()
-                            .pointerInput(Unit) {
-                                detectTransformGestures { _, pan, zoom, rotationDelta ->
-                                    // If we are zoomed in, allow panning the internal image
-                                    // If we are NOT zoomed (scale=1), the outer drag listener handles window movement.
-                                    // However, detectTransformGestures consumes events.
-                                    // We'll update the internal transform state.
-                                    imageScale = (imageScale * zoom).coerceAtLeast(1f).coerceAtMost(3f)
-                                    // Only rotate if zoomed out or intentionally rotating?
-                                    // Let's allow rotation always for now as requested.
-                                    imageRotation += rotationDelta
+                            // .pointerInput(Unit) {
+                            //     detectTransformGestures { _, pan, zoom, rotationDelta ->
+                            //         // If we are zoomed in, allow panning the internal image
+                            //         // If we are NOT zoomed (scale=1), the outer drag listener handles window movement.
+                            //         // However, detectTransformGestures consumes events.
+                            //         // We'll update the internal transform state.
+                            //         imageScale = (imageScale * zoom).coerceAtLeast(1f).coerceAtMost(3f)
+                            //         // Only rotate if zoomed out or intentionally rotating?
+                            //         // Let's allow rotation always for now as requested.
+                            //         imageRotation += rotationDelta
 
-                                    // Pan logic for internal image
-                                    if (imageScale > 1f) {
-                                        // Update internal offset for panning INSIDE the zoomed view
-                                        imagePanX += pan.x
-                                        imagePanY += pan.y
-                                    }
-                                }
-                            }
-                            .graphicsLayer(
-                                scaleX = imageScale,
-                                scaleY = imageScale,
-                                rotationZ = imageRotation,
-                                translationX = imagePanX,
-                                translationY = imagePanY,
-                            )
+                            //         // Pan logic for internal image
+                            //         if (imageScale > 1f) {
+                            //             // Update internal offset for panning INSIDE the zoomed view
+                            //             imagePanX += pan.x
+                            //             imagePanY += pan.y
+                            //         }
+                            //     }
+                            // }
+                            // .graphicsLayer(
+                            //     scaleX = imageScale,
+                            //     scaleY = imageScale,
+                            //     rotationZ = imageRotation,
+                            //     translationX = imagePanX,
+                            //     translationY = imagePanY,
+                            // )
+                             .graphicsLayer(
+                                 scaleX = imageScale,
+                                 scaleY = imageScale,
+                                 rotationZ = imageRotation,
+                                 translationX = imagePanX,
+                                 translationY = imagePanY,
+                             )
                             .clickable {
                                 controlsVisible = !controlsVisible
                             },
