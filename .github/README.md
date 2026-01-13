@@ -1,7 +1,7 @@
 # Screenshot Manager
 
 <!-- LATEST-BUILD-STATUS-START -->
-[![PreBuild](https://img.shields.io/badge/PreBuild-Failing-red)](https://github.com/DarkPhilosophy/Ko/actions)
+[![PreBuild](https://img.shields.io/badge/PreBuild-Passing-brightgreen)](https://github.com/DarkPhilosophy/Ko/actions)
 [![Build Status](https://github.com/DarkPhilosophy/Ko/actions/workflows/build-apk.yaml/badge.svg)](https://github.com/DarkPhilosophy/Ko/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Version 1.0.0](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://github.com/DarkPhilosophy/android-Snapify)
@@ -22,9 +22,9 @@ A modern, intelligent Android application to automatically manage and organize y
 ## Validation Status
 <!-- LINT-RESULT-START -->
 ### Linting Status
-> **Status**: ❌ **Failing**  
-> **Last Updated**: 2026-01-13 11:28:32 UTC  
-> **Summary**: Check output for details
+> **Status**: ✅ **Passing**  
+> **Last Updated**: 2026-01-13 11:35:34 UTC  
+> **Summary**: 0 errors, 0 warnings
 
 <details>
 <summary>Click to view full lint output</summary>
@@ -50,14 +50,7 @@ Calculating task graph as no cached configuration is available for tasks: spotle
 > Task :spotlessInternalRegisterDependencies
 > Task :app:spotlessKotlin
 > Task :app:spotlessKotlinCheck
-
-> Task :app:detekt
-Property 'style>ForbiddenComment>values' is deprecated. Use `comments` instead, make sure you escape your text for Regular Expressions..
-Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configuration is ignored and will be removed in the future.
-
-> Task :app:spotlessKotlinGradle
-> Task :app:spotlessKotlinGradleCheck
-> Task :app:spotlessCheck
+> Task :app:dataBindingMergeDependencyArtifactsDebug
 > Task :app:generateDebugResValues
 > Task :app:generateDebugResources
 > Task :app:injectCrashlyticsMappingFileIdDebug
@@ -68,27 +61,37 @@ Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configurat
 > Task :core:generateDebugResValues
 > Task :core:generateDebugResources
 > Task :core:packageDebugResources
-> Task :core:detekt
-> Task :app:dataBindingMergeDependencyArtifactsDebug
-> Task :core:processDebugNavigationResources
+
+> Task :app:detekt
+Property 'style>ForbiddenComment>values' is deprecated. Use `comments` instead, make sure you escape your text for Regular Expressions..
+Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configuration is ignored and will be removed in the future.
+
+> Task :app:spotlessKotlinGradle
+> Task :app:spotlessKotlinGradleCheck
+> Task :app:spotlessCheck
 > Task :app:packageDebugResources
+> Task :core:processDebugNavigationResources
 > Task :app:processDebugNavigationResources
+> Task :app:parseDebugLocalResources
+> Task :core:parseDebugLocalResources
+> Task :core:generateDebugRFile
 > Task :app:generateDebugBuildConfig
 > Task :core:writeDebugAarMetadata
-> Task :core:parseDebugLocalResources
-> Task :app:parseDebugLocalResources
-> Task :core:generateDebugRFile
 > Task :app:checkDebugAarMetadata
+> Task :core:detekt
+> Task :app:compileDebugNavigationResources
 > Task :app:mapDebugSourceSetPaths
 > Task :app:extractDeepLinksDebug
 > Task :core:extractDeepLinksDebug
 > Task :app:createDebugCompatibleScreenManifests
-> Task :app:compileDebugNavigationResources
 > Task :core:compileDebugLibraryResources
 > Task :core:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :core:generateDebugBuildConfig
-> Task :core:javaPreCompileDebug
 > Task :core:processDebugManifest
+> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :app:processDebugManifestForPackage
+> Task :core:javaPreCompileDebug
 > Task :app:javaPreCompileDebug
 > Task :app:preDebugUnitTestBuild UP-TO-DATE
 > Task :app:javaPreCompileDebugUnitTest
@@ -105,117 +108,122 @@ Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configurat
 > Task :core:generateReleaseResValues
 > Task :core:generateReleaseResources
 > Task :core:packageReleaseResources
-> Task :app:processDebugMainManifest
-> Task :app:processDebugManifest
-> Task :app:processDebugManifestForPackage
 > Task :app:packageReleaseResources
 > Task :core:processReleaseNavigationResources
 > Task :app:processReleaseNavigationResources
-> Task :app:mergeDebugResources
 > Task :app:parseReleaseLocalResources
-> Task :app:mergeReleaseResources
+> Task :app:mergeDebugResources
 > Task :core:parseReleaseLocalResources
+> Task :app:mergeReleaseResources
 > Task :core:generateReleaseRFile
 > Task :app:dataBindingGenBaseClassesDebug
+> Task :app:dataBindingGenBaseClassesRelease
 > Task :app:generateReleaseBuildConfig
 > Task :core:writeReleaseAarMetadata
-> Task :app:dataBindingGenBaseClassesRelease
 > Task :app:compileReleaseNavigationResources
 > Task :app:mapReleaseSourceSetPaths
+> Task :app:createReleaseCompatibleScreenManifests
 > Task :app:checkReleaseAarMetadata
 > Task :app:extractDeepLinksRelease
-> Task :app:createReleaseCompatibleScreenManifests
 > Task :core:extractDeepLinksRelease
 > Task :core:compileReleaseLibraryResources
-> Task :core:processReleaseManifest
 > Task :core:generateReleaseBuildConfig
+> Task :core:processReleaseManifest
 > Task :app:processReleaseMainManifest
 > Task :app:processReleaseManifest
 > Task :app:processReleaseManifestForPackage
 > Task :app:processDebugResources
 > Task :core:javaPreCompileRelease
-> Task :app:javaPreCompileRelease
+> Task :app:processReleaseResources
 > Task :app:preReleaseUnitTestBuild UP-TO-DATE
 > Task :app:javaPreCompileReleaseUnitTest
 > Task :core:preDebugUnitTestBuild UP-TO-DATE
-> Task :core:generateDebugUnitTestStubRFile
+> Task :app:javaPreCompileRelease
 > Task :core:javaPreCompileDebugUnitTest
 > Task :core:preReleaseUnitTestBuild UP-TO-DATE
+> Task :core:generateDebugUnitTestStubRFile
 > Task :core:generateReleaseUnitTestStubRFile
 > Task :core:javaPreCompileReleaseUnitTest
-> Task :app:processReleaseResources
 > Task :core:compileReleaseKotlin
 > Task :core:compileDebugKotlin
-> Task :core:processReleaseJavaRes
 > Task :core:processDebugJavaRes
+> Task :core:processReleaseJavaRes
 > Task :core:compileDebugJavaWithJavac
 > Task :core:compileReleaseJavaWithJavac
-> Task :core:bundleLibRuntimeToJarRelease
-> Task :core:bundleLibCompileToJarDebug
 > Task :core:bundleLibRuntimeToJarDebug
+> Task :core:bundleLibRuntimeToJarRelease
 > Task :core:bundleLibCompileToJarRelease
+> Task :core:bundleLibCompileToJarDebug
 > Task :core:createFullJarDebug
 > Task :core:createFullJarRelease
 > Task :core:compileDebugUnitTestKotlin NO-SOURCE
-> Task :core:compileReleaseUnitTestKotlin NO-SOURCE
 > Task :core:compileDebugUnitTestJavaWithJavac NO-SOURCE
-> Task :core:compileReleaseUnitTestJavaWithJavac NO-SOURCE
+> Task :core:compileReleaseUnitTestKotlin NO-SOURCE
 > Task :core:processDebugUnitTestJavaRes NO-SOURCE
-> Task :core:processReleaseUnitTestJavaRes NO-SOURCE
+> Task :core:compileReleaseUnitTestJavaWithJavac NO-SOURCE
 > Task :core:testDebugUnitTest NO-SOURCE
+> Task :core:processReleaseUnitTestJavaRes NO-SOURCE
 > Task :core:testReleaseUnitTest NO-SOURCE
 > Task :core:test UP-TO-DATE
 > Task :app:kspDebugKotlin
 > Task :app:kspReleaseKotlin
+> Task :app:compileDebugKotlin
+> Task :app:compileReleaseKotlin
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/OverlayService.kt:394:36 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/ScreenshotMonitorService.kt:112:29 'static static field FOREGROUND_SERVICE_TYPE_NONE: Int' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/MainActivity.kt:1:13 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with ''. '' has no effect.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/MainScreen.kt:1:13 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with ''. '' has no effect.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/ScreenshotComponents.kt:267:36 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/ScreenshotComponents.kt:303:24 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/ScreenshotComponents.kt:317:32 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/VideoPlayer.kt:40:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/VideoPreviewDialog.kt:121:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
 
-> Task :app:compileDebugKotlin FAILED
-e: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/PicturePreviewDialog.kt:374:29 Unresolved reference 'onZoomOut'.
-e: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/PicturePreviewDialog.kt:374:95 Syntax error: Unexpected tokens (use ';' to separate expressions on the same line).
-e: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/PicturePreviewDialog.kt:375:29 Unresolved reference 'onZoomIn'.
-e: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/PicturePreviewDialog.kt:375:93 Syntax error: Unexpected tokens (use ';' to separate expressions on the same line).
-e: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/PicturePreviewDialog.kt:376:29 Unresolved reference 'onRotate'.
-e: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/PicturePreviewDialog.kt:376:88 Syntax error: Unexpected tokens (use ';' to separate expressions on the same line).
+> Task :app:compileDebugKotlin
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/OverlayService.kt:394:36 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/ScreenshotMonitorService.kt:112:29 'field FOREGROUND_SERVICE_TYPE_NONE: Int' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/MainActivity.kt:1:13 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with ''. '' has no effect.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/MainScreen.kt:1:13 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with ''. '' has no effect.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/ScreenshotComponents.kt:267:36 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/ScreenshotComponents.kt:303:24 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/ScreenshotComponents.kt:317:32 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/VideoPlayer.kt:40:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/VideoPreviewDialog.kt:121:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
 
-> Task :app:compileReleaseKotlin FAILED
-e: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/PicturePreviewDialog.kt:374:29 Unresolved reference 'onZoomOut'.
-e: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/PicturePreviewDialog.kt:374:95 Syntax error: Unexpected tokens (use ';' to separate expressions on the same line).
-e: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/PicturePreviewDialog.kt:375:29 Unresolved reference 'onZoomIn'.
-e: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/PicturePreviewDialog.kt:375:93 Syntax error: Unexpected tokens (use ';' to separate expressions on the same line).
-e: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/PicturePreviewDialog.kt:376:29 Unresolved reference 'onRotate'.
-e: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/PicturePreviewDialog.kt:376:88 Syntax error: Unexpected tokens (use ';' to separate expressions on the same line).
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/lint_step-1768303608708.json
+> Task :app:compileReleaseJavaWithJavac
+> Task :app:compileDebugJavaWithJavac
+> Task :app:hiltAggregateDepsDebug
+> Task :app:hiltAggregateDepsRelease
+> Task :app:hiltJavaCompileDebug
+> Task :app:hiltJavaCompileRelease
+> Task :app:processDebugJavaRes
+> Task :app:processReleaseJavaRes
+> Task :app:bundleReleaseClassesToCompileJar
+> Task :app:kspReleaseUnitTestKotlin NO-SOURCE
+> Task :app:compileReleaseUnitTestKotlin NO-SOURCE
+> Task :app:compileReleaseUnitTestJavaWithJavac NO-SOURCE
+> Task :app:bundleDebugClassesToCompileJar
+> Task :app:kspDebugUnitTestKotlin NO-SOURCE
+> Task :app:compileDebugUnitTestKotlin NO-SOURCE
+> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:hiltAggregateDepsDebugUnitTest
+> Task :app:hiltJavaCompileDebugUnitTest NO-SOURCE
+> Task :app:hiltAggregateDepsReleaseUnitTest
+> Task :app:processDebugUnitTestJavaRes NO-SOURCE
+> Task :app:hiltJavaCompileReleaseUnitTest NO-SOURCE
+> Task :app:processReleaseUnitTestJavaRes NO-SOURCE
+> Task :app:transformReleaseClassesWithAsm
+> Task :app:transformDebugClassesWithAsm
+> Task :app:bundleReleaseClassesToRuntimeJar
+> Task :app:bundleDebugClassesToRuntimeJar
+> Task :app:transformReleaseUnitTestClassesWithAsm
+> Task :app:testReleaseUnitTest NO-SOURCE
+> Task :app:transformDebugUnitTestClassesWithAsm
+> Task :app:testDebugUnitTest NO-SOURCE
+> Task :app:test UP-TO-DATE
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/lint_step-1768304033958.json
 
 [Incubating] Problems report is available at: file:///home/runner/work/Snapify/Snapify/build/reports/problems/problems-report.html
-
-FAILURE: Build completed with 2 failures.
-
-1: Task failed with an exception.
------------
-* What went wrong:
-Execution failed for task ':app:compileDebugKotlin'.
-> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers
-   > Compilation error. See log for more details
-
-* Try:
-> Run with --stacktrace option to get the stack trace.
-> Run with --info or --debug option to get more log output.
-> Run with --scan to generate a Build Scan (powered by Develocity).
-> Get more help at https://help.gradle.org.
-==============================================================================
-
-2: Task failed with an exception.
------------
-* What went wrong:
-Execution failed for task ':app:compileReleaseKotlin'.
-> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers
-   > Compilation error. See log for more details
-
-* Try:
-> Run with --stacktrace option to get the stack trace.
-> Run with --info or --debug option to get more log output.
-> Run with --scan to generate a Build Scan (powered by Develocity).
-> Get more help at https://help.gradle.org.
-==============================================================================
 
 Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
 
@@ -223,8 +231,8 @@ You can use '--warning-mode all' to show the individual deprecation warnings and
 
 For more on this, please refer to https://docs.gradle.org/9.2.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
 
-BUILD FAILED in 1m 48s
-102 actionable tasks: 102 executed
+BUILD SUCCESSFUL in 1m 46s
+120 actionable tasks: 120 executed
 Configuration cache entry stored.
 ```
 
