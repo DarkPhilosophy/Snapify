@@ -7,6 +7,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
@@ -34,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -43,6 +46,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -73,6 +77,7 @@ fun calculatePictureDisplaySize(
 @Composable
 fun PicturePreviewDialog(
     mediaItem: MediaItem,
+    position: Offset? = null,
     onDismiss: () -> Unit,
 ) {
     // Handle back press to dismiss dialog
@@ -84,10 +89,10 @@ fun PicturePreviewDialog(
     val layoutDirection = LocalLayoutDirection.current
 
     // State
-    var scale by remember { mutableFloatStateOf(1f) }
-    var rotation by remember { mutableFloatStateOf(0f) }
-    var offsetX by remember { mutableFloatStateOf(0f) }
-    var offsetY by remember { mutableFloatStateOf(0f) }
+    var imageScale by remember { mutableFloatStateOf(1f) }
+    var imageRotation by remember { mutableFloatStateOf(0f) }
+    var imagePanX by remember { mutableFloatStateOf(0f) }
+    var imagePanY by remember { mutableFloatStateOf(0f) }
     var controlsVisible by remember { mutableStateOf(true) }
     // UI always visible, no toggle
 
@@ -145,6 +150,10 @@ fun PicturePreviewDialog(
         }
     }
 
+    // For draggable dialog
+    var windowOffsetX by remember { mutableFloatStateOf(0f) }
+    var windowOffsetY by remember { mutableFloatStateOf(0f) }
+
     // Get system bars and display cutout insets for safe area calculation
     val systemBarsInsets = WindowInsets.systemBars
     val displayCutoutInsets = WindowInsets.displayCutout
@@ -197,6 +206,57 @@ fun PicturePreviewDialog(
         ) {
             Card(
                 modifier = Modifier
+                    .offset {
+                        // Base position from click - allow positioning within safe area (accounting for insets)
+                        val baseX = if (position != null) {
+                            val preferredX = position.x - displayWidthPx / 2
+                            // Offset by left inset and constrain within safe area
+                            (preferredX - leftInsetPx).coerceIn(
+                                0f,
+                                max(0f, availableScreenWidth - displayWidthPx),
+                            )
+                        } else {
+                            0f
+                        }
+
+                        val baseY = if (position != null) {
+                            val preferredY = position.y - displayHeightPx / 2
+                            // Offset by top inset and constrain within safe area
+                            (preferredY - topInsetPx).coerceIn(
+                                0f,
+                                availableScreenHeight - displayHeightPx + topInsetPx.toFloat() + bottomInsetPx.toFloat(),
+                            )
+                        } else {
+                            0f
+                        }
+
+                        // Add drag offset with bounds checking
+                        val draggedX =
+                            (baseX + windowOffsetX).coerceIn(
+                                0f,
+                                availableScreenWidth - displayWidthPx + leftInsetPx.toFloat() + rightInsetPx.toFloat(),
+                            )
+                        val draggedY = (baseY + windowOffsetY).coerceIn(
+                            topInsetPx.toFloat(),
+                            availableScreenHeight - displayHeightPx + topInsetPx.toFloat() + bottomInsetPx.toFloat(),
+                        )
+
+                        // Update offsets to stay within bounds
+                        windowOffsetX = draggedX - baseX
+                        windowOffsetY = draggedY - baseY
+
+                        IntOffset(draggedX.toInt(), draggedY.toInt())
+                    }
+                    .pointerInput(Unit) {
+                        detectDragGestures { change, dragAmount ->
+                            // Only drag window if image is not zoomed
+                            if (imageScale == 1f) {
+                                change.consume()
+                                windowOffsetX += dragAmount.x
+                                windowOffsetY += dragAmount.y
+                            }
+                        }
+                    }
                     .size(
                         width = (displayWidthPx / density.density).dp,
                         height = (displayHeightPx / density.density).dp,
@@ -230,18 +290,29 @@ fun PicturePreviewDialog(
                             .fillMaxSize()
                             .pointerInput(Unit) {
                                 detectTransformGestures { _, pan, zoom, rotationDelta ->
-                                    offsetX += pan.x
-                                    offsetY += pan.y
-                                    scale *= zoom
-                                    rotation += rotationDelta
+                                    // If we are zoomed in, allow panning the internal image
+                                    // If we are NOT zoomed (scale=1), the outer drag listener handles window movement.
+                                    // However, detectTransformGestures consumes events.
+                                    // We'll update the internal transform state.
+                                    imageScale = (imageScale * zoom).coerceAtLeast(1f).coerceAtMost(3f)
+                                    // Only rotate if zoomed out or intentionally rotating?
+                                    // Let's allow rotation always for now as requested.
+                                    imageRotation += rotationDelta
+
+                                    // Pan logic for internal image
+                                    if (imageScale > 1f) {
+                                        // Update internal offset for panning INSIDE the zoomed view
+                                        imagePanX += pan.x
+                                        imagePanY += pan.y
+                                    }
                                 }
                             }
                             .graphicsLayer(
-                                scaleX = scale,
-                                scaleY = scale,
-                                rotationZ = rotation,
-                                translationX = offsetX,
-                                translationY = offsetY,
+                                scaleX = imageScale,
+                                scaleY = imageScale,
+                                rotationZ = imageRotation,
+                                translationX = imagePanX,
+                                translationY = imagePanY,
                             )
                             .clickable {
                                 controlsVisible = !controlsVisible
@@ -268,10 +339,12 @@ fun PicturePreviewDialog(
                             )
                             IconButton(
                                 onClick = {
-                                    scale = 1f
-                                    rotation = 0f
-                                    offsetX = 0f
-                                    offsetY = 0f
+                                    imageScale = 1f
+                                    imageRotation = 0f
+                                    imagePanX = 0f
+                                    imagePanY = 0f
+                                    windowOffsetX = 0f
+                                    windowOffsetY = 0f
                                 },
                                 modifier = Modifier.size(32.dp),
                             ) {
@@ -294,14 +367,16 @@ fun PicturePreviewDialog(
                     // Bottom bar
                     if (controlsVisible) {
                         PictureControls(
-                            onZoomOut = { scale = (scale / 1.2f).coerceAtLeast(0.5f) },
-                            onZoomIn = { scale = (scale * 1.2f).coerceAtMost(3f) },
-                            onRotate = { rotation = (rotation + 90f) % 360f },
+                            onZoomOut = { imageScale = (imageScale / 1.2f).coerceAtLeast(0.5f) },
+                            onZoomIn = { imageScale = (imageScale * 1.2f).coerceAtMost(3f) },
+                            onRotate = { imageRotation = (imageRotation + 90f) % 360f },
                             onReset = {
-                                scale = 1f
-                                rotation = 0f
-                                offsetX = 0f
-                                offsetY = 0f
+                            onZoomOut = { imageScale = (imageScale / 1.2f).coerceAtLeast(1f) },
+                            onZoomIn = { imageScale = (imageScale * 1.2f).coerceAtMost(3f) },
+                            onRotate = { imageRotation = (imageRotation + 90f) % 360f },
+                                imagePanY = 0f
+                                windowOffsetX = 0f
+                                windowOffsetY = 0f
                             },
                             modifier = Modifier.align(Alignment.BottomCenter),
                         )

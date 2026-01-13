@@ -46,14 +46,16 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         // Debug: Check if camera cutout exists
-        val cutout = window.decorView.rootWindowInsets?.displayCutout
-        android.util.Log.d("MainActivity", "Camera cutout: ${cutout != null}")
-        if (cutout != null) {
-            android.util.Log.d("MainActivity", "Cutout bounds: ${cutout.boundingRects}")
-            android.util.Log.d(
-                "MainActivity",
-                "Cutout insets: L=${cutout.safeInsetLeft}, T=${cutout.safeInsetTop}, R=${cutout.safeInsetRight}, B=${cutout.safeInsetBottom}",
-            )
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            val cutout = window.decorView.rootWindowInsets?.displayCutout
+            android.util.Log.d("MainActivity", "Camera cutout: ${cutout != null}")
+            if (cutout != null) {
+                android.util.Log.d("MainActivity", "Cutout bounds: ${cutout.boundingRects}")
+                android.util.Log.d(
+                    "MainActivity",
+                    "Cutout insets: L=${cutout.safeInsetLeft}, T=${cutout.safeInsetTop}, R=${cutout.safeInsetRight}, B=${cutout.safeInsetBottom}",
+                )
+            }
         }
 
         // Handle language changes

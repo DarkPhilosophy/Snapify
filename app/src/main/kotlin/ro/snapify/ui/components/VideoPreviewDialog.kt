@@ -208,7 +208,7 @@ fun VideoPreviewDialog(
     )
     DebugLogger.info(
         "VideoPreviewDialog",
-        "Has camera cutout: ${localView.rootWindowInsets?.displayCutout != null}",
+        "Has camera cutout: ${if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) localView.rootWindowInsets?.displayCutout != null else false}",
     )
 
     // Calculate available screen space as percentage of safe area

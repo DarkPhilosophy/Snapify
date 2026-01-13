@@ -58,10 +58,12 @@ fun videoPlayer(
         factory = { ctx ->
             PlayerView(ctx).apply {
                 // Set window to draw behind display cutouts
-                val activity = ctx as? android.app.Activity
-                activity?.window?.attributes?.layoutInDisplayCutoutMode =
-                    android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
-                activity?.window?.attributes = activity?.window?.attributes
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                    val activity = ctx as? android.app.Activity
+                    activity?.window?.attributes?.layoutInDisplayCutoutMode =
+                        android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+                    activity?.window?.attributes = activity?.window?.attributes
+                }
 
                 val exoPlayer = ExoPlayer.Builder(ctx).build()
 

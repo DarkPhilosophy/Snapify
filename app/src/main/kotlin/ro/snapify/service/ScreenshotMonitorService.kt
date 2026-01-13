@@ -99,11 +99,24 @@ class ScreenshotMonitorService : Service() {
 
         // For foreground service, we must call startForeground within a few seconds
         // So call it immediately, even if we'll stop due to missing permissions
-        startForeground(
-            NOTIFICATION_ID,
-            createForegroundNotification(),
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
-        )
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(
+                NOTIFICATION_ID,
+                createForegroundNotification(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
+            )
+        } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            startForeground(
+                NOTIFICATION_ID,
+                createForegroundNotification(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_NONE,
+            )
+        } else {
+            startForeground(
+                NOTIFICATION_ID,
+                createForegroundNotification(),
+            )
+        }
 
         // Check permissions after starting foreground to avoid system timeout
         if (PermissionUtils.getMissingPermissions(this).isNotEmpty()) {
@@ -177,8 +190,13 @@ class ScreenshotMonitorService : Service() {
                 MediaStore.Video.Media.SIZE,
                 MediaStore.Video.Media.DATE_ADDED,
                 MediaStore.Video.Media.DATA,
-                MediaStore.MediaColumns.RELATIVE_PATH, // For Android 11+
-            )
+            ).let { baseProjection ->
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                    baseProjection + MediaStore.MediaColumns.RELATIVE_PATH
+                } else {
+                    baseProjection
+                }
+            }
         } else {
             arrayOf(
                 MediaStore.Images.Media._ID,
@@ -186,8 +204,13 @@ class ScreenshotMonitorService : Service() {
                 MediaStore.Images.Media.SIZE,
                 MediaStore.Images.Media.DATE_ADDED,
                 MediaStore.Images.Media.DATA,
-                MediaStore.MediaColumns.RELATIVE_PATH, // For Android 11+
-            )
+            ).let { baseProjection ->
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                    baseProjection + MediaStore.MediaColumns.RELATIVE_PATH
+                } else {
+                    baseProjection
+                }
+            }
         }
         serviceScope.launch {
             try {
@@ -220,7 +243,7 @@ class ScreenshotMonitorService : Service() {
                             }
 
                             // Fallback: try RELATIVE_PATH for Android 11+
-                            if (filePath.isNullOrEmpty()) {
+                            if (filePath.isNullOrEmpty() && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
                                 val relativePathIndex = cursor.getColumnIndex(MediaStore.MediaColumns.RELATIVE_PATH)
                                 if (relativePathIndex != -1) {
                                     val relativePath = cursor.getString(relativePathIndex)
