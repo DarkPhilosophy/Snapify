@@ -37,7 +37,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Make executable
-        run: chmod +x ./gradlew ./scripts/update_lint_status.sh
+        run: chmod +x ./gradlew ./.scripts/update_lint_status.sh
 
       - name: Decode Keystore
         run: echo "${{ secrets.KEYSTORE_B64 }}" | base64 -d > app/keystore.jks
@@ -77,7 +77,7 @@ jobs:
           else
              STATUS="failure"
           fi
-          ./scripts/update_lint_status.sh lint_output.txt "$STATUS"
+          ./.scripts/update_lint_status.sh lint_output.txt "$STATUS"
 
       - name: Commit Validation Status
         if: always()
@@ -193,10 +193,10 @@ jobs:
           path: release_staging
 
       - name: Make executable
-        run: chmod +x ./scripts/update_readme.sh
+        run: chmod +x ./.scripts/update_version_status.sh
 
       - name: Update Documentation (Version/Changelog)
-        run: ./scripts/update_readme.sh
+        run: ./.scripts/update_version_status.sh
 
       - name: Commit Documentation Updates
         run: |

@@ -59,15 +59,27 @@ $SAFE_CONTENT
 
     # Construct Badges
     
+    # 0. Detect Repository (Dynamic)
+    FULL_REPO="DarkPhilosophy/Ko" # Default fallback
+    if command -v git &> /dev/null; then
+        REMOTE_URL=$(git config --get remote.origin.url || true)
+        if [ -n "$REMOTE_URL" ]; then
+            CLEAN_URL=${REMOTE_URL%.git}
+            if [[ "$CLEAN_URL" =~ github.com[:/]([^/]+)/([^/]+) ]]; then
+                FULL_REPO="${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
+            fi
+        fi
+    fi
+
     # 1. Pre-Build Status (Dynamic)
     if [ "$STATUS" == "success" ]; then
-        PREBUILD_BADGE="[![PreBuild](https://img.shields.io/badge/PreBuild-Passing-brightgreen)](https://github.com/DarkPhilosophy/Ko/actions)"
+        PREBUILD_BADGE="[![PreBuild](https://img.shields.io/badge/PreBuild-Passing-brightgreen)](https://github.com/$FULL_REPO/actions)"
     else
-        PREBUILD_BADGE="[![PreBuild](https://img.shields.io/badge/PreBuild-Failing-red)](https://github.com/DarkPhilosophy/Ko/actions)"
+        PREBUILD_BADGE="[![PreBuild](https://img.shields.io/badge/PreBuild-Failing-red)](https://github.com/$FULL_REPO/actions)"
     fi
 
     # 2. Build Status (Static)
-    BUILD_BADGE="[![Build Status](https://github.com/DarkPhilosophy/Ko/actions/workflows/build-apk.yaml/badge.svg)](https://github.com/DarkPhilosophy/Ko/actions)"
+    BUILD_BADGE="[![Build Status](https://github.com/$FULL_REPO/actions/workflows/build-apk.yaml/badge.svg)](https://github.com/$FULL_REPO/actions)"
 
     # 3. License (Static)
     LICENSE_BADGE="[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)"
@@ -78,9 +90,9 @@ $SAFE_CONTENT
         MINOR=$(grep "version.minor" version.properties | cut -d'=' -f2)
         PATCH=$(grep "version.patch" version.properties | cut -d'=' -f2)
         VERSION="$MAJOR.$MINOR.$PATCH"
-        VERSION_BADGE="[![Version $VERSION](https://img.shields.io/badge/Version-$VERSION-blue.svg)](https://github.com/DarkPhilosophy/android-Snapify)"
+        VERSION_BADGE="[![Version $VERSION](https://img.shields.io/badge/Version-$VERSION-blue.svg)](https://github.com/$FULL_REPO)"
     else
-        VERSION_BADGE="[![Version](https://img.shields.io/badge/Version-Unknown-gray.svg)](https://github.com/DarkPhilosophy/android-Snapify)"
+        VERSION_BADGE="[![Version](https://img.shields.io/badge/Version-Unknown-gray.svg)](https://github.com/$FULL_REPO)"
     fi
 
     if [ -f "$README_FILE" ]; then

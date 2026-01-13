@@ -58,6 +58,39 @@ $CLEAN_CHANGELOG
         # Also update the Alt Text logic slightly more broadly to catch [Version X.Y.Z]
         sed -i "s|\[Version [0-9.]*\]|[Version $VERSION]|g" "$README_FILE"
         echo "✅ Updated Version Badge in README.md"
+
+        # 5. Update Repository References (Auto-detect)
+        # Tries to get the current remote URL and update badges/links in README
+        if command -v git &> /dev/null; then
+            REMOTE_URL=$(git config --get remote.origin.url || true)
+            if [ -n "$REMOTE_URL" ]; then
+                # Extract user/repo from SSL (git@github.com:User/Repo.git) or HTTPS (https://github.com/User/Repo.git)
+                # Remove .git suffix
+                CLEAN_URL=${REMOTE_URL%.git}
+                # Extract last two regex groups "User/Repo"
+                if [[ "$CLEAN_URL" =~ github.com[:/]([^/]+)/([^/]+) ]]; then
+                    USER="${BASH_REMATCH[1]}"
+                    REPO="${BASH_REMATCH[2]}"
+                    FULL_REPO="$USER/$REPO"
+                    
+                    echo "ℹ️  Detected Repo: $FULL_REPO. Updating README badges..."
+                    
+                    # Regex to replace *any* github.com/User/Repo in badge URLs
+                    # We look for typical badge patterns: https://github.com/[^/]+/[^/]+/actions
+                    
+                    # Replace in Action Badges
+                    sed -i "s|github.com/[^/]*/[^/]*/actions|github.com/$FULL_REPO/actions|g" "$README_FILE"
+                    
+                    # Dynamic replacement for known previous repo strings if present
+                    # This ensures that even if you fork "DarkPhilosophy/android-Snapify", 
+                    # the script will update it to "Your/Fork" on first run.
+                    sed -i "s|DarkPhilosophy/Ko|$FULL_REPO|g" "$README_FILE"
+                    sed -i "s|DarkPhilosophy/android-Snapify|$FULL_REPO|g" "$README_FILE"
+                    
+                    echo "✅ Updated Repo links to $FULL_REPO"
+                fi
+            fi
+        fi
     else
          echo "❌ README.md not found at $README_FILE!"
          exit 1
