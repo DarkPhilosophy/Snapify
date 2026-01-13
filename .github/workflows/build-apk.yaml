@@ -203,7 +203,7 @@ jobs:
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
           if [[ -n $(git status --porcelain) ]]; then
-             git add .github/README.md .github/CHANGELOG.md
+             git add .
              git commit -m "chore: Update README Version & Changelog [skip ci]"
              git pull --rebase
              git push
