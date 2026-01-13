@@ -367,13 +367,13 @@ fun PicturePreviewDialog(
                     // Bottom bar
                     if (controlsVisible) {
                         PictureControls(
-                            onZoomOut = { imageScale = (imageScale / 1.2f).coerceAtLeast(0.5f) },
-                            onZoomIn = { imageScale = (imageScale * 1.2f).coerceAtMost(3f) },
-                            onRotate = { imageRotation = (imageRotation + 90f) % 360f },
-                            onReset = {
                             onZoomOut = { imageScale = (imageScale / 1.2f).coerceAtLeast(1f) },
                             onZoomIn = { imageScale = (imageScale * 1.2f).coerceAtMost(3f) },
                             onRotate = { imageRotation = (imageRotation + 90f) % 360f },
+                            onReset = {
+                                imageScale = 1f
+                                imageRotation = 0f
+                                imagePanX = 0f
                                 imagePanY = 0f
                                 windowOffsetX = 0f
                                 windowOffsetY = 0f
