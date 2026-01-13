@@ -16,7 +16,7 @@ A modern, intelligent Android application to automatically manage and organize y
 <!-- LINT-RESULT-START -->
 ### Linting Status
 > **Status**: ✅ **Passing**  
-> **Last Updated**: 2026-01-13 20:32:59 UTC  
+> **Last Updated**: 2026-01-13 20:56:43 UTC  
 > **Summary**: 0 errors, 0 warnings
 
 <details>
@@ -35,10 +35,10 @@ Calculating task graph as no cached configuration is available for tasks: spotle
 > Task :buildSrc:jar
 :jar: No valid plugin descriptors were found in META-INF/gradle-plugins
 
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :detekt NO-SOURCE
 > Task :app:preBuild UP-TO-DATE
 > Task :app:preDebugBuild UP-TO-DATE
-> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :spotlessInternalRegisterDependencies
 > Task :app:spotlessKotlin
 > Task :app:spotlessKotlinCheck
@@ -53,41 +53,40 @@ Calculating task graph as no cached configuration is available for tasks: spotle
 > Task :core:generateDebugResValues
 > Task :core:generateDebugResources
 > Task :core:packageDebugResources
+> Task :app:spotlessKotlinGradle
 
 > Task :app:detekt
 Property 'style>ForbiddenComment>values' is deprecated. Use \`comments\` instead, make sure you escape your text for Regular Expressions..
 Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configuration is ignored and will be removed in the future.
 
-> Task :app:spotlessKotlinGradle
 > Task :app:spotlessKotlinGradleCheck
 > Task :app:spotlessCheck
 > Task :app:packageDebugResources
 > Task :core:processDebugNavigationResources
 > Task :app:processDebugNavigationResources
 > Task :core:detekt
-> Task :core:parseDebugLocalResources
-> Task :app:parseDebugLocalResources
 > Task :app:generateDebugBuildConfig
-> Task :core:generateDebugRFile
-> Task :app:mapDebugSourceSetPaths
-> Task :app:createDebugCompatibleScreenManifests
-> Task :app:extractDeepLinksDebug
-> Task :core:extractDeepLinksDebug
 > Task :core:writeDebugAarMetadata
+> Task :app:parseDebugLocalResources
+> Task :core:parseDebugLocalResources
 > Task :app:compileDebugNavigationResources
-> Task :core:processDebugManifest
-> Task :core:compileDebugLibraryResources
+> Task :app:mapDebugSourceSetPaths
+> Task :app:checkDebugAarMetadata
+> Task :app:extractDeepLinksDebug
+> Task :core:generateDebugRFile
+> Task :app:createDebugCompatibleScreenManifests
+> Task :core:extractDeepLinksDebug
 > Task :core:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :core:generateDebugBuildConfig
-> Task :app:checkDebugAarMetadata
+> Task :core:compileDebugLibraryResources
 > Task :core:javaPreCompileDebug
 > Task :app:javaPreCompileDebug
 > Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :core:processDebugManifest
 > Task :app:javaPreCompileDebugUnitTest
-> Task :app:preReleaseBuild UP-TO-DATE
-> Task :app:processDebugMainManifest
-> Task :app:buildKotlinToolingMetadata
 > Task :app:mergeDebugResources
+> Task :app:preReleaseBuild UP-TO-DATE
+> Task :app:buildKotlinToolingMetadata
 > Task :app:dataBindingMergeDependencyArtifactsRelease
 > Task :app:generateReleaseResValues
 > Task :app:generateReleaseResources
@@ -97,10 +96,9 @@ Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configurat
 > Task :app:processReleaseGoogleServices
 > Task :core:preReleaseBuild UP-TO-DATE
 > Task :core:generateReleaseResValues
-> Task :app:processDebugManifest
 > Task :core:generateReleaseResources
 > Task :core:packageReleaseResources
-> Task :app:processDebugManifestForPackage
+> Task :app:processDebugMainManifest
 > Task :app:dataBindingGenBaseClassesDebug
 > Task :app:packageReleaseResources
 > Task :core:processReleaseNavigationResources
@@ -112,7 +110,9 @@ Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configurat
 > Task :core:writeReleaseAarMetadata
 > Task :app:checkReleaseAarMetadata
 > Task :app:compileReleaseNavigationResources
+> Task :app:processDebugManifest
 > Task :app:mapReleaseSourceSetPaths
+> Task :app:processDebugManifestForPackage
 > Task :app:createReleaseCompatibleScreenManifests
 > Task :app:extractDeepLinksRelease
 > Task :core:extractDeepLinksRelease
@@ -136,42 +136,31 @@ Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configurat
 > Task :app:mergeReleaseResources
 > Task :app:dataBindingGenBaseClassesRelease
 > Task :app:processReleaseResources
-> Task :core:compileDebugKotlin
 > Task :core:compileReleaseKotlin
+> Task :core:compileDebugKotlin
 > Task :core:processDebugJavaRes
 > Task :core:processReleaseJavaRes
 > Task :core:compileReleaseJavaWithJavac
 > Task :core:compileDebugJavaWithJavac
 > Task :core:bundleLibRuntimeToJarDebug
+> Task :core:bundleLibRuntimeToJarRelease
 > Task :core:bundleLibCompileToJarDebug
 > Task :core:bundleLibCompileToJarRelease
-> Task :core:bundleLibRuntimeToJarRelease
-> Task :core:createFullJarDebug
 > Task :core:createFullJarRelease
-> Task :core:compileReleaseUnitTestKotlin NO-SOURCE
+> Task :core:createFullJarDebug
 > Task :core:compileDebugUnitTestKotlin NO-SOURCE
+> Task :core:compileReleaseUnitTestKotlin NO-SOURCE
 > Task :core:compileDebugUnitTestJavaWithJavac NO-SOURCE
 > Task :core:processDebugUnitTestJavaRes NO-SOURCE
 > Task :core:compileReleaseUnitTestJavaWithJavac NO-SOURCE
-> Task :core:testDebugUnitTest NO-SOURCE
 > Task :core:processReleaseUnitTestJavaRes NO-SOURCE
+> Task :core:testDebugUnitTest NO-SOURCE
 > Task :core:testReleaseUnitTest NO-SOURCE
 > Task :core:test UP-TO-DATE
 > Task :app:kspReleaseKotlin
 > Task :app:kspDebugKotlin
 > Task :app:compileReleaseKotlin
 > Task :app:compileDebugKotlin
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/OverlayService.kt:394:36 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/ScreenshotMonitorService.kt:112:29 'static static field FOREGROUND_SERVICE_TYPE_NONE: Int' is deprecated. Deprecated in Java.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/MainActivity.kt:1:13 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with '@RequiresOptIn'. '@OptIn' has no effect.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/MainScreen.kt:1:13 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with '@RequiresOptIn'. '@OptIn' has no effect.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/ScreenshotComponents.kt:267:36 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/ScreenshotComponents.kt:303:24 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/ScreenshotComponents.kt:317:32 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/VideoPlayer.kt:40:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/VideoPreviewDialog.kt:121:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
-
-> Task :app:compileReleaseKotlin
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/OverlayService.kt:394:36 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/ScreenshotMonitorService.kt:112:29 'field FOREGROUND_SERVICE_TYPE_NONE: Int' is deprecated. Deprecated in Java.
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/MainActivity.kt:1:13 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with '@RequiresOptIn'. '@OptIn' has no effect.
@@ -182,10 +171,21 @@ w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/co
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/VideoPlayer.kt:40:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/VideoPreviewDialog.kt:121:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
 
+> Task :app:compileReleaseKotlin
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/OverlayService.kt:394:36 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/ScreenshotMonitorService.kt:112:29 'static static field FOREGROUND_SERVICE_TYPE_NONE: Int' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/MainActivity.kt:1:13 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with '@RequiresOptIn'. '@OptIn' has no effect.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/MainScreen.kt:1:13 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with '@RequiresOptIn'. '@OptIn' has no effect.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/ScreenshotComponents.kt:267:36 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/ScreenshotComponents.kt:303:24 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/ScreenshotComponents.kt:317:32 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/VideoPlayer.kt:40:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/VideoPreviewDialog.kt:121:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
+
 > Task :app:compileDebugJavaWithJavac
 > Task :app:compileReleaseJavaWithJavac
-> Task :app:hiltAggregateDepsRelease
 > Task :app:hiltAggregateDepsDebug
+> Task :app:hiltAggregateDepsRelease
 > Task :app:hiltJavaCompileDebug
 > Task :app:hiltJavaCompileRelease
 > Task :app:processDebugJavaRes
@@ -196,24 +196,24 @@ w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/co
 > Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
 > Task :app:hiltAggregateDepsDebugUnitTest
 > Task :app:hiltJavaCompileDebugUnitTest NO-SOURCE
-> Task :app:bundleReleaseClassesToCompileJar
 > Task :app:processDebugUnitTestJavaRes NO-SOURCE
+> Task :app:bundleReleaseClassesToCompileJar
 > Task :app:kspReleaseUnitTestKotlin NO-SOURCE
 > Task :app:compileReleaseUnitTestKotlin NO-SOURCE
 > Task :app:compileReleaseUnitTestJavaWithJavac NO-SOURCE
 > Task :app:hiltAggregateDepsReleaseUnitTest
 > Task :app:hiltJavaCompileReleaseUnitTest NO-SOURCE
 > Task :app:processReleaseUnitTestJavaRes NO-SOURCE
-> Task :app:transformDebugClassesWithAsm
 > Task :app:transformReleaseClassesWithAsm
-> Task :app:bundleDebugClassesToRuntimeJar
+> Task :app:transformDebugClassesWithAsm
 > Task :app:bundleReleaseClassesToRuntimeJar
+> Task :app:bundleDebugClassesToRuntimeJar
 > Task :app:transformDebugUnitTestClassesWithAsm
 > Task :app:testDebugUnitTest NO-SOURCE
 > Task :app:transformReleaseUnitTestClassesWithAsm
 > Task :app:testReleaseUnitTest NO-SOURCE
 > Task :app:test UP-TO-DATE
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/lint_step-1768336282467.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/lint_step-1768337708969.json
 
 [Incubating] Problems report is available at: file:///home/runner/work/Snapify/Snapify/build/reports/problems/problems-report.html
 
@@ -223,7 +223,7 @@ You can use '--warning-mode all' to show the individual deprecation warnings and
 
 For more on this, please refer to https://docs.gradle.org/9.2.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
 
-BUILD SUCCESSFUL in 1m 45s
+BUILD SUCCESSFUL in 1m 39s
 120 actionable tasks: 120 executed
 Configuration cache entry stored.
 ```
