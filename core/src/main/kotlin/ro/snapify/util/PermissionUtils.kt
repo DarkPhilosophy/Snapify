@@ -1,94 +1,67 @@
 package ro.snapify.util
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Environment
 import android.provider.Settings
+import androidx.core.content.ContextCompat
 
 object PermissionUtils {
-    fun hasStoragePermission(context: Context): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            android.content.pm.PackageManager.PERMISSION_GRANTED ==
-                    androidx.core.content.ContextCompat.checkSelfPermission(
-                        context, android.Manifest.permission.READ_MEDIA_IMAGES
-                    )
-        } else {
-            androidx.core.content.ContextCompat.checkSelfPermission(
-                context, android.Manifest.permission.READ_EXTERNAL_STORAGE
-            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        }
-    }
 
-    fun hasStorageWritePermission(context: Context): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // For Android 11+, check if we have MANAGE_EXTERNAL_STORAGE
-            android.os.Environment.isExternalStorageManager()
-        } else {
-            // For Android 10 and below, check WRITE_EXTERNAL_STORAGE
-            androidx.core.content.ContextCompat.checkSelfPermission(
-                context, android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        }
-    }
-
-    fun hasNotificationPermission(context: Context): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            androidx.core.content.ContextCompat.checkSelfPermission(
-                context, android.Manifest.permission.POST_NOTIFICATIONS
-            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        } else true
-    }
-
-    fun hasOverlayPermission(context: Context): Boolean {
-        return Settings.canDrawOverlays(context)
-    }
+    fun hasOverlayPermission(context: Context): Boolean = Settings.canDrawOverlays(context)
 
     fun getMissingPermissions(context: Context): List<String> {
-        val missing = mutableListOf<String>()
-        if (!hasStoragePermission(context)) missing.add("storage")
-        if (!hasStorageWritePermission(context)) missing.add("storage_write")
-        // Notifications are now optional, not required
-        if (!hasOverlayPermission(context)) missing.add("overlay")
-        return missing
-    }
+        val missingPermissions = mutableListOf<String>()
 
-    fun getOptionalPermissions(context: Context): List<String> {
-        val optional = mutableListOf<String>()
-        if (!hasNotificationPermission(context)) optional.add("notification")
-        // Add other optional permissions here in the future
-        return optional
-    }
-
-    fun updatePermissionStatuses(
-        context: Context,
-        permissions: List<String>,
-        onResult: (Map<String, Boolean>) -> Unit
-    ) {
-        val statusMap = mutableMapOf<String, Boolean>()
-        for (perm in permissions) {
-            val granted = when (perm) {
-                android.Manifest.permission.READ_MEDIA_IMAGES,
-                android.Manifest.permission.READ_MEDIA_VIDEO,
-                android.Manifest.permission.READ_EXTERNAL_STORAGE -> hasStoragePermission(
-                    context
-                )
-
-                android.Manifest.permission.POST_NOTIFICATIONS -> hasNotificationPermission(context)
-                "manage" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    android.os.Environment.isExternalStorageManager()
-                } else {
-                    true
-                }
-
-                "overlay" -> hasOverlayPermission(context)
-                "battery" -> true // Assume battery optimization permission is granted or handle separately
-                else -> androidx.core.content.ContextCompat.checkSelfPermission(
-                    context,
-                    perm
-                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        // 1. Storage Permissions
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (!Environment.isExternalStorageManager()) {
+                missingPermissions.add("android.permission.MANAGE_EXTERNAL_STORAGE")
             }
-            statusMap[perm] = granted
+        } else {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                missingPermissions.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+            }
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                missingPermissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            }
+        }
+
+        // Tiramisu Read Media Images
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
+                missingPermissions.add(Manifest.permission.READ_MEDIA_IMAGES)
+            }
+        }
+
+        // 2. Overlay Permission
+        if (!Settings.canDrawOverlays(context)) {
+            missingPermissions.add(Manifest.permission.SYSTEM_ALERT_WINDOW)
+        }
+
+        // 3. Battery Optimization
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+        if (!powerManager.isIgnoringBatteryOptimizations(context.packageName)) {
+            missingPermissions.add(Manifest.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+        }
+
+        // 4. Notifications (OPTIONAL - EXCLUDED FROM MISSING LIST TO PREVENT BLOCKING)
+        // DialogComponents.kt treats notifications as optional.
+        // We do NOT add POST_NOTIFICATIONS here.
+
+        return missingPermissions
+    }
+
+    fun updatePermissionStatuses(context: Context, permissions: List<String>, onResult: (Map<String, Boolean>) -> Unit) {
+        val statusMap = permissions.associateWith { permission ->
+            if (permission == "overlay" || permission == Manifest.permission.SYSTEM_ALERT_WINDOW) {
+                Settings.canDrawOverlays(context)
+            } else {
+                ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+            }
         }
         onResult(statusMap)
     }
 }
-
