@@ -234,8 +234,27 @@ jobs:
           build_date=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
           echo "Build Date: $build_date"
 
-          sha256_debug=$(sha256sum "release_staging/App-debug.apk" | awk '{print $1}')
-          sha256_release=$(sha256sum "release_staging/App-release.apk" | awk '{print $1}')
+          # Find APK files dynamically
+          apk_debug=$(find release_staging -name "*debug*\.apk" | head -n 1)
+          apk_release=$(find release_staging -name "*release*\.apk" | head -n 1)
+          
+          if [ -z "$apk_debug" ]; then
+            echo "Error: Debug APK not found in release_staging"
+            find release_staging -ls
+            exit 1
+          fi
+          
+          if [ -z "$apk_release" ]; then
+            echo "Error: Release APK not found in release_staging"
+            find release_staging -ls
+            exit 1
+          fi
+          
+          echo "Found Debug APK: $apk_debug"
+          echo "Found Release APK: $apk_release"
+
+          sha256_debug=$(sha256sum "$apk_debug" | awk '{print $1}')
+          sha256_release=$(sha256sum "$apk_release" | awk '{print $1}')
           echo "SHA256 debug: $sha256_debug"
           echo "SHA256 release: $sha256_release"
 
@@ -264,8 +283,8 @@ jobs:
             echo "${{ steps.extract-app-name.outputs.app_name }} v$version"
             echo ""
             echo "Build Date: $build_date"
-            echo "SHA256 debug: $sha256_debug (App-debug.apk)"
-            echo "SHA256 release: $sha256_release (App-release.apk)"
+            echo "SHA256 debug: $sha256_debug ($(basename "$apk_debug"))"
+            echo "SHA256 release: $sha256_release ($(basename "$apk_release"))"
             echo ""
             echo "### Changes"
             echo ""
