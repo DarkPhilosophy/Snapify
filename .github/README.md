@@ -1,7 +1,7 @@
 # Screenshot Manager
 
 <!-- LATEST-BUILD-STATUS-START -->
-[![PreBuild](https://img.shields.io/badge/PreBuild-Passing-brightgreen)](https://github.com/DarkPhilosophy/Ko/actions)
+[![PreBuild](https://img.shields.io/badge/PreBuild-Failing-red)](https://github.com/DarkPhilosophy/Ko/actions)
 [![Build Status](https://github.com/DarkPhilosophy/Ko/actions/workflows/build-apk.yaml/badge.svg)](https://github.com/DarkPhilosophy/Ko/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Version 1.0.0](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://github.com/DarkPhilosophy/android-Snapify)
@@ -22,9 +22,9 @@ A modern, intelligent Android application to automatically manage and organize y
 ## Validation Status
 <!-- LINT-RESULT-START -->
 ### Linting Status
-> **Status**: ✅ **Passing**  
-> **Last Updated**: 2026-01-13 12:00:51 UTC  
-> **Summary**: 0 errors, 0 warnings
+> **Status**: ❌ **Failing**  
+> **Last Updated**: 2026-01-13 12:16:13 UTC  
+> **Summary**: Check output for details
 
 <details>
 <summary>Click to view full lint output</summary>
@@ -72,24 +72,26 @@ Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configurat
 > Task :app:packageDebugResources
 > Task :core:processDebugNavigationResources
 > Task :app:processDebugNavigationResources
-> Task :core:detekt
+> Task :app:parseDebugLocalResources
+> Task :core:parseDebugLocalResources
+> Task :core:generateDebugRFile
 > Task :app:generateDebugBuildConfig
 > Task :core:writeDebugAarMetadata
-> Task :core:parseDebugLocalResources
 > Task :app:checkDebugAarMetadata
-> Task :core:generateDebugRFile
-> Task :app:parseDebugLocalResources
 > Task :app:compileDebugNavigationResources
+> Task :app:mapDebugSourceSetPaths
 > Task :app:createDebugCompatibleScreenManifests
 > Task :app:extractDeepLinksDebug
 > Task :core:extractDeepLinksDebug
-> Task :app:mapDebugSourceSetPaths
+> Task :core:processDebugManifest
+> Task :core:detekt
+> Task :core:compileDebugLibraryResources
 > Task :core:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :core:generateDebugBuildConfig
-> Task :core:compileDebugLibraryResources
-> Task :app:mergeDebugResources
+> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :app:processDebugManifestForPackage
 > Task :core:javaPreCompileDebug
-> Task :core:processDebugManifest
 > Task :app:javaPreCompileDebug
 > Task :app:preDebugUnitTestBuild UP-TO-DATE
 > Task :app:javaPreCompileDebugUnitTest
@@ -106,8 +108,11 @@ Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configurat
 > Task :core:generateReleaseResValues
 > Task :core:generateReleaseResources
 > Task :core:packageReleaseResources
-> Task :app:processDebugMainManifest
-> Task :app:dataBindingGenBaseClassesDebug
+
+> Task :app:detekt FAILED
+/home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/PicturePreviewDialog.kt:11:1: The import 'androidx.compose.foundation.gestures.detectTransformGestures' is unused. [UnusedImports]
+
+
 > Task :app:packageReleaseResources
 > Task :core:processReleaseNavigationResources
 > Task :app:processReleaseNavigationResources
@@ -118,18 +123,20 @@ Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configurat
 > Task :core:writeReleaseAarMetadata
 > Task :app:checkReleaseAarMetadata
 > Task :app:compileReleaseNavigationResources
-> Task :app:processDebugManifest
 > Task :app:mapReleaseSourceSetPaths
-> Task :app:processDebugManifestForPackage
 > Task :app:createReleaseCompatibleScreenManifests
 > Task :app:extractDeepLinksRelease
 > Task :core:extractDeepLinksRelease
 > Task :core:processReleaseManifest
 > Task :app:processReleaseMainManifest
 > Task :app:processReleaseManifest
+> Task :app:mergeDebugResources
 > Task :app:processReleaseManifestForPackage
+> Task :app:dataBindingGenBaseClassesDebug
 > Task :core:compileReleaseLibraryResources
 > Task :core:generateReleaseBuildConfig
+> Task :app:mergeReleaseResources
+> Task :app:dataBindingGenBaseClassesRelease
 > Task :app:processDebugResources
 > Task :core:javaPreCompileRelease
 > Task :app:javaPreCompileRelease
@@ -141,36 +148,34 @@ Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configurat
 > Task :core:preReleaseUnitTestBuild UP-TO-DATE
 > Task :core:generateReleaseUnitTestStubRFile
 > Task :core:javaPreCompileReleaseUnitTest
-> Task :app:mergeReleaseResources
-> Task :app:dataBindingGenBaseClassesRelease
 > Task :app:processReleaseResources
-> Task :core:compileDebugKotlin
 > Task :core:compileReleaseKotlin
+> Task :core:compileDebugKotlin
 > Task :core:processReleaseJavaRes
 > Task :core:processDebugJavaRes
 > Task :core:compileReleaseJavaWithJavac
 > Task :core:compileDebugJavaWithJavac
-> Task :core:bundleLibRuntimeToJarRelease
-> Task :core:bundleLibCompileToJarDebug
 > Task :core:bundleLibRuntimeToJarDebug
+> Task :core:bundleLibRuntimeToJarRelease
 > Task :core:bundleLibCompileToJarRelease
+> Task :core:bundleLibCompileToJarDebug
 > Task :core:createFullJarRelease
 > Task :core:createFullJarDebug
 > Task :core:compileDebugUnitTestKotlin NO-SOURCE
-> Task :core:compileDebugUnitTestJavaWithJavac NO-SOURCE
 > Task :core:compileReleaseUnitTestKotlin NO-SOURCE
+> Task :core:compileDebugUnitTestJavaWithJavac NO-SOURCE
 > Task :core:processDebugUnitTestJavaRes NO-SOURCE
 > Task :core:compileReleaseUnitTestJavaWithJavac NO-SOURCE
-> Task :core:processReleaseUnitTestJavaRes NO-SOURCE
 > Task :core:testDebugUnitTest NO-SOURCE
+> Task :core:processReleaseUnitTestJavaRes NO-SOURCE
 > Task :core:testReleaseUnitTest NO-SOURCE
 > Task :core:test UP-TO-DATE
-> Task :app:kspReleaseKotlin
 > Task :app:kspDebugKotlin
-
+> Task :app:kspReleaseKotlin
+> Task :app:compileDebugKotlin
 > Task :app:compileReleaseKotlin
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/OverlayService.kt:394:36 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/ScreenshotMonitorService.kt:112:29 'static static field FOREGROUND_SERVICE_TYPE_NONE: Int' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/ScreenshotMonitorService.kt:112:29 'static field FOREGROUND_SERVICE_TYPE_NONE: Int' is deprecated. Deprecated in Java.
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/MainActivity.kt:1:13 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with ''. '' has no effect.
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/MainScreen.kt:1:13 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with ''. '' has no effect.
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/ScreenshotComponents.kt:267:36 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
@@ -181,7 +186,7 @@ w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/co
 
 > Task :app:compileDebugKotlin
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/OverlayService.kt:394:36 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/ScreenshotMonitorService.kt:112:29 'field FOREGROUND_SERVICE_TYPE_NONE: Int' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/ScreenshotMonitorService.kt:112:29 'static field FOREGROUND_SERVICE_TYPE_NONE: Int' is deprecated. Deprecated in Java.
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/MainActivity.kt:1:13 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with ''. '' has no effect.
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/MainScreen.kt:1:13 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with ''. '' has no effect.
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/ScreenshotComponents.kt:267:36 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
@@ -194,18 +199,18 @@ w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/co
 > Task :app:compileReleaseJavaWithJavac
 > Task :app:hiltAggregateDepsRelease
 > Task :app:hiltAggregateDepsDebug
-> Task :app:hiltJavaCompileRelease
 > Task :app:hiltJavaCompileDebug
-> Task :app:processDebugJavaRes
+> Task :app:hiltJavaCompileRelease
 > Task :app:processReleaseJavaRes
-> Task :app:bundleDebugClassesToCompileJar
-> Task :app:kspDebugUnitTestKotlin NO-SOURCE
-> Task :app:compileDebugUnitTestKotlin NO-SOURCE
-> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processDebugJavaRes
 > Task :app:bundleReleaseClassesToCompileJar
+> Task :app:bundleDebugClassesToCompileJar
 > Task :app:kspReleaseUnitTestKotlin NO-SOURCE
 > Task :app:compileReleaseUnitTestKotlin NO-SOURCE
+> Task :app:kspDebugUnitTestKotlin NO-SOURCE
 > Task :app:compileReleaseUnitTestJavaWithJavac NO-SOURCE
+> Task :app:compileDebugUnitTestKotlin NO-SOURCE
+> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
 > Task :app:hiltAggregateDepsReleaseUnitTest
 > Task :app:hiltJavaCompileReleaseUnitTest NO-SOURCE
 > Task :app:processReleaseUnitTestJavaRes NO-SOURCE
@@ -214,16 +219,28 @@ w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/co
 > Task :app:processDebugUnitTestJavaRes NO-SOURCE
 > Task :app:transformReleaseClassesWithAsm
 > Task :app:transformDebugClassesWithAsm
-> Task :app:bundleReleaseClassesToRuntimeJar
 > Task :app:bundleDebugClassesToRuntimeJar
+> Task :app:bundleReleaseClassesToRuntimeJar
+> Task :app:transformDebugUnitTestClassesWithAsm
 > Task :app:transformReleaseUnitTestClassesWithAsm
 > Task :app:testReleaseUnitTest NO-SOURCE
-> Task :app:transformDebugUnitTestClassesWithAsm
 > Task :app:testDebugUnitTest NO-SOURCE
 > Task :app:test UP-TO-DATE
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/lint_step-1768305561158.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/lint_step-1768306481055.json
 
 [Incubating] Problems report is available at: file:///home/runner/work/Snapify/Snapify/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:detekt'.
+> Analysis failed with 1 weighted issues.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
 
 Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
 
@@ -231,7 +248,7 @@ You can use '--warning-mode all' to show the individual deprecation warnings and
 
 For more on this, please refer to https://docs.gradle.org/9.2.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
 
-BUILD SUCCESSFUL in 1m 36s
+BUILD FAILED in 1m 37s
 120 actionable tasks: 120 executed
 Configuration cache entry stored.
 ```
