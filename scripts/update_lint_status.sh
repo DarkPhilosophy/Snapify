@@ -57,10 +57,38 @@ $SAFE_CONTENT
 </details>
 <!-- LINT-RESULT-END -->"
 
+    # Construct Badge
+    if [ "$STATUS" == "success" ]; then
+        BADGE="![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen)"
+    else
+        BADGE="![Build Status](https://img.shields.io/badge/Build-Failing-red)"
+    fi
+
     if [ -f "$README_FILE" ]; then
-        # Replace block
+        # Replace Lint Block
         perl -i -0777 -pe "s|<!-- LINT-RESULT-START -->.*<!-- LINT-RESULT-END -->|$(echo "$NEW_BLOCK" | sed 's/|/\\|/g')|gs" "$README_FILE"
-        echo "✅ Updated Lint Status in README.md"
+        
+        # Replace Badge
+        # Using a marker <!-- LATEST-PRE-BUILD-STATUS -->
+        # We need to replace the marker OR the existing badge if it was already replaced.
+        # But simplify: replace the marker content if it exists, or just the marker.
+        # Actually, let's just replace the whole line containing the marker or the previous badge if we wrap it in comments?
+        # User requested <!-- LATEST-PRE-BUILD-STATUS -->. Let's assume we wrap the badge in it to make it replaceable next time.
+        
+        BADGE_BLOCK="<!-- LATEST-PRE-BUILD-STATUS -->
+$BADGE
+<!-- LATEST-PRE-BUILD-STATUS-END -->"
+        
+        # If the END marker doesn't exist yet (first run), we might need to handle just the START marker.
+        # But the user only put <!-- LATEST-PRE-BUILD-STATUS -->.
+        # Let's replace that specific string with START...BADGE...END so we can find it later.
+        
+        perl -i -pe "s|<!-- LATEST-PRE-BUILD-STATUS -->|$BADGE_BLOCK|g" "$README_FILE"
+        
+        # If we already have the block, update inside it
+        perl -i -0777 -pe "s|<!-- LATEST-PRE-BUILD-STATUS -->.*<!-- LATEST-PRE-BUILD-STATUS-END -->|$(echo "$BADGE_BLOCK" | sed 's/|/\\|/g')|gs" "$README_FILE"
+
+        echo "✅ Updated Lint Status & Badge in README.md"
     else
         echo "❌ README.md not found!"
         exit 1

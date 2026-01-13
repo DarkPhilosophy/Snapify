@@ -139,7 +139,7 @@ jobs:
         env:
           GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
 
-      - name: Make executable
+      - name: Make gradlew executable
         run: chmod +x ./gradlew
 
       - name: Build Debug APK
@@ -203,6 +203,7 @@ jobs:
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
           if [[ -n $(git status --porcelain) ]]; then
+             git pull --rebase
              git add .github/README.md .github/CHANGELOG.md
              git commit -m "chore: Update README Version & Changelog [skip ci]"
              git push
