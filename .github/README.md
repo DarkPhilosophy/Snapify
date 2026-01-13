@@ -16,7 +16,7 @@ A modern, intelligent Android application to automatically manage and organize y
 <!-- LINT-RESULT-START -->
 ### Linting Status
 > **Status**: ✅ **Passing**  
-> **Last Updated**: 2026-01-13 20:56:43 UTC  
+> **Last Updated**: 2026-01-13 21:12:09 UTC  
 > **Summary**: 0 errors, 0 warnings
 
 <details>
@@ -35,10 +35,10 @@ Calculating task graph as no cached configuration is available for tasks: spotle
 > Task :buildSrc:jar
 :jar: No valid plugin descriptors were found in META-INF/gradle-plugins
 
-> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :detekt NO-SOURCE
 > Task :app:preBuild UP-TO-DATE
 > Task :app:preDebugBuild UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :spotlessInternalRegisterDependencies
 > Task :app:spotlessKotlin
 > Task :app:spotlessKotlinCheck
@@ -53,52 +53,54 @@ Calculating task graph as no cached configuration is available for tasks: spotle
 > Task :core:generateDebugResValues
 > Task :core:generateDebugResources
 > Task :core:packageDebugResources
-> Task :app:spotlessKotlinGradle
 
 > Task :app:detekt
 Property 'style>ForbiddenComment>values' is deprecated. Use \`comments\` instead, make sure you escape your text for Regular Expressions..
 Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configuration is ignored and will be removed in the future.
 
+> Task :app:spotlessKotlinGradle
 > Task :app:spotlessKotlinGradleCheck
 > Task :app:spotlessCheck
 > Task :app:packageDebugResources
 > Task :core:processDebugNavigationResources
 > Task :app:processDebugNavigationResources
 > Task :core:detekt
-> Task :app:generateDebugBuildConfig
-> Task :core:writeDebugAarMetadata
-> Task :app:parseDebugLocalResources
 > Task :core:parseDebugLocalResources
+> Task :app:parseDebugLocalResources
+> Task :app:generateDebugBuildConfig
+> Task :core:generateDebugRFile
 > Task :app:compileDebugNavigationResources
 > Task :app:mapDebugSourceSetPaths
-> Task :app:checkDebugAarMetadata
-> Task :app:extractDeepLinksDebug
-> Task :core:generateDebugRFile
 > Task :app:createDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksDebug
 > Task :core:extractDeepLinksDebug
-> Task :core:checkKotlinGradlePluginConfigurationErrors SKIPPED
-> Task :core:generateDebugBuildConfig
+> Task :core:writeDebugAarMetadata
 > Task :core:compileDebugLibraryResources
+> Task :core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:processDebugManifest
+> Task :core:generateDebugBuildConfig
+> Task :app:checkDebugAarMetadata
 > Task :core:javaPreCompileDebug
 > Task :app:javaPreCompileDebug
 > Task :app:preDebugUnitTestBuild UP-TO-DATE
-> Task :core:processDebugManifest
 > Task :app:javaPreCompileDebugUnitTest
-> Task :app:mergeDebugResources
 > Task :app:preReleaseBuild UP-TO-DATE
 > Task :app:buildKotlinToolingMetadata
 > Task :app:dataBindingMergeDependencyArtifactsRelease
 > Task :app:generateReleaseResValues
 > Task :app:generateReleaseResources
 > Task :app:injectCrashlyticsMappingFileIdRelease
+> Task :app:processDebugMainManifest
 > Task :app:extractReleaseVersionControlInfo
 > Task :app:injectCrashlyticsVersionControlInfoRelease
 > Task :app:processReleaseGoogleServices
 > Task :core:preReleaseBuild UP-TO-DATE
 > Task :core:generateReleaseResValues
+> Task :app:mergeDebugResources
 > Task :core:generateReleaseResources
 > Task :core:packageReleaseResources
-> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :app:processDebugManifestForPackage
 > Task :app:dataBindingGenBaseClassesDebug
 > Task :app:packageReleaseResources
 > Task :core:processReleaseNavigationResources
@@ -110,9 +112,7 @@ Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configurat
 > Task :core:writeReleaseAarMetadata
 > Task :app:checkReleaseAarMetadata
 > Task :app:compileReleaseNavigationResources
-> Task :app:processDebugManifest
 > Task :app:mapReleaseSourceSetPaths
-> Task :app:processDebugManifestForPackage
 > Task :app:createReleaseCompatibleScreenManifests
 > Task :app:extractDeepLinksRelease
 > Task :core:extractDeepLinksRelease
@@ -140,18 +140,18 @@ Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configurat
 > Task :core:compileDebugKotlin
 > Task :core:processDebugJavaRes
 > Task :core:processReleaseJavaRes
-> Task :core:compileReleaseJavaWithJavac
 > Task :core:compileDebugJavaWithJavac
+> Task :core:compileReleaseJavaWithJavac
 > Task :core:bundleLibRuntimeToJarDebug
 > Task :core:bundleLibRuntimeToJarRelease
-> Task :core:bundleLibCompileToJarDebug
 > Task :core:bundleLibCompileToJarRelease
-> Task :core:createFullJarRelease
 > Task :core:createFullJarDebug
+> Task :core:bundleLibCompileToJarDebug
+> Task :core:createFullJarRelease
 > Task :core:compileDebugUnitTestKotlin NO-SOURCE
 > Task :core:compileReleaseUnitTestKotlin NO-SOURCE
-> Task :core:compileDebugUnitTestJavaWithJavac NO-SOURCE
 > Task :core:processDebugUnitTestJavaRes NO-SOURCE
+> Task :core:compileDebugUnitTestJavaWithJavac NO-SOURCE
 > Task :core:compileReleaseUnitTestJavaWithJavac NO-SOURCE
 > Task :core:processReleaseUnitTestJavaRes NO-SOURCE
 > Task :core:testDebugUnitTest NO-SOURCE
@@ -182,38 +182,38 @@ w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/co
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/VideoPlayer.kt:40:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/VideoPreviewDialog.kt:121:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
 
-> Task :app:compileDebugJavaWithJavac
 > Task :app:compileReleaseJavaWithJavac
-> Task :app:hiltAggregateDepsDebug
+> Task :app:compileDebugJavaWithJavac
 > Task :app:hiltAggregateDepsRelease
-> Task :app:hiltJavaCompileDebug
+> Task :app:hiltAggregateDepsDebug
 > Task :app:hiltJavaCompileRelease
+> Task :app:hiltJavaCompileDebug
 > Task :app:processDebugJavaRes
 > Task :app:processReleaseJavaRes
 > Task :app:bundleDebugClassesToCompileJar
+> Task :app:bundleReleaseClassesToCompileJar
 > Task :app:kspDebugUnitTestKotlin NO-SOURCE
+> Task :app:kspReleaseUnitTestKotlin NO-SOURCE
 > Task :app:compileDebugUnitTestKotlin NO-SOURCE
 > Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
-> Task :app:hiltAggregateDepsDebugUnitTest
-> Task :app:hiltJavaCompileDebugUnitTest NO-SOURCE
-> Task :app:processDebugUnitTestJavaRes NO-SOURCE
-> Task :app:bundleReleaseClassesToCompileJar
-> Task :app:kspReleaseUnitTestKotlin NO-SOURCE
 > Task :app:compileReleaseUnitTestKotlin NO-SOURCE
 > Task :app:compileReleaseUnitTestJavaWithJavac NO-SOURCE
+> Task :app:hiltAggregateDepsDebugUnitTest
 > Task :app:hiltAggregateDepsReleaseUnitTest
+> Task :app:hiltJavaCompileDebugUnitTest NO-SOURCE
 > Task :app:hiltJavaCompileReleaseUnitTest NO-SOURCE
+> Task :app:processDebugUnitTestJavaRes NO-SOURCE
 > Task :app:processReleaseUnitTestJavaRes NO-SOURCE
-> Task :app:transformReleaseClassesWithAsm
 > Task :app:transformDebugClassesWithAsm
-> Task :app:bundleReleaseClassesToRuntimeJar
+> Task :app:transformReleaseClassesWithAsm
 > Task :app:bundleDebugClassesToRuntimeJar
-> Task :app:transformDebugUnitTestClassesWithAsm
-> Task :app:testDebugUnitTest NO-SOURCE
+> Task :app:bundleReleaseClassesToRuntimeJar
 > Task :app:transformReleaseUnitTestClassesWithAsm
+> Task :app:transformDebugUnitTestClassesWithAsm
 > Task :app:testReleaseUnitTest NO-SOURCE
+> Task :app:testDebugUnitTest NO-SOURCE
 > Task :app:test UP-TO-DATE
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/lint_step-1768337708969.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/lint_step-1768338630448.json
 
 [Incubating] Problems report is available at: file:///home/runner/work/Snapify/Snapify/build/reports/problems/problems-report.html
 
@@ -223,7 +223,7 @@ You can use '--warning-mode all' to show the individual deprecation warnings and
 
 For more on this, please refer to https://docs.gradle.org/9.2.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
 
-BUILD SUCCESSFUL in 1m 39s
+BUILD SUCCESSFUL in 1m 45s
 120 actionable tasks: 120 executed
 Configuration cache entry stored.
 ```
