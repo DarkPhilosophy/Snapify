@@ -301,13 +301,12 @@ jobs:
           echo "release_notes_path=$release_notes_path" >> $GITHUB_OUTPUT
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: ncipollo/release-action@v1
         with:
-          tag_name: v${{ steps.release-prep.outputs.version }}
+          tag: v${{ steps.release-prep.outputs.version }}
           name: v${{ steps.release-prep.outputs.version }}
-          body_path: ${{ steps.release-prep.outputs.release_notes_path }}
-          files: |
-            release_staging/*.apk
-            release_staging/App.metadata.txt
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          bodyFile: ${{ steps.release-prep.outputs.release_notes_path }}
+          artifacts: "release_staging/*.apk,release_staging/App.metadata.txt"
+          allowUpdates: true
+          removeArtifacts: true
+          token: ${{ secrets.GITHUB_TOKEN }}
