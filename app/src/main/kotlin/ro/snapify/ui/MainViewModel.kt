@@ -56,6 +56,7 @@ data class MainUiState(
     val videoPreviewItem: MediaItem? = null,
     val videoPreviewPosition: androidx.compose.ui.geometry.Offset? = null,
     val imagePreviewItem: MediaItem? = null,
+    val imagePreviewPosition: androidx.compose.ui.geometry.Offset? = null,
 )
 
 @HiltViewModel
@@ -534,7 +535,7 @@ class MainViewModel @Inject constructor(
         if (isVideo) {
             openVideoPreview(mediaItem, position)
         } else {
-            openImagePreview(mediaItem)
+            openImagePreview(mediaItem, position)
         }
     }
 
@@ -692,8 +693,12 @@ class MainViewModel @Inject constructor(
         _uiState.update { it.copy(imagePreviewItem = mediaItem) }
     }
 
+    fun openImagePreview(mediaItem: MediaItem, position: androidx.compose.ui.geometry.Offset) {
+        _uiState.update { it.copy(imagePreviewItem = mediaItem, imagePreviewPosition = position) }
+    }
+
     fun closeImagePreview() {
-        _uiState.update { it.copy(imagePreviewItem = null) }
+        _uiState.update { it.copy(imagePreviewItem = null, imagePreviewPosition = null) }
     }
 
     fun clearMessage() {

@@ -743,6 +743,7 @@ fun MainScreen(
     uiState.imagePreviewItem?.let { mediaItem ->
         PicturePreviewDialog(
             mediaItem = mediaItem,
+            position = uiState.imagePreviewPosition,
             onDismiss = { actualViewModel.closeImagePreview() },
         )
     }
