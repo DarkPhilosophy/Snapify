@@ -192,14 +192,14 @@ jobs:
                   name: App-release
                   path: release_staging
 
-            - name: Make executable
-              run: chmod +x ./.scripts/update_version_status.sh
-
             - name: Sync with latest code (Prevent conflicts)
               run: |
                   git config --global user.name 'GitHub Action'
                   git config --global user.email 'action@github.com'
                   git pull origin main --rebase
+
+            - name: Make executable
+              run: chmod +x ./.scripts/update_version_status.sh
 
             - name: Update Documentation (Version/Changelog)
               run: ./.scripts/update_version_status.sh
@@ -211,7 +211,7 @@ jobs:
                   if [[ -n $(git status --porcelain) ]]; then
                      git add .
                      git commit -m "chore: Update README Version & Changelog [skip ci]"
-                     git pull --rebase
+                     git pull origin main --rebase
                      git push
                   else
                      echo "No documentation changes to commit"
