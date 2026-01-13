@@ -14,18 +14,180 @@ A modern, intelligent Android application to automatically manage and organize y
 <!-- LINT-RESULT-START -->
 ### Linting Status
 > **Status**: ❌ **Failing**  
-> **Last Updated**: 2026-01-13 05:30:33 UTC  
+> **Last Updated**: 2026-01-13 05:35:39 UTC  
 > **Summary**: Check output for details
 
 <details>
 <summary>Click to view full lint output</summary>
 
 ```
+Downloading https://services.gradle.org/distributions/gradle-9.2.0-bin.zip
+............10%.............20%.............30%.............40%.............50%.............60%.............70%.............80%.............90%.............100%
 
-ERROR: JAVA_HOME is set to an invalid directory: /var/home/alexa/.jdks/jbr-21.0.9
+Welcome to Gradle 9.2.0!
 
-Please set the JAVA_HOME variable in your environment to match the
-location of your Java installation.
+Here are the highlights of this release:
+ - Windows ARM support
+ - Improved publishing APIs
+ - Better guidance for dependency verification failures
+
+For more details see https://docs.gradle.org/9.2.0/release-notes.html
+
+Starting a Gradle Daemon (subsequent builds will be faster)
+Calculating task graph as no cached configuration is available for tasks: spotlessCheck detekt test
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:pluginDescriptors
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:compileKotlin
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+
+> Task :buildSrc:jar
+:jar: No valid plugin descriptors were found in META-INF/gradle-plugins
+
+> Task :app:preBuild UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :detekt NO-SOURCE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :spotlessInternalRegisterDependencies
+
+> Task :app:detekt
+Property 'style>ForbiddenComment>values' is deprecated. Use `comments` instead, make sure you escape your text for Regular Expressions..
+Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configuration is ignored and will be removed in the future.
+
+> Task :core:detekt
+> Task :app:spotlessKotlinGradle
+> Task :app:spotlessKotlinGradleCheck
+> Task :app:generateDebugResValues
+> Task :app:generateDebugResources
+> Task :app:processDebugGoogleServices FAILED
+> Task :core:preBuild UP-TO-DATE
+> Task :core:preDebugBuild UP-TO-DATE
+> Task :core:generateDebugResValues
+> Task :core:generateDebugResources
+> Task :core:packageDebugResources
+> Task :core:processDebugNavigationResources
+> Task :app:spotlessKotlin
+> Task :app:spotlessKotlinCheck
+> Task :app:spotlessCheck
+> Task :app:generateDebugBuildConfig
+> Task :core:writeDebugAarMetadata
+> Task :app:processDebugNavigationResources
+> Task :core:parseDebugLocalResources
+> Task :app:dataBindingMergeDependencyArtifactsDebug
+> Task :app:createDebugCompatibleScreenManifests
+> Task :core:extractDeepLinksDebug
+> Task :app:checkDebugAarMetadata
+> Task :core:generateDebugRFile
+> Task :core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:generateDebugBuildConfig
+> Task :core:compileDebugLibraryResources
+> Task :app:compileDebugNavigationResources
+> Task :core:javaPreCompileDebug
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileDebugUnitTest
+> Task :app:preReleaseBuild UP-TO-DATE
+> Task :app:buildKotlinToolingMetadata
+> Task :app:dataBindingMergeDependencyArtifactsRelease
+> Task :core:processDebugManifest
+> Task :app:generateReleaseResValues
+> Task :app:processReleaseGoogleServices FAILED
+> Task :core:preReleaseBuild UP-TO-DATE
+> Task :app:generateReleaseResources
+> Task :core:generateReleaseResValues
+> Task :core:processReleaseNavigationResources
+> Task :core:generateReleaseResources
+> Task :app:processReleaseNavigationResources
+> Task :core:packageReleaseResources
+> Task :core:parseReleaseLocalResources
+> Task :core:generateReleaseRFile
+> Task :core:writeReleaseAarMetadata
+> Task :app:checkReleaseAarMetadata
+> Task :app:compileReleaseNavigationResources
+> Task :app:createReleaseCompatibleScreenManifests
+> Task :app:generateReleaseBuildConfig
+> Task :core:extractDeepLinksRelease
+> Task :core:compileReleaseLibraryResources
+> Task :core:generateReleaseBuildConfig
+> Task :core:processReleaseManifest
+> Task :core:javaPreCompileRelease
+> Task :app:javaPreCompileDebug
+> Task :app:preReleaseUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileRelease
+> Task :core:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileReleaseUnitTest
+> Task :core:javaPreCompileDebugUnitTest
+> Task :core:preReleaseUnitTestBuild UP-TO-DATE
+> Task :core:generateDebugUnitTestStubRFile
+> Task :core:generateReleaseUnitTestStubRFile
+> Task :core:javaPreCompileReleaseUnitTest
+> Task :core:compileDebugKotlin
+> Task :core:compileReleaseKotlin
+> Task :core:processDebugJavaRes
+> Task :core:processReleaseJavaRes
+> Task :core:compileDebugJavaWithJavac
+> Task :core:compileReleaseJavaWithJavac
+> Task :core:bundleLibCompileToJarDebug
+> Task :core:bundleLibCompileToJarRelease
+> Task :core:bundleLibRuntimeToJarRelease
+> Task :core:bundleLibRuntimeToJarDebug
+> Task :core:compileDebugUnitTestKotlin NO-SOURCE
+> Task :core:createFullJarDebug
+> Task :core:compileReleaseUnitTestKotlin NO-SOURCE
+> Task :core:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :core:compileReleaseUnitTestJavaWithJavac NO-SOURCE
+> Task :core:createFullJarRelease
+> Task :core:processDebugUnitTestJavaRes NO-SOURCE
+> Task :core:processReleaseUnitTestJavaRes NO-SOURCE
+> Task :core:testDebugUnitTest NO-SOURCE
+> Task :core:testReleaseUnitTest NO-SOURCE
+> Task :core:test UP-TO-DATE
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/lint_step-1768282393784.json
+
+[Incubating] Problems report is available at: file:///home/runner/work/Snapify/Snapify/build/reports/problems/problems-report.html
+
+FAILURE: Build completed with 2 failures.
+
+1: Task failed with an exception.
+-----------
+* What went wrong:
+Execution failed for task ':app:processDebugGoogleServices'.
+> File google-services.json is missing. 
+  The Google Services Plugin cannot function without it. 
+  Searched locations: /home/runner/work/Snapify/Snapify/app/src/debug/google-services.json, /home/runner/work/Snapify/Snapify/app/src/debug/google-services.json, /home/runner/work/Snapify/Snapify/app/src/google-services.json, /home/runner/work/Snapify/Snapify/app/src/debug/google-services.json, /home/runner/work/Snapify/Snapify/app/src/Debug/google-services.json, /home/runner/work/Snapify/Snapify/app/google-services.json
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+==============================================================================
+
+2: Task failed with an exception.
+-----------
+* What went wrong:
+Execution failed for task ':app:processReleaseGoogleServices'.
+> File google-services.json is missing. 
+  The Google Services Plugin cannot function without it. 
+  Searched locations: /home/runner/work/Snapify/Snapify/app/src/release/google-services.json, /home/runner/work/Snapify/Snapify/app/src/release/google-services.json, /home/runner/work/Snapify/Snapify/app/src/google-services.json, /home/runner/work/Snapify/Snapify/app/src/release/google-services.json, /home/runner/work/Snapify/Snapify/app/src/Release/google-services.json, /home/runner/work/Snapify/Snapify/app/google-services.json
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+==============================================================================
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.2.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 2m 35s
+73 actionable tasks: 73 executed
+Configuration cache entry stored.
 ```
 
 </details>
