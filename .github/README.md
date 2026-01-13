@@ -12,6 +12,23 @@ A modern, intelligent Android application to automatically manage and organize y
 
 ## Validation Status
 <!-- LINT-RESULT-START -->
+### Linting Status
+> **Status**: ❌ **Failing**  
+> **Last Updated**: 2026-01-13 05:14:17 UTC  
+> **Summary**: Check output for details
+
+<details>
+<summary>Click to view full lint output</summary>
+
+```
+
+ERROR: JAVA_HOME is set to an invalid directory: /var/home/alexa/.jdks/jbr-21.0.9
+
+Please set the JAVA_HOME variable in your environment to match the
+location of your Java installation.
+```
+
+</details>
 <!-- LINT-RESULT-END -->
 
 ### Latest Update (v1.0.0)
