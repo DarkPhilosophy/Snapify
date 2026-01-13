@@ -57,35 +57,51 @@ $SAFE_CONTENT
 </details>
 <!-- LINT-RESULT-END -->"
 
-    # Construct Badge
+    # Construct Badges
+    
+    # 1. Pre-Build Status (Dynamic)
     if [ "$STATUS" == "success" ]; then
-        BADGE="![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen)"
+        PREBUILD_BADGE="[![PreBuild](https://img.shields.io/badge/PreBuild-Passing-brightgreen)](https://github.com/DarkPhilosophy/Ko/actions)"
     else
-        BADGE="![Build Status](https://img.shields.io/badge/Build-Failing-red)"
+        PREBUILD_BADGE="[![PreBuild](https://img.shields.io/badge/PreBuild-Failing-red)](https://github.com/DarkPhilosophy/Ko/actions)"
+    fi
+
+    # 2. Build Status (Static)
+    BUILD_BADGE="[![Build Status](https://github.com/DarkPhilosophy/Ko/actions/workflows/build-apk.yaml/badge.svg)](https://github.com/DarkPhilosophy/Ko/actions)"
+
+    # 3. License (Static)
+    LICENSE_BADGE="[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)"
+
+    # 4. Version (Dynamic from version.properties)
+    if [ -f "version.properties" ]; then
+        MAJOR=$(grep "version.major" version.properties | cut -d'=' -f2)
+        MINOR=$(grep "version.minor" version.properties | cut -d'=' -f2)
+        PATCH=$(grep "version.patch" version.properties | cut -d'=' -f2)
+        VERSION="$MAJOR.$MINOR.$PATCH"
+        VERSION_BADGE="[![Version $VERSION](https://img.shields.io/badge/Version-$VERSION-blue.svg)](https://github.com/DarkPhilosophy/android-Snapify)"
+    else
+        VERSION_BADGE="[![Version](https://img.shields.io/badge/Version-Unknown-gray.svg)](https://github.com/DarkPhilosophy/android-Snapify)"
     fi
 
     if [ -f "$README_FILE" ]; then
         # Replace Lint Block
         perl -i -0777 -pe "s|<!-- LINT-RESULT-START -->.*<!-- LINT-RESULT-END -->|$(echo "$NEW_BLOCK" | sed 's/|/\\|/g')|gs" "$README_FILE"
         
-        # Replace Badge
-        # Using a marker <!-- LATEST-PRE-BUILD-STATUS -->
-        # We need to replace the marker OR the existing badge if it was already replaced.
-        # But simplify: replace the marker content if it exists, or just the marker.
-        # Actually, let's just replace the whole line containing the marker or the previous badge if we wrap it in comments?
-        # User requested <!-- LATEST-PRE-BUILD-STATUS -->. Let's assume we wrap the badge in it to make it replaceable next time.
-        
-        BADGE_BLOCK="<!-- LATEST-PRE-BUILD-STATUS-START -->
-$BADGE
-<!-- LATEST-PRE-BUILD-STATUS-END -->"
+        # Replace Badge Block
+        BADGE_BLOCK="<!-- LATEST-BUILD-STATUS-START -->
+$PREBUILD_BADGE
+$BUILD_BADGE
+$LICENSE_BADGE
+$VERSION_BADGE
+<!-- LATEST-BUILD-STATUS-END -->"
         
         # 1. Initial Replacement: If strictly the placeholder exists
-        perl -i -0777 -pe "s|<!-- LATEST-PRE-BUILD-STATUS -->|$BADGE_BLOCK|g" "$README_FILE"
+        perl -i -0777 -pe "s|<!-- LATEST-BUILD-STATUS -->|$BADGE_BLOCK|g" "$README_FILE"
         
         # 2. Subsequent Updates: Replace content between START/END markers
-        perl -i -0777 -pe "s|<!-- LATEST-PRE-BUILD-STATUS-START -->.*<!-- LATEST-PRE-BUILD-STATUS-END -->|$(echo "$BADGE_BLOCK" | sed 's/|/\\|/g')|gs" "$README_FILE"
+        perl -i -0777 -pe "s|<!-- LATEST-BUILD-STATUS-START -->.*<!-- LATEST-BUILD-STATUS-END -->|$(echo "$BADGE_BLOCK" | sed 's/|/\\|/g')|gs" "$README_FILE"
 
-        echo "✅ Updated Lint Status & Badge in README.md"
+        echo "✅ Updated Lint Status & Badge Block in README.md"
     else
         echo "❌ README.md not found!"
         exit 1
