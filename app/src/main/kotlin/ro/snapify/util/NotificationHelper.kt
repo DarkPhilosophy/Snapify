@@ -32,7 +32,7 @@ object NotificationHelper {
         deletionTimestamp: Long,
         deletionTimeMillis: Long = 60_000L,
         isManualMode: Boolean = false,
-        preferences: AppPreferences? = null
+        preferences: AppPreferences? = null,
     ) {
         // Check if notifications are enabled in settings
         val notificationsEnabled = preferences?.notificationsEnabled?.first() ?: true
@@ -40,7 +40,7 @@ object NotificationHelper {
         if (!notificationsEnabled) {
             DebugLogger.info(
                 "NotificationHelper",
-                "Notifications disabled in settings, skipping notification for screenshot ID: $id"
+                "Notifications disabled in settings, skipping notification for screenshot ID: $id",
             )
             return
         }
@@ -49,7 +49,7 @@ object NotificationHelper {
         val hasNotificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ContextCompat.checkSelfPermission(
                 context,
-                Manifest.permission.POST_NOTIFICATIONS
+                Manifest.permission.POST_NOTIFICATIONS,
             ) == PackageManager.PERMISSION_GRANTED
         } else {
             true // Assume granted for older versions
@@ -58,7 +58,7 @@ object NotificationHelper {
         if (!hasNotificationPermission) {
             DebugLogger.warning(
                 "NotificationHelper",
-                "POST_NOTIFICATIONS permission not granted, cannot show notification for screenshot ID: $id"
+                "POST_NOTIFICATIONS permission not granted, cannot show notification for screenshot ID: $id",
             )
             return
         }
@@ -66,7 +66,7 @@ object NotificationHelper {
         if (dismissedNotifications.contains(id)) {
             DebugLogger.info(
                 "NotificationHelper",
-                "Notification for screenshot ID: $id was dismissed, not recreating"
+                "Notification for screenshot ID: $id was dismissed, not recreating",
             )
             return
         }
@@ -82,7 +82,7 @@ object NotificationHelper {
             context,
             id.toInt(),
             intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
         val deleteIntent = Intent(context, NotificationActionReceiver::class.java).apply {
@@ -93,7 +93,7 @@ object NotificationHelper {
             context,
             id.toInt() + 1000,
             deleteIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
         val dismissIntent = Intent(context, NotificationActionReceiver::class.java).apply {
@@ -104,7 +104,7 @@ object NotificationHelper {
             context,
             id.toInt() + 2000,
             dismissIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
         val remainingTime = deletionTimestamp - System.currentTimeMillis()
@@ -153,7 +153,7 @@ object NotificationHelper {
                 NotificationCompat.BigPictureStyle()
                     .bigPicture(screenshotBitmap)
                     .setBigContentTitle(notificationTitle)
-                    .setSummaryText(notificationText)
+                    .setSummaryText(notificationText),
             )
         }
 
@@ -162,7 +162,7 @@ object NotificationHelper {
         notificationManager.notify(id.toInt(), notification)
         DebugLogger.info(
             "NotificationHelper",
-            "Notification shown for screenshot ID: $id, title: $notificationTitle, manualMode: $isManualMode"
+            "Notification shown for screenshot ID: $id, title: $notificationTitle, manualMode: $isManualMode",
         )
     }
 
@@ -173,7 +173,7 @@ object NotificationHelper {
             val channel = NotificationChannel(
                 CHANNEL_ID_SCREENSHOT,
                 "Screenshot Notifications",
-                NotificationManager.IMPORTANCE_HIGH
+                NotificationManager.IMPORTANCE_HIGH,
             ).apply {
                 description = "Notifications for screenshot deletion"
             }
@@ -195,7 +195,6 @@ object NotificationHelper {
 
         notificationManager.notify(ERROR_NOTIFICATION_ID, notification)
     }
-
 
     fun showCleanupNotification(context: Context, count: Int) {
         createNotificationChannel(context)
@@ -238,4 +237,3 @@ private const val CHANNEL_ID_SCREENSHOT = "screenshot_channel"
 private const val ERROR_NOTIFICATION_ID = 9999
 private const val CLEANUP_NOTIFICATION_ID = 9997
 private const val DELETED_NOTIFICATION_ID = 9998
-

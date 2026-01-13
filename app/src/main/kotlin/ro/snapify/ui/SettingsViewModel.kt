@@ -22,7 +22,7 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     private val preferences: AppPreferences,
     private val mediaRepository: MediaRepository,
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
     val currentTheme = preferences.themeMode.map { themeString ->
@@ -42,7 +42,7 @@ class SettingsViewModel @Inject constructor(
     val language = preferences.language
 
     val mediaFolderUris = preferences.mediaFolderUris
-    
+
     val mediaFolderPaths = preferences.mediaFolderPaths
 
     val autoCleanupEnabled = preferences.autoCleanupEnabled
@@ -119,26 +119,26 @@ class SettingsViewModel @Inject constructor(
             // This ensures consistent resolved paths are stored, not partial URIs like "primary:Seal"
             val resolvedUri = UriPathConverter.reconstructSafUri(context, uri)
             DebugLogger.info("SettingsViewModel.addMediaFolder", "Original URI: '$uri' -> Resolved: '$resolvedUri'")
-            
+
             val current = preferences.mediaFolderUris.first()
             val newResolvedPath = UriPathConverter.resolveUriToFilePath(resolvedUri, context)
-            
+
             // Check if this path already exists with a different URI
             var updated = current
             if (newResolvedPath != null) {
                 val normalizedNewPath = newResolvedPath.lowercase()
-                
+
                 // Find if any existing URI resolves to the same path
                 val existingUriWithSamePath = current.firstOrNull { existingUri ->
                     val existingPath = UriPathConverter.resolveUriToFilePath(existingUri, context)
                     existingPath?.lowercase() == normalizedNewPath
                 }
-                
+
                 if (existingUriWithSamePath != null) {
                     // URI already exists (resolves to same path), update it with the new one
                     DebugLogger.info(
                         "SettingsViewModel.addMediaFolder",
-                        "Duplicate path detected. Replacing old URI: '$existingUriWithSamePath' with new URI: '$resolvedUri'"
+                        "Duplicate path detected. Replacing old URI: '$existingUriWithSamePath' with new URI: '$resolvedUri'",
                     )
                     updated = (current - existingUriWithSamePath) + resolvedUri
                 } else {
@@ -149,7 +149,7 @@ class SettingsViewModel @Inject constructor(
                 // Can't resolve path, just add it anyway
                 updated = current + resolvedUri
             }
-            
+
             // Final deduplication to be safe
             updated = UriPathConverter.deduplicateMediaFolderUris(updated, context)
             DebugLogger.info("SettingsViewModel.addMediaFolder", "Storing in preferences: $updated")
@@ -182,10 +182,12 @@ class SettingsViewModel @Inject constructor(
                 val itemsToDelete = allItems.filter { item ->
                     val normalizedItemPath = item.filePath.removeSuffix("/").lowercase()
                     normalizedItemPath.startsWith(normalizedFolderPath) &&
-                    (normalizedItemPath.length == normalizedFolderPath.length ||
-                     normalizedItemPath[normalizedFolderPath.length] == '/')
+                        (
+                            normalizedItemPath.length == normalizedFolderPath.length ||
+                                normalizedItemPath[normalizedFolderPath.length] == '/'
+                            )
                 }
-                itemsToDelete.forEach { 
+                itemsToDelete.forEach {
                     mediaRepository.deleteById(it.id)
                 }
             }
@@ -197,7 +199,7 @@ class SettingsViewModel @Inject constructor(
                 val itemsNotInFolders = allItems.filter { item ->
                     !UriPathConverter.isInMediaFolder(item.filePath, updated.toList())
                 }
-                itemsNotInFolders.forEach { 
+                itemsNotInFolders.forEach {
                     mediaRepository.deleteById(it.id)
                 }
             }
@@ -227,5 +229,4 @@ class SettingsViewModel @Inject constructor(
             preferences.setMediaFolderUris(uris)
         }
     }
-
 }

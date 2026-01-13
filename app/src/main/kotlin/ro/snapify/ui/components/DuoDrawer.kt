@@ -13,8 +13,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -24,8 +25,6 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.focus.focusProperties
-import androidx.compose.ui.focus.onFocusChanged
 
 @Composable
 fun DuoDrawer(
@@ -35,7 +34,7 @@ fun DuoDrawer(
     menuContent: @Composable (Boolean) -> Unit,
     content: @Composable () -> Unit,
     dialogContent: @Composable () -> Unit = {},
-    showDialog: Boolean = false
+    showDialog: Boolean = false,
 ) {
     val windowInfo = LocalWindowInfo.current
     val density = LocalDensity.current
@@ -53,14 +52,14 @@ fun DuoDrawer(
             else -> offScreenOffset
         },
         animationSpec = tween(durationMillis = 600, easing = EaseOutCubic),
-        label = "drawerOffset"
+        label = "drawerOffset",
     )
 
     // Smooth overlay fade
     val overlayAlpha by animateFloatAsState(
         targetValue = if (isOpen) 0.5f else 0f,
         animationSpec = tween(durationMillis = 400, easing = EaseOutCubic),
-        label = "overlayAlpha"
+        label = "overlayAlpha",
     )
 
     // Theming: OLED support
@@ -69,13 +68,13 @@ fun DuoDrawer(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .semantics { contentDescription = if (isOpen) "Drawer open" else "Drawer closed" }
+            .semantics { contentDescription = if (isOpen) "Drawer open" else "Drawer closed" },
     ) {
         // Main content with accessibility
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .focusProperties { canFocus = !isOpen } // Focus management
+                .focusProperties { canFocus = !isOpen }, // Focus management
         ) {
             content()
         }
@@ -93,7 +92,7 @@ fun DuoDrawer(
                                 onCloseDrawer()
                             }
                         }
-                    }
+                    },
             )
         }
 
@@ -111,7 +110,7 @@ fun DuoDrawer(
                         }
                     }
                 }
-                .semantics { contentDescription = "Settings menu drawer" }
+                .semantics { contentDescription = "Settings menu drawer" },
         ) {
             menuContent(isOpen)
         }
@@ -123,7 +122,7 @@ fun DuoDrawer(
             modifier = Modifier
                 .fillMaxSize()
                 .focusProperties { canFocus = true }
-                .onFocusChanged { if (!it.isFocused) onCloseDrawer() } // Close on focus loss
+                .onFocusChanged { if (!it.isFocused) onCloseDrawer() }, // Close on focus loss
         ) {
             dialogContent()
         }

@@ -34,32 +34,33 @@ import ro.snapify.ui.theme.AppTheme
 data class TutorialStep(
     val title: String,
     val description: String,
-    val imageDescription: String? = null // Placeholder for images
+    // Placeholder for images
+    val imageDescription: String? = null,
 )
 
 val tutorialSteps = listOf(
     TutorialStep(
         title = "Welcome to Screenshot Manager!",
-        description = "Screenshot Manager is your intelligent screenshot manager for Android. It automatically detects, organizes, and cleans up screenshots from your device's Pictures/Screenshots folder. With customizable timers and manual controls, Screenshot Manager helps keep your gallery clutter-free."
+        description = "Screenshot Manager is your intelligent screenshot manager for Android. It automatically detects, organizes, and cleans up screenshots from your device's Pictures/Screenshots folder. With customizable timers and manual controls, Screenshot Manager helps keep your gallery clutter-free.",
     ),
     TutorialStep(
         title = "Main Activity Overview",
-        description = "On the main screen, you'll see your screenshots organized in tabs. The status bar shows monitoring state. Tap screenshots to keep or delete them manually. Grant permissions if prompted to enable automatic detection."
+        description = "On the main screen, you'll see your screenshots organized in tabs. The status bar shows monitoring state. Tap screenshots to keep or delete them manually. Grant permissions if prompted to enable automatic detection.",
     ),
     TutorialStep(
         title = "Understanding Operation Modes",
-        description = "Choose between Manual mode (decide for each screenshot) or Automatic mode (set deletion timers). In Automatic mode, configure how long to wait before deleting screenshots."
+        description = "Choose between Manual mode (decide for each screenshot) or Automatic mode (set deletion timers). In Automatic mode, configure how long to wait before deleting screenshots.",
     ),
     TutorialStep(
         title = "Settings & Customization",
-        description = "Access Settings to change themes, languages, operation modes, and custom folders. The final step will take you there to highlight key options."
-    )
+        description = "Access Settings to change themes, languages, operation modes, and custom folders. The final step will take you there to highlight key options.",
+    ),
 )
 
 @Composable
 fun TutorialScreen(
     onSkip: () -> Unit,
-    onFinish: () -> Unit
+    onFinish: () -> Unit,
 ) {
     val pagerState = rememberPagerState(pageCount = { tutorialSteps.size })
     val scope = rememberCoroutineScope()
@@ -67,18 +68,18 @@ fun TutorialScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.8f))
+            .background(Color.Black.copy(alpha = 0.8f)),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp),
             verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             ) { page ->
                 val step = tutorialSteps[page]
                 TutorialStepContent(step = step)
@@ -88,7 +89,7 @@ fun TutorialScreen(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 OutlinedButton(onClick = onSkip) {
                     Text("Skip")
@@ -97,7 +98,7 @@ fun TutorialScreen(
                 AnimatedVisibility(
                     visible = pagerState.currentPage < tutorialSteps.size - 1,
                     enter = fadeIn(),
-                    exit = fadeOut()
+                    exit = fadeOut(),
                 ) {
                     Button(
                         onClick = {
@@ -106,7 +107,7 @@ fun TutorialScreen(
                                     pagerState.animateScrollToPage(pagerState.currentPage + 1)
                                 }
                             }
-                        }
+                        },
                     ) {
                         Text("Next")
                     }
@@ -115,7 +116,7 @@ fun TutorialScreen(
                 AnimatedVisibility(
                     visible = pagerState.currentPage == tutorialSteps.size - 1,
                     enter = fadeIn(),
-                    exit = fadeOut()
+                    exit = fadeOut(),
                 ) {
                     Button(onClick = onFinish) {
                         Text("Get Started")
@@ -130,13 +131,13 @@ fun TutorialScreen(
 private fun TutorialStepContent(step: TutorialStep) {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
             text = step.title,
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
-            color = Color.White
+            color = Color.White,
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -146,7 +147,7 @@ private fun TutorialStepContent(step: TutorialStep) {
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = Color.White,
-            modifier = Modifier.padding(horizontal = 16.dp)
+            modifier = Modifier.padding(horizontal = 16.dp),
         )
 
         // Placeholder for image
@@ -157,12 +158,12 @@ private fun TutorialStepContent(step: TutorialStep) {
                     .width(200.dp)
                     .height(200.dp)
                     .background(Color.Gray.copy(alpha = 0.5f)),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = step.imageDescription,
                     color = Color.White,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
                 )
             }
         }

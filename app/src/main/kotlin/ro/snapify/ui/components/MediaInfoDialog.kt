@@ -7,9 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,7 +14,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -31,12 +30,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import ro.snapify.data.entity.MediaItem
 import java.io.File
 import java.text.SimpleDateFormat
@@ -49,7 +46,7 @@ fun MediaInfoDialog(
     onKeep: () -> Unit,
     onUnkeep: () -> Unit,
     onDelete: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
     val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
@@ -75,14 +72,14 @@ fun MediaInfoDialog(
         "Is Kept" to if (mediaItem.isKept) "Yes" else "No",
         "Content URI" to (mediaItem.contentUri ?: "Not available"),
         "Thumbnail Path" to (mediaItem.thumbnailPath ?: "Not generated (on-demand)"),
-        "Deletion Work ID" to (mediaItem.deletionWorkId ?: "Not scheduled")
+        "Deletion Work ID" to (mediaItem.deletionWorkId ?: "Not scheduled"),
     )
 
     Dialog(onDismissRequest = onDismiss) {
         androidx.compose.material3.Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.surface,
-            shape = MaterialTheme.shapes.medium
+            shape = MaterialTheme.shapes.medium,
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Title
@@ -91,7 +88,7 @@ fun MediaInfoDialog(
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier.padding(16.dp),
                 )
 
                 // Scrollable content
@@ -99,7 +96,7 @@ fun MediaInfoDialog(
                     LazyColumn(
                         state = listState,
                         contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         items(infoItems) { (label, value) ->
                             InfoRow(label, value)
@@ -107,48 +104,48 @@ fun MediaInfoDialog(
                     }
                     CustomScrollbar(
                         listState = listState,
-                        modifier = Modifier.align(Alignment.CenterEnd)
+                        modifier = Modifier.align(Alignment.CenterEnd),
                     )
                 }
 
                 // Buttons at bottom
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     OutlinedButton(
                         onClick = {
                             if (mediaItem.isKept) onUnkeep() else onKeep()
                         },
                         modifier = Modifier.weight(1f).height(40.dp),
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
                     ) {
                         Text(
                             text = if (mediaItem.isKept) "Unkeep" else "Keep",
                             style = MaterialTheme.typography.bodySmall,
-                            maxLines = 1
+                            maxLines = 1,
                         )
                     }
                     Button(
                         onClick = onDelete,
                         modifier = Modifier.weight(1f).height(40.dp),
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
                     ) {
                         Text(
                             text = "Delete",
                             style = MaterialTheme.typography.bodySmall,
-                            maxLines = 1
+                            maxLines = 1,
                         )
                     }
                     OutlinedButton(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f).height(40.dp),
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
                     ) {
                         Text(
                             text = "Close",
                             style = MaterialTheme.typography.bodySmall,
-                            maxLines = 1
+                            maxLines = 1,
                         )
                     }
                 }
@@ -161,20 +158,20 @@ fun MediaInfoDialog(
 private fun InfoRow(label: String, value: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Start
+        horizontalArrangement = Arrangement.Start,
     ) {
         Text(
             text = "$label:",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(0.4f)
+            modifier = Modifier.weight(0.4f),
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(0.6f)
+            modifier = Modifier.weight(0.6f),
         )
     }
 }
@@ -230,7 +227,7 @@ private fun getMediaResolution(filePath: String): String {
 @Composable
 private fun CustomScrollbar(
     listState: androidx.compose.foundation.lazy.LazyListState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val scrollbarColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
 
@@ -267,7 +264,7 @@ private fun CustomScrollbar(
         drawRect(
             color = scrollbarColor,
             topLeft = Offset(0f, thumbOffset),
-            size = Size(size.width, thumbHeight)
+            size = Size(size.width, thumbHeight),
         )
     }
 }

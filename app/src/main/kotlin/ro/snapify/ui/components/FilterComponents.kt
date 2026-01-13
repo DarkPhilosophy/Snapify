@@ -36,19 +36,19 @@ import ro.snapify.util.UriPathConverter
 fun TagFilterBar(
     selectedTags: Set<ScreenshotTab>,
     onTagSelectionChanged: (Set<ScreenshotTab>) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier
             .horizontalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         listOf(
             ScreenshotTab.MARKED to stringResource(R.string.tab_marked),
             ScreenshotTab.KEPT to stringResource(R.string.kept),
-            ScreenshotTab.UNMARKED to stringResource(R.string.unmarked)
+            ScreenshotTab.UNMARKED to stringResource(R.string.unmarked),
         ).forEach { (tag, label) ->
             FilterChip(
                 selected = tag in selectedTags,
@@ -63,8 +63,8 @@ fun TagFilterBar(
                 label = { Text(label) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
-                )
+                    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ),
             )
         }
     }
@@ -79,34 +79,34 @@ fun FolderFilterBar(
     availablePaths: List<String>,
     selectedPaths: Set<String>,
     onFolderSelectionChanged: (Set<String>) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val (selectedUri, setSelectedUri) = remember { mutableStateOf<String?>(null) }
-    
+
     // Show dialog for long-pressed folder
     if (selectedUri != null) {
         val context = androidx.compose.ui.platform.LocalContext.current
         val resolvedPath = UriPathConverter.uriToFilePath(selectedUri, context) ?: selectedUri
         val displayName = UriPathConverter.uriToDisplayName(selectedUri, context)
-        
+
         AlertDialog(
             onDismissRequest = { setSelectedUri(null) },
-            title = { 
+            title = {
                 Text(
                     "Folder Information",
-                    color = MaterialTheme.colorScheme.onSurface
-                ) 
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
             },
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     // Original URI
                     Text(
                         text = "Original URI:",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
                         text = selectedUri,
@@ -118,27 +118,27 @@ fun FolderFilterBar(
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
                         fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    
+
                     // Display Name
                     Text(
                         text = "Display Name:",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
                         text = displayName,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                    
+
                     // Resolved Path
                     Text(
                         text = "Resolved Path:",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
                         text = resolvedPath,
@@ -150,7 +150,7 @@ fun FolderFilterBar(
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
                         fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             },
@@ -158,33 +158,33 @@ fun FolderFilterBar(
                 TextButton(onClick = { setSelectedUri(null) }) {
                     Text(
                         "Close",
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface,
-            titleContentColor = MaterialTheme.colorScheme.onSurface
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
         )
     }
-    
+
     val context = androidx.compose.ui.platform.LocalContext.current
-    
+
     Row(
         modifier = modifier
             .horizontalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         availableUris.zip(availablePaths).forEach { (uri, path) ->
             val folderName = UriPathConverter.uriToDisplayName(uri, context)
             val isSelected = path in selectedPaths
-            
+
             Row(
                 modifier = Modifier
                     .background(
                         color = if (isSelected) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
                     )
                     .combinedClickable(
                         onClick = {
@@ -197,15 +197,15 @@ fun FolderFilterBar(
                         },
                         onLongClick = {
                             setSelectedUri(uri)
-                        }
+                        },
                     )
                     .padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     text = folderName,
                     color = if (isSelected) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelSmall
+                    style = MaterialTheme.typography.labelSmall,
                 )
             }
         }

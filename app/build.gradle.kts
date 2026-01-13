@@ -7,6 +7,7 @@ plugins {
     id("com.google.devtools.ksp") version "2.2.21-2.0.4"
     id("com.google.dagger.hilt.android") version "2.57.2"
     id("com.google.gms.google-services")
+    id("com.diffplug.spotless")
 }
 
 val localProperties = Properties().apply {
@@ -52,7 +53,7 @@ android {
             buildConfigField(
                 "String",
                 "APP_DISPLAY_NAME",
-                "\"${localProperties.getProperty("app.display.name") ?: "Snapify"}\""
+                "\"${localProperties.getProperty("app.display.name") ?: "Snapify"}\"",
             )
             manifestPlaceholders["appName"] =
                 localProperties.getProperty("app.display.name") ?: "Snapify"
@@ -62,7 +63,7 @@ android {
             buildConfigField(
                 "String",
                 "APP_DISPLAY_NAME",
-                "\"${localProperties.getProperty("app.display.name") ?: "Snapify"}\""
+                "\"${localProperties.getProperty("app.display.name") ?: "Snapify"}\"",
             )
             manifestPlaceholders["appName"] =
                 localProperties.getProperty("app.display.name") ?: "Snapify"
@@ -237,5 +238,12 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
     // Static Analysis
-    // detekt formatting plugin handled at root
+}
+
+configure<com.diffplug.gradle.spotless.SpotlessExtension> {
+    kotlin {
+        target("**/*.kt")
+        targetExclude("**/build/**/*.kt")
+        // ktlint("1.3.0").editorConfigOverride(mapOf("indent_size" to "4", "continuation_indent_size" to "4"))
+    }
 }

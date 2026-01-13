@@ -1,4 +1,5 @@
 @file:OptIn(androidx.media3.common.util.UnstableApi::class)
+
 package ro.snapify.ui
 
 import android.app.LocaleManager
@@ -6,34 +7,16 @@ import android.os.Build
 import android.os.Bundle
 import android.os.LocaleList
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.EaseOutCubic
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.offset
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.automirrored.filled.Shortcut
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.unit.dp
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
@@ -42,13 +25,10 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.ramcosta.composedestinations.DestinationsNavHost
-
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import ro.snapify.data.preferences.AppPreferences
-import ro.snapify.ui.components.DuoDrawer
-import ro.snapify.ui.components.PermissionDialog
 import ro.snapify.ui.theme.AppTheme
 import ro.snapify.ui.theme.ThemeMode
 import javax.inject.Inject
@@ -63,24 +43,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Make the app fullscreen and draw over all system UI
-        window.setFlags(
-            android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-        )
-
-        // Allow drawing over display cutouts
-        window.attributes.layoutInDisplayCutoutMode =
-            android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
-        window.attributes = window.attributes
-
-        // Make content go behind system bars
-        window.setDecorFitsSystemWindows(false)
-
-        // Make status and navigation bars transparent
-        window.statusBarColor = android.graphics.Color.TRANSPARENT
-        window.navigationBarColor = android.graphics.Color.TRANSPARENT
+        enableEdgeToEdge()
 
         // Debug: Check if camera cutout exists
         val cutout = window.decorView.rootWindowInsets?.displayCutout
@@ -89,7 +52,7 @@ class MainActivity : ComponentActivity() {
             android.util.Log.d("MainActivity", "Cutout bounds: ${cutout.boundingRects}")
             android.util.Log.d(
                 "MainActivity",
-                "Cutout insets: L=${cutout.safeInsetLeft}, T=${cutout.safeInsetTop}, R=${cutout.safeInsetRight}, B=${cutout.safeInsetBottom}"
+                "Cutout insets: L=${cutout.safeInsetLeft}, T=${cutout.safeInsetTop}, R=${cutout.safeInsetRight}, B=${cutout.safeInsetBottom}",
             )
         }
 
@@ -102,7 +65,7 @@ class MainActivity : ComponentActivity() {
                     localeManager?.applicationLocales = LocaleList.forLanguageTags(localeTag)
                 } else {
                     AppCompatDelegate.setApplicationLocales(
-                        LocaleListCompat.forLanguageTags(localeTag)
+                        LocaleListCompat.forLanguageTags(localeTag),
                     )
                 }
             }
@@ -119,14 +82,14 @@ class MainActivity : ComponentActivity() {
                     val request =
                         PeriodicWorkRequestBuilder<ro.snapify.worker.AutoCleanupWorker>(
                             24,
-                            java.util.concurrent.TimeUnit.HOURS
+                            java.util.concurrent.TimeUnit.HOURS,
                         )
                             .setConstraints(constraints)
                             .build()
                     workManager.enqueueUniquePeriodicWork(
                         "auto_cleanup",
                         ExistingPeriodicWorkPolicy.REPLACE,
-                        request
+                        request,
                     )
                 } else {
                     workManager.cancelUniqueWork("auto_cleanup")
@@ -170,13 +133,13 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         .toSet()
-                    
+
                     val finalUris = if (migratedUris.isEmpty()) {
                         setOf(ro.snapify.util.UriPathConverter.getDefaultScreenshotUri())
                     } else {
                         migratedUris
                     }
-                    
+
                     preferences.setMediaFolderUris(finalUris)
                     preferences.setHasInitializedFolders(true)
                 }
@@ -186,9 +149,9 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
 
                 DestinationsNavHost(
-                navController = navController,
-                startRoute = NavGraphs.root.startRoute,
-                    navGraph = NavGraphs.root
+                    navController = navController,
+                    startRoute = NavGraphs.root.startRoute,
+                    navGraph = NavGraphs.root,
                 )
             }
 

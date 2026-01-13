@@ -17,7 +17,7 @@ import java.io.File
 class AutoCleanupWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted workerParams: WorkerParameters,
-    private val repository: MediaRepository
+    private val repository: MediaRepository,
 ) : CoroutineWorker(context, workerParams) {
 
     private suspend fun performCleanup(): Int {
@@ -31,29 +31,27 @@ class AutoCleanupWorker @AssistedInject constructor(
             } else {
                 DebugLogger.error(
                     "AutoCleanupWorker",
-                    "Failed to delete file: ${mediaItem.filePath}"
+                    "Failed to delete file: ${mediaItem.filePath}",
                 )
             }
         }
         return deletedCount
     }
 
-    override suspend fun doWork(): Result {
-        return withContext(Dispatchers.IO) {
-            try {
-                val deletedCount = performCleanup()
-                DebugLogger.info(
-                    "AutoCleanupWorker",
-                    "Cleaned up $deletedCount expired screenshots"
-                )
-                if (deletedCount > 0) {
-                    NotificationHelper.showCleanupNotification(applicationContext, deletedCount)
-                }
-                Result.success()
-            } catch (e: Exception) {
-                DebugLogger.error("AutoCleanupWorker", "Cleanup failed", e)
-                Result.retry()
+    override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
+        try {
+            val deletedCount = performCleanup()
+            DebugLogger.info(
+                "AutoCleanupWorker",
+                "Cleaned up $deletedCount expired screenshots",
+            )
+            if (deletedCount > 0) {
+                NotificationHelper.showCleanupNotification(applicationContext, deletedCount)
             }
+            Result.success()
+        } catch (e: Exception) {
+            DebugLogger.error("AutoCleanupWorker", "Cleanup failed", e)
+            Result.retry()
         }
     }
 }

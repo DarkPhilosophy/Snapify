@@ -79,8 +79,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
 import com.ramcosta.composedestinations.annotation.Destination
+import kotlinx.coroutines.launch
 import ro.snapify.R
 import ro.snapify.ui.components.PermissionDialog
 import ro.snapify.ui.theme.AppTheme
@@ -96,7 +96,7 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit = {},
     onSelectScreenshotFolder: () -> Unit = {},
     onNavigateToConsole: () -> Unit = {},
-    onThemeChangeCallback: (String) -> Unit = {}
+    onThemeChangeCallback: (String) -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -104,7 +104,7 @@ fun SettingsScreen(
 
     // Permission launcher - defined early so it can access scope and snackbarHostState
     val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
+        contract = ActivityResultContracts.RequestPermission(),
     ) { granted ->
         // Update permission status for UI
         val hasPermission = granted
@@ -126,15 +126,15 @@ fun SettingsScreen(
     val isManualMode by viewModel.isManualMode.collectAsStateWithLifecycle(initialValue = false)
     val language by viewModel.language.collectAsStateWithLifecycle(initialValue = "en")
     val mediaFolderUris by viewModel.mediaFolderUris.collectAsStateWithLifecycle(
-        initialValue = emptySet()
+        initialValue = emptySet(),
     )
     val autoCleanupEnabled by viewModel.autoCleanupEnabled.collectAsStateWithLifecycle(initialValue = false)
     val notificationsEnabled by viewModel.notificationsEnabled.collectAsStateWithLifecycle(
-        initialValue = true
+        initialValue = true,
     )
     var isDeveloperMode by remember { mutableStateOf(false) }
     val developerModeEnabled by viewModel.developerModeEnabled.collectAsStateWithLifecycle(
-        initialValue = false
+        initialValue = false,
     )
     var showPermissionDialog by remember { mutableStateOf(false) }
 
@@ -152,7 +152,7 @@ fun SettingsScreen(
                 title = {
                     Text(
                         text = stringResource(R.string.settings),
-                        style = MaterialTheme.typography.headlineSmall
+                        style = MaterialTheme.typography.headlineSmall,
                     )
                 },
                 navigationIcon = {
@@ -162,18 +162,18 @@ fun SettingsScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                )
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                ),
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             // Theme Section
             item {
@@ -189,7 +189,7 @@ fun SettingsScreen(
                             snackbarHostState.showSnackbar("Theme updated")
                         }
                     },
-                    onThemeChange = onThemeChangeCallback
+                    onThemeChange = onThemeChangeCallback,
                 )
             }
 
@@ -218,7 +218,7 @@ fun SettingsScreen(
                                 (context as? android.app.Activity)?.finish()
                             }
                         }
-                    }
+                    },
                 )
             }
 
@@ -240,11 +240,9 @@ fun SettingsScreen(
                         scope.launch {
                             viewModel.setDeletionTime(time)
                         }
-                    }
+                    },
                 )
             }
-
-
 
             item {
                 AutoCleanupToggle(
@@ -253,7 +251,7 @@ fun SettingsScreen(
                         scope.launch {
                             viewModel.setAutoCleanupEnabled(enabled)
                         }
-                    }
+                    },
                 )
             }
 
@@ -265,7 +263,7 @@ fun SettingsScreen(
                             viewModel.setNotificationsEnabled(enabled)
                         }
                     },
-                    onRequestPermission = { permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) }
+                    onRequestPermission = { permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
                 )
             }
 
@@ -278,7 +276,7 @@ fun SettingsScreen(
                 ScreenshotFolderSelector(
                     currentPath = formattedFolderPaths.firstOrNull()
                         ?: "Default (Pictures/Screenshots)",
-                    onSelectFolder = onSelectScreenshotFolder
+                    onSelectFolder = onSelectScreenshotFolder,
                 )
             }
 
@@ -302,7 +300,7 @@ fun SettingsScreen(
                     snackbarHostState = snackbarHostState,
                     onActivateDeveloperMode = {
                         isDeveloperMode = true
-                    }
+                    },
                 )
             }
 
@@ -341,14 +339,14 @@ fun SettingsScreen(
                                 Text(
                                     "Disable developer options and features.",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             },
                             trailingContent = {
                                 OutlinedButton(onClick = { isDeveloperMode = false }) {
                                     Text("Turn Off")
                                 }
-                            }
+                            },
                         )
                     }
                 }
@@ -368,7 +366,7 @@ fun SettingsScreen(
                 // Start the service when permissions are granted
                 val intent = Intent(
                     context,
-                    ro.snapify.service.ScreenshotMonitorService::class.java
+                    ro.snapify.service.ScreenshotMonitorService::class.java,
                 )
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
                     context.startForegroundService(intent)
@@ -376,7 +374,7 @@ fun SettingsScreen(
                     context.startService(intent)
                 }
             },
-            autoCloseWhenGranted = false
+            autoCloseWhenGranted = false,
         )
     }
 }
@@ -388,7 +386,7 @@ internal fun SettingsSectionHeader(title: String) {
         style = MaterialTheme.typography.titleMedium,
         color = MaterialTheme.colorScheme.primary,
         fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.padding(vertical = 8.dp)
+        modifier = Modifier.padding(vertical = 8.dp),
     )
 }
 
@@ -397,13 +395,13 @@ internal fun SettingsSectionHeader(title: String) {
 internal fun ThemeSelector(
     currentTheme: ThemeMode,
     onThemeSelected: (ThemeMode) -> Unit,
-    onThemeChange: (String) -> Unit
+    onThemeChange: (String) -> Unit,
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
     OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
-        onClick = { showDialog = true }
+        onClick = { showDialog = true },
     ) {
         ListItem(
             headlineContent = { Text(stringResource(R.string.theme)) },
@@ -415,12 +413,12 @@ internal fun ThemeSelector(
                         ThemeMode.SYSTEM -> stringResource(R.string.system_default)
                         ThemeMode.DYNAMIC -> stringResource(R.string.dynamic_colors)
                         ThemeMode.OLED -> stringResource(R.string.oled_theme)
-                    }
+                    },
                 )
             },
             trailingContent = {
                 Icon(Icons.Default.Palette, contentDescription = null)
-            }
+            },
         )
     }
 
@@ -430,11 +428,15 @@ internal fun ThemeSelector(
             onDismissRequest = { showDialog = false },
             title = { Text(stringResource(R.string.choose_theme)) },
             containerColor = MaterialTheme.colorScheme.surface,
-            modifier = if (isOLED) Modifier.border(
-                1.dp,
-                Color.White,
-                RoundedCornerShape(28.dp)
-            ) else Modifier,
+            modifier = if (isOLED) {
+                Modifier.border(
+                    1.dp,
+                    Color.White,
+                    RoundedCornerShape(28.dp),
+                )
+            } else {
+                Modifier
+            },
             text = {
                 MaterialTheme(colorScheme = MaterialTheme.colorScheme) {
                     Column {
@@ -445,7 +447,7 @@ internal fun ThemeSelector(
                             selected = currentTheme == ThemeMode.LIGHT,
                             onThemeChange = onThemeChange,
                             onThemeSelected = onThemeSelected,
-                            onDialogDismiss = { showDialog = false }
+                            onDialogDismiss = { showDialog = false },
                         )
                         ThemeOption(
                             theme = ThemeMode.DARK,
@@ -454,7 +456,7 @@ internal fun ThemeSelector(
                             selected = currentTheme == ThemeMode.DARK,
                             onThemeChange = onThemeChange,
                             onThemeSelected = onThemeSelected,
-                            onDialogDismiss = { showDialog = false }
+                            onDialogDismiss = { showDialog = false },
                         )
                         ThemeOption(
                             theme = ThemeMode.SYSTEM,
@@ -463,7 +465,7 @@ internal fun ThemeSelector(
                             selected = currentTheme == ThemeMode.SYSTEM,
                             onThemeChange = onThemeChange,
                             onThemeSelected = onThemeSelected,
-                            onDialogDismiss = { showDialog = false }
+                            onDialogDismiss = { showDialog = false },
                         )
                         ThemeOption(
                             theme = ThemeMode.DYNAMIC,
@@ -472,7 +474,7 @@ internal fun ThemeSelector(
                             selected = currentTheme == ThemeMode.DYNAMIC,
                             onThemeChange = onThemeChange,
                             onThemeSelected = onThemeSelected,
-                            onDialogDismiss = { showDialog = false }
+                            onDialogDismiss = { showDialog = false },
                         )
                         ThemeOption(
                             theme = ThemeMode.OLED,
@@ -481,7 +483,7 @@ internal fun ThemeSelector(
                             selected = currentTheme == ThemeMode.OLED,
                             onThemeChange = onThemeChange,
                             onThemeSelected = onThemeSelected,
-                            onDialogDismiss = { showDialog = false }
+                            onDialogDismiss = { showDialog = false },
                         )
                     }
                 }
@@ -490,7 +492,7 @@ internal fun ThemeSelector(
                 TextButton(onClick = { showDialog = false }) {
                     Text("Cancel")
                 }
-            }
+            },
         )
     }
 }
@@ -503,7 +505,7 @@ private fun ThemeOption(
     selected: Boolean,
     onThemeChange: (String) -> Unit,
     onThemeSelected: (ThemeMode) -> Unit,
-    onDialogDismiss: () -> Unit
+    onDialogDismiss: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -521,7 +523,7 @@ private fun ThemeOption(
                 onDialogDismiss()
             }
             .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         // Theme preview
         Box(
@@ -531,26 +533,26 @@ private fun ThemeOption(
                 .background(
                     brush = when (theme) {
                         ThemeMode.LIGHT -> Brush.horizontalGradient(
-                            colors = listOf(Color(0xFFFFFBFE), Color(0xFFE7E0EC))
+                            colors = listOf(Color(0xFFFFFBFE), Color(0xFFE7E0EC)),
                         )
 
                         ThemeMode.DARK -> Brush.horizontalGradient(
-                            colors = listOf(Color(0xFF141218), Color(0xFF49454F))
+                            colors = listOf(Color(0xFF141218), Color(0xFF49454F)),
                         )
 
                         ThemeMode.SYSTEM -> Brush.horizontalGradient(
-                            colors = listOf(Color(0xFFFFFBFE), Color(0xFF141218))
+                            colors = listOf(Color(0xFFFFFBFE), Color(0xFF141218)),
                         )
 
                         ThemeMode.DYNAMIC -> Brush.horizontalGradient(
-                            colors = listOf(Color(0xFF6750A4), Color(0xFF21005D))
+                            colors = listOf(Color(0xFF6750A4), Color(0xFF21005D)),
                         )
 
                         ThemeMode.OLED -> Brush.horizontalGradient(
-                            colors = listOf(Color(0xFF000000), Color(0xFF1A1A1A))
+                            colors = listOf(Color(0xFF000000), Color(0xFF1A1A1A)),
                         )
-                    }
-                )
+                    },
+                ),
         )
 
         Spacer(modifier = Modifier.width(16.dp))
@@ -560,7 +562,7 @@ private fun ThemeOption(
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
@@ -568,7 +570,7 @@ private fun ThemeOption(
             Icon(
                 Icons.Default.Check,
                 contentDescription = "Selected",
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.primary,
             )
         }
     }
@@ -578,13 +580,13 @@ private fun ThemeOption(
 @Composable
 internal fun LanguageSelector(
     currentLanguage: String,
-    onLanguageSelected: (String) -> Unit
+    onLanguageSelected: (String) -> Unit,
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
     OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
-        onClick = { showDialog = true }
+        onClick = { showDialog = true },
     ) {
         ListItem(
             headlineContent = { Text(stringResource(R.string.language)) },
@@ -594,12 +596,12 @@ internal fun LanguageSelector(
                         "en" -> stringResource(R.string.english)
                         "ro" -> stringResource(R.string.romanian)
                         else -> stringResource(R.string.english)
-                    }
+                    },
                 )
             },
             trailingContent = {
                 Icon(Icons.Default.Language, contentDescription = null)
-            }
+            },
         )
     }
 
@@ -609,11 +611,15 @@ internal fun LanguageSelector(
             onDismissRequest = { showDialog = false },
             title = { Text(stringResource(R.string.choose_language)) },
             containerColor = MaterialTheme.colorScheme.surface,
-            modifier = if (isOLED) Modifier.border(
-                1.dp,
-                Color.White,
-                RoundedCornerShape(28.dp)
-            ) else Modifier,
+            modifier = if (isOLED) {
+                Modifier.border(
+                    1.dp,
+                    Color.White,
+                    RoundedCornerShape(28.dp),
+                )
+            } else {
+                Modifier
+            },
             text = {
                 MaterialTheme(colorScheme = MaterialTheme.colorScheme) {
                     Column {
@@ -624,7 +630,7 @@ internal fun LanguageSelector(
                             onClick = {
                                 onLanguageSelected("en")
                                 showDialog = false
-                            }
+                            },
                         )
                         LanguageOption(
                             code = "ro",
@@ -633,7 +639,7 @@ internal fun LanguageSelector(
                             onClick = {
                                 onLanguageSelected("ro")
                                 showDialog = false
-                            }
+                            },
                         )
                     }
                 }
@@ -642,7 +648,7 @@ internal fun LanguageSelector(
                 TextButton(onClick = { showDialog = false }) {
                     Text(stringResource(R.string.cancel))
                 }
-            }
+            },
         )
     }
 }
@@ -652,21 +658,21 @@ private fun LanguageOption(
     code: String,
     name: String,
     selected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(text = name, style = MaterialTheme.typography.bodyLarge)
             Text(
                 text = code.uppercase(),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
@@ -674,7 +680,7 @@ private fun LanguageOption(
             Icon(
                 Icons.Default.Check,
                 contentDescription = "Selected",
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.primary,
             )
         }
     }
@@ -685,33 +691,33 @@ internal fun ModeSelector(
     isManualMode: Boolean,
     onModeChanged: (Boolean) -> Unit,
     currentTime: Long,
-    onTimeSelected: (Long) -> Unit
+    onTimeSelected: (Long) -> Unit,
 ) {
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = stringResource(R.string.operation_mode),
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 8.dp),
             )
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 RadioButton(
                     selected = isManualMode,
-                    onClick = { onModeChanged(true) }
+                    onClick = { onModeChanged(true) },
                 )
                 Column(modifier = Modifier.padding(start = 8.dp)) {
                     Text(
                         text = stringResource(R.string.manual_mode),
-                        style = MaterialTheme.typography.bodyLarge
+                        style = MaterialTheme.typography.bodyLarge,
                     )
                     Text(
                         text = stringResource(R.string.manual_mode_desc),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -720,21 +726,21 @@ internal fun ModeSelector(
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 RadioButton(
                     selected = !isManualMode,
-                    onClick = { onModeChanged(false) }
+                    onClick = { onModeChanged(false) },
                 )
                 Column(modifier = Modifier.padding(start = 8.dp)) {
                     Text(
                         text = stringResource(R.string.automatic_mode),
-                        style = MaterialTheme.typography.bodyLarge
+                        style = MaterialTheme.typography.bodyLarge,
                     )
                     Text(
                         text = stringResource(R.string.automatic_mode_desc),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -743,7 +749,7 @@ internal fun ModeSelector(
                 Column(modifier = Modifier.padding(start = 40.dp, top = 8.dp)) {
                     DeletionTimeSelector(
                         currentTime = currentTime,
-                        onTimeSelected = onTimeSelected
+                        onTimeSelected = onTimeSelected,
                     )
                 }
             }
@@ -755,7 +761,7 @@ internal fun ModeSelector(
 @Composable
 private fun DeletionTimeSelector(
     currentTime: Long,
-    onTimeSelected: (Long) -> Unit
+    onTimeSelected: (Long) -> Unit,
 ) {
     var showDialog by remember { mutableStateOf(false) }
     var customMinutes by remember { mutableStateOf("") }
@@ -770,7 +776,7 @@ private fun DeletionTimeSelector(
 
     OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
-        onClick = { showDialog = true }
+        onClick = { showDialog = true },
     ) {
         ListItem(
             headlineContent = { Text(stringResource(R.string.deletion_time)) },
@@ -779,7 +785,7 @@ private fun DeletionTimeSelector(
             },
             trailingContent = {
                 Icon(Icons.Default.Schedule, contentDescription = null)
-            }
+            },
         )
     }
 
@@ -789,11 +795,15 @@ private fun DeletionTimeSelector(
             onDismissRequest = { showDialog = false },
             title = { Text(stringResource(R.string.choose_deletion_time_title)) },
             containerColor = MaterialTheme.colorScheme.surface,
-            modifier = if (isOLED) Modifier.border(
-                1.dp,
-                Color.White,
-                RoundedCornerShape(28.dp)
-            ) else Modifier,
+            modifier = if (isOLED) {
+                Modifier.border(
+                    1.dp,
+                    Color.White,
+                    RoundedCornerShape(28.dp),
+                )
+            } else {
+                Modifier
+            },
             text = {
                 MaterialTheme(colorScheme = MaterialTheme.colorScheme) {
                     Column(modifier = Modifier.fillMaxWidth()) {
@@ -803,14 +813,14 @@ private fun DeletionTimeSelector(
                                 .fillMaxWidth()
                                 .padding(bottom = 16.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            ),
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(
                                     text = "Custom Time (minutes)",
                                     style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
 
                                 Spacer(modifier = Modifier.height(8.dp))
@@ -826,10 +836,10 @@ private fun DeletionTimeSelector(
                                     },
                                     label = { Text("Minutes") },
                                     keyboardOptions = KeyboardOptions(
-                                        keyboardType = KeyboardType.Number
+                                        keyboardType = KeyboardType.Number,
                                     ),
                                     modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true
+                                    singleLine = true,
                                 )
 
                                 Spacer(modifier = Modifier.height(8.dp))
@@ -837,7 +847,7 @@ private fun DeletionTimeSelector(
                                 // Quick add buttons
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
                                     QuickTimeButton("+1h", 60) { minutesToAdd ->
                                         val current = customMinutes.toLongOrNull() ?: 0
@@ -866,7 +876,7 @@ private fun DeletionTimeSelector(
                                 // Apply custom time button
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
                                     Button(
                                         onClick = {
@@ -876,7 +886,7 @@ private fun DeletionTimeSelector(
                                             showDialog = false
                                         },
                                         modifier = Modifier.weight(1f),
-                                        enabled = customMinutes.isNotEmpty() && customMinutes.toLongOrNull() != null && customMinutes.toLong() > 0
+                                        enabled = customMinutes.isNotEmpty() && customMinutes.toLongOrNull() != null && customMinutes.toLong() > 0,
                                     ) {
                                         Text("Set Custom Time")
                                     }
@@ -888,7 +898,7 @@ private fun DeletionTimeSelector(
                                             onTimeSelected(defaultMs)
                                             showDialog = false
                                         },
-                                        modifier = Modifier.weight(1f)
+                                        modifier = Modifier.weight(1f),
                                     ) {
                                         Text("Reset to 1 min")
                                     }
@@ -900,7 +910,7 @@ private fun DeletionTimeSelector(
                         Text(
                             text = "Quick Options",
                             style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            modifier = Modifier.padding(bottom = 8.dp),
                         )
 
                         val timeOptions = listOf(
@@ -913,7 +923,7 @@ private fun DeletionTimeSelector(
                             12 * 60 * 60 * 1000L to stringResource(R.string.twelve_hours),
                             24 * 60 * 60 * 1000L to stringResource(R.string.one_day),
                             3 * 24 * 60 * 60 * 1000L to stringResource(R.string.three_days),
-                            7 * 24 * 60 * 60 * 1000L to stringResource(R.string.one_week)
+                            7 * 24 * 60 * 60 * 1000L to stringResource(R.string.one_week),
                         )
 
                         LazyColumn {
@@ -926,18 +936,18 @@ private fun DeletionTimeSelector(
                                             showDialog = false
                                         }
                                         .padding(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                    verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     RadioButton(
                                         selected = currentTime == time,
                                         onClick = {
                                             onTimeSelected(time)
                                             showDialog = false
-                                        }
+                                        },
                                     )
                                     Text(
                                         text = label,
-                                        modifier = Modifier.padding(start = 8.dp)
+                                        modifier = Modifier.padding(start = 8.dp),
                                     )
                                 }
                             }
@@ -949,7 +959,7 @@ private fun DeletionTimeSelector(
                 TextButton(onClick = { showDialog = false }) {
                     Text(stringResource(R.string.cancel))
                 }
-            }
+            },
         )
     }
 }
@@ -957,7 +967,7 @@ private fun DeletionTimeSelector(
 @Composable
 private fun ScreenshotFolderSelector(
     currentPath: String,
-    onSelectFolder: () -> Unit
+    onSelectFolder: () -> Unit,
 ) {
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         ListItem(
@@ -968,7 +978,7 @@ private fun ScreenshotFolderSelector(
             trailingContent = {
                 Icon(Icons.Default.Folder, contentDescription = null)
             },
-            modifier = Modifier.clickable(onClick = onSelectFolder)
+            modifier = Modifier.clickable(onClick = onSelectFolder),
         )
     }
 }
@@ -977,17 +987,17 @@ private fun ScreenshotFolderSelector(
 private fun QuickTimeButton(
     label: String,
     minutesToAdd: Long,
-    onTimeAdd: (Long) -> Unit
+    onTimeAdd: (Long) -> Unit,
 ) {
     OutlinedButton(
         onClick = { onTimeAdd(minutesToAdd) },
         modifier = Modifier.width(48.dp),
-        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
-            maxLines = 1
+            maxLines = 1,
         )
     }
 }
@@ -996,10 +1006,10 @@ private fun QuickTimeButton(
 @Composable
 internal fun AutoCleanupToggle(
     enabled: Boolean,
-    onToggle: (Boolean) -> Unit
+    onToggle: (Boolean) -> Unit,
 ) {
     OutlinedCard(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
     ) {
         ListItem(
             headlineContent = { Text("[deprechaged] Auto Cleanup") },
@@ -1007,15 +1017,15 @@ internal fun AutoCleanupToggle(
                 Text(
                     "Automatically delete expired screenshots / 2 hours",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
             trailingContent = {
                 Switch(
                     checked = enabled,
-                    onCheckedChange = onToggle
+                    onCheckedChange = onToggle,
                 )
-            }
+            },
         )
     }
 }
@@ -1025,7 +1035,7 @@ internal fun AutoCleanupToggle(
 internal fun NotificationToggle(
     enabled: Boolean,
     onToggle: (Boolean) -> Unit,
-    onRequestPermission: () -> Unit
+    onRequestPermission: () -> Unit,
 ) {
     val context = LocalContext.current
 
@@ -1035,11 +1045,11 @@ internal fun NotificationToggle(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 ContextCompat.checkSelfPermission(
                     context,
-                    Manifest.permission.POST_NOTIFICATIONS
+                    Manifest.permission.POST_NOTIFICATIONS,
                 ) == PackageManager.PERMISSION_GRANTED
             } else {
                 true // Assume granted for older versions
-            }
+            },
         )
     }
 
@@ -1050,7 +1060,7 @@ internal fun NotificationToggle(
         hasNotificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ContextCompat.checkSelfPermission(
                 context,
-                Manifest.permission.POST_NOTIFICATIONS
+                Manifest.permission.POST_NOTIFICATIONS,
             ) == PackageManager.PERMISSION_GRANTED
         } else {
             true
@@ -1080,15 +1090,15 @@ internal fun NotificationToggle(
                 hasNotificationPermission -> MaterialTheme.colorScheme.surface
                 permanentlyDenied -> Color(0xFF9C27B0) // Purple for permanently denied
                 else -> Color(0xFFFF9800) // Orange for not granted
-            }
-        )
+            },
+        ),
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             ListItem(
                 headlineContent = {
                     Text(
                         "Show Notifications",
-                        color = if (hasNotificationPermission) MaterialTheme.colorScheme.onSurface else Color.White
+                        color = if (hasNotificationPermission) MaterialTheme.colorScheme.onSurface else Color.White,
                     )
                 },
                 supportingContent = {
@@ -1099,16 +1109,20 @@ internal fun NotificationToggle(
                             else -> "Notification permission required. Tap to grant permission."
                         },
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (hasNotificationPermission) MaterialTheme.colorScheme.onSurfaceVariant else Color.White.copy(
-                            alpha = 0.8f
-                        )
+                        color = if (hasNotificationPermission) {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        } else {
+                            Color.White.copy(
+                                alpha = 0.8f,
+                            )
+                        },
                     )
                 },
                 trailingContent = {
                     if (hasNotificationPermission) {
                         Switch(
                             checked = enabled,
-                            onCheckedChange = onToggle
+                            onCheckedChange = onToggle,
                         )
                     } else if (permanentlyDenied) {
                         TextButton(
@@ -1121,22 +1135,22 @@ internal fun NotificationToggle(
                                 context.startActivity(intent)
                             },
                             colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
-                                contentColor = Color.White
-                            )
+                                contentColor = Color.White,
+                            ),
                         ) {
                             Text("Open Settings")
                         }
                     } else {
                         // Show nothing for initial request state
                     }
-                }
+                },
             )
             if (permanentlyDenied && !hasNotificationPermission) {
                 Text(
                     text = "Grant notification permission in app settings to enable notifications.",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.White.copy(alpha = 0.8f),
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                 )
             }
         }
@@ -1150,7 +1164,7 @@ fun AutoCleanupTogglePreview() {
     AppTheme {
         AutoCleanupToggle(
             enabled = true,
-            onToggle = {}
+            onToggle = {},
         )
     }
 }
@@ -1163,7 +1177,7 @@ fun NotificationToggleGrantedPreview() {
         NotificationToggle(
             enabled = true,
             onToggle = {},
-            onRequestPermission = {}
+            onRequestPermission = {},
         )
     }
 }
@@ -1176,7 +1190,7 @@ fun NotificationToggleDeniedPreview() {
         NotificationToggle(
             enabled = false,
             onToggle = {},
-            onRequestPermission = {}
+            onRequestPermission = {},
         )
     }
 }
@@ -1191,16 +1205,15 @@ internal fun LiveVideoPreviewToggle(enabled: Boolean, onToggle: (Boolean) -> Uni
                 Text(
                     "When enabled, videos play automatically in the media list. Only one video plays at a time to conserve memory and prevent crashes. Videos are muted and loop continuously.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-
             },
             trailingContent = {
                 Switch(
                     checked = enabled,
-                    onCheckedChange = onToggle
+                    onCheckedChange = onToggle,
                 )
-            }
+            },
         )
     }
 }
@@ -1212,7 +1225,7 @@ internal fun CrashTestButton() {
         modifier = Modifier.fillMaxWidth(),
         onClick = {
             throw RuntimeException("Test Crash") // Force a crash for Crashlytics testing
-        }
+        },
     ) {
         ListItem(
             headlineContent = { Text("Test Crash") },
@@ -1220,16 +1233,16 @@ internal fun CrashTestButton() {
                 Text(
                     "Tap to trigger a test crash for Crashlytics testing",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
             trailingContent = {
                 Icon(
                     Icons.Default.Close, // Using close icon to represent crash/error
                     contentDescription = "Test Crash",
-                    tint = MaterialTheme.colorScheme.error
+                    tint = MaterialTheme.colorScheme.error,
                 )
-            }
+            },
         )
     }
 }
@@ -1237,11 +1250,11 @@ internal fun CrashTestButton() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ConsoleButton(
-    onNavigateToConsole: () -> Unit
+    onNavigateToConsole: () -> Unit,
 ) {
     OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
-        onClick = onNavigateToConsole
+        onClick = onNavigateToConsole,
     ) {
         ListItem(
             headlineContent = { Text("Debug Console") },
@@ -1249,7 +1262,7 @@ internal fun ConsoleButton(
                 Text(
                     "Access developer debug console for advanced diagnostics",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
         )
@@ -1260,7 +1273,7 @@ internal fun ConsoleButton(
 internal fun VersionInfo(
     isDeveloperMode: Boolean,
     snackbarHostState: SnackbarHostState,
-    onActivateDeveloperMode: () -> Unit
+    onActivateDeveloperMode: () -> Unit,
 ) {
     var tapCount by remember { mutableIntStateOf(0) }
     var resetJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
@@ -1294,27 +1307,27 @@ internal fun VersionInfo(
                 kotlinx.coroutines.delay(3000)
                 tapCount = 0
             }
-        }
+        },
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = "Screenshot Manager",
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
             )
             Text(
                 text = "Version 1.0.0",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
                 text = "MIT License \nCopyright (c) 2025",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
                 text = "\nMade with ❤\uFE0F by Adalbert Alexandru Ungureanu \nDonation are welcome \uD83D\uDE4F",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -1339,15 +1352,15 @@ internal fun PermanentSettingMenuToggle(enabled: Boolean, onToggle: (Boolean) ->
                 Text(
                     "When enabled, the settings button remains visible at the bottom of the main screen for quick access to settings drawer.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
             trailingContent = {
                 Switch(
                     checked = enabled,
-                    onCheckedChange = onToggle
+                    onCheckedChange = onToggle,
                 )
-            }
+            },
         )
     }
 }
@@ -1359,7 +1372,7 @@ fun ThemeSelectorPreview() {
         ThemeSelector(
             currentTheme = ThemeMode.SYSTEM,
             onThemeSelected = {},
-            onThemeChange = {}
+            onThemeChange = {},
         )
     }
 }
@@ -1370,7 +1383,7 @@ fun LanguageSelectorPreview() {
     AppTheme {
         LanguageSelector(
             currentLanguage = "en",
-            onLanguageSelected = {}
+            onLanguageSelected = {},
         )
     }
 }
@@ -1383,7 +1396,7 @@ fun ModeSelectorPreview() {
             isManualMode = true,
             onModeChanged = {},
             currentTime = 60000L,
-            onTimeSelected = {}
+            onTimeSelected = {},
         )
     }
 }
@@ -1394,7 +1407,7 @@ fun DeletionTimeSelectorPreview() {
     AppTheme {
         DeletionTimeSelector(
             currentTime = 1 * 60 * 1000L, // 15 minutes
-            onTimeSelected = {}
+            onTimeSelected = {},
         )
     }
 }
@@ -1405,7 +1418,7 @@ internal fun PermissionsSection(onOpenPermissions: () -> Unit) {
     OutlinedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onOpenPermissions)
+            .clickable(onClick = onOpenPermissions),
     ) {
         ListItem(
             headlineContent = { Text(stringResource(R.string.permissions)) },
@@ -1413,12 +1426,12 @@ internal fun PermissionsSection(onOpenPermissions: () -> Unit) {
                 Text(
                     "Manage app permissions and access settings",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
             trailingContent = {
                 Icon(Icons.Default.Lock, contentDescription = null)
-            }
+            },
         )
     }
 }

@@ -61,21 +61,19 @@ internal object PictureConstants {
 fun calculatePictureDisplaySize(
     imageAspectRatio: Float,
     availableWidthPx: Float,
-    availableHeightPx: Float
-): Pair<Float, Float> {
-    return if (imageAspectRatio > availableWidthPx / availableHeightPx) {
-        // Image is wider, fit to width
-        availableWidthPx to (availableWidthPx / imageAspectRatio)
-    } else {
-        // Image is taller, fit to height
-        (availableHeightPx * imageAspectRatio) to availableHeightPx
-    }
+    availableHeightPx: Float,
+): Pair<Float, Float> = if (imageAspectRatio > availableWidthPx / availableHeightPx) {
+    // Image is wider, fit to width
+    availableWidthPx to (availableWidthPx / imageAspectRatio)
+} else {
+    // Image is taller, fit to height
+    (availableHeightPx * imageAspectRatio) to availableHeightPx
 }
 
 @Composable
 fun PicturePreviewDialog(
     mediaItem: MediaItem,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     // Handle back press to dismiss dialog
     BackHandler { onDismiss() }
@@ -97,17 +95,17 @@ fun PicturePreviewDialog(
         targetValue = 1f,
         animationSpec = tween(
             500,
-            easing = androidx.compose.animation.core.EaseOutCubic
+            easing = androidx.compose.animation.core.EaseOutCubic,
         ),
-        label = "dialogScale"
+        label = "dialogScale",
     )
     val dialogAlpha by animateFloatAsState(
         targetValue = 1f,
         animationSpec = tween(
             500,
-            easing = androidx.compose.animation.core.EaseOutCubic
+            easing = androidx.compose.animation.core.EaseOutCubic,
         ),
-        label = "dialogAlpha"
+        label = "dialogAlpha",
     )
 
     // Get image aspect ratio considering EXIF orientation
@@ -123,7 +121,7 @@ fun PicturePreviewDialog(
             val exif = ExifInterface(mediaItem.filePath)
             val orientation = exif.getAttributeInt(
                 ExifInterface.TAG_ORIENTATION,
-                ExifInterface.ORIENTATION_NORMAL
+                ExifInterface.ORIENTATION_NORMAL,
             )
 
             // If rotated 90 or 270 degrees, swap dimensions
@@ -157,12 +155,12 @@ fun PicturePreviewDialog(
 
     val leftInsetPx = max(
         systemBarsInsets.getLeft(density, layoutDirection),
-        displayCutoutInsets.getLeft(density, layoutDirection)
+        displayCutoutInsets.getLeft(density, layoutDirection),
     )
     val topInsetPx = max(systemBarsInsets.getTop(density), displayCutoutInsets.getTop(density))
     val rightInsetPx = max(
         systemBarsInsets.getRight(density, layoutDirection),
-        displayCutoutInsets.getRight(density, layoutDirection)
+        displayCutoutInsets.getRight(density, layoutDirection),
     )
     val bottomInsetPx =
         max(systemBarsInsets.getBottom(density), displayCutoutInsets.getBottom(density))
@@ -175,42 +173,43 @@ fun PicturePreviewDialog(
     val safeWidthDp = availableScreenWidth / density.density
     val safeHeightDp = availableScreenHeight / density.density
     val availableWidthDp =
-        safeWidthDp * PictureConstants.AVAILABLE_AREA_PERCENT  // 95% of safe area width
+        safeWidthDp * PictureConstants.AVAILABLE_AREA_PERCENT // 95% of safe area width
     val availableHeightDp =
-        safeHeightDp * PictureConstants.AVAILABLE_AREA_PERCENT  // 95% of safe area height
+        safeHeightDp * PictureConstants.AVAILABLE_AREA_PERCENT // 95% of safe area height
 
     // Calculate display size based on image aspect ratio and available space
     val availableWidthPx = availableWidthDp * density.density
     val availableHeightPx = availableHeightDp * density.density
     val (displayWidthPx, displayHeightPx) = calculatePictureDisplaySize(
-        originalImageAspectRatio, availableWidthPx, availableHeightPx
+        originalImageAspectRatio,
+        availableWidthPx,
+        availableHeightPx,
     )
 
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         // Position the dialog within safe area bounds
         Box(
             modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
         ) {
-
             Card(
                 modifier = Modifier
                     .size(
                         width = (displayWidthPx / density.density).dp,
-                        height = (displayHeightPx / density.density).dp
+                        height = (displayHeightPx / density.density).dp,
                     )
                     .graphicsLayer(
                         scaleX = dialogScale,
                         scaleY = dialogScale,
-                        alpha = dialogAlpha
+                        alpha = dialogAlpha,
                     ),
                 colors = androidx.compose.material3.CardDefaults.cardColors(
-                    containerColor = Color.Black
+                    containerColor = Color.Black,
                 ),
-                elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 8.dp)
+                elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 8.dp),
             ) {
                 Box(
                     modifier = Modifier
@@ -218,8 +217,8 @@ fun PicturePreviewDialog(
                         .border(
                             width = 2.dp,
                             color = MaterialTheme.colorScheme.outline,
-                            shape = RoundedCornerShape(8.dp)
-                        )
+                            shape = RoundedCornerShape(8.dp),
+                        ),
                 ) {
                     AsyncImage(
                         model = ImageRequest.Builder(context)
@@ -242,11 +241,11 @@ fun PicturePreviewDialog(
                                 scaleY = scale,
                                 rotationZ = rotation,
                                 translationX = offsetX,
-                                translationY = offsetY
+                                translationY = offsetY,
                             )
                             .clickable {
                                 controlsVisible = !controlsVisible
-                            }
+                            },
                     )
 
                     // Top bar
@@ -257,7 +256,7 @@ fun PicturePreviewDialog(
                                 .fillMaxWidth()
                                 .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
                                 .padding(horizontal = 16.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
                                 text = mediaItem.fileName,
@@ -265,7 +264,7 @@ fun PicturePreviewDialog(
                                 color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.weight(1f),
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis,
                             )
                             IconButton(
                                 onClick = {
@@ -274,19 +273,19 @@ fun PicturePreviewDialog(
                                     offsetX = 0f
                                     offsetY = 0f
                                 },
-                                modifier = Modifier.size(32.dp)
+                                modifier = Modifier.size(32.dp),
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Refresh,
                                     contentDescription = "Reset",
-                                    tint = MaterialTheme.colorScheme.onSurface
+                                    tint = MaterialTheme.colorScheme.onSurface,
                                 )
                             }
                             IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Close",
-                                    tint = MaterialTheme.colorScheme.onSurface
+                                    tint = MaterialTheme.colorScheme.onSurface,
                                 )
                             }
                         }
@@ -304,7 +303,7 @@ fun PicturePreviewDialog(
                                 offsetX = 0f
                                 offsetY = 0f
                             },
-                            modifier = Modifier.align(Alignment.BottomCenter)
+                            modifier = Modifier.align(Alignment.BottomCenter),
                         )
                     }
                 }

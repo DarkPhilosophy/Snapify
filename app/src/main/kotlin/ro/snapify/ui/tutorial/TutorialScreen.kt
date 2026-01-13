@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun TutorialScreen(
     onComplete: () -> Unit,
-    onSkip: () -> Unit
+    onSkip: () -> Unit,
 ) {
     var currentStep by remember { mutableIntStateOf(0) }
     var showOverlayTutorial by remember { mutableStateOf(false) }
@@ -40,46 +40,46 @@ fun TutorialScreen(
         TutorialStep.StatusBar,
         TutorialStep.Tabs,
         TutorialStep.ScreenshotCard,
-        TutorialStep.FABs
+        TutorialStep.FABs,
     )
 
     val highlights = listOf(
         TutorialHighlight(
             title = "Welcome!",
             description = "Let's learn how to use Screenshot Manager. This tutorial will show you all the features.",
-            tooltipAlignment = Alignment.Center
+            tooltipAlignment = Alignment.Center,
         ),
         TutorialHighlight(
             title = "Status Bar",
             description = "This colored bar shows if screenshot monitoring is active. Green means active, orange means stopped.",
-            tooltipAlignment = Alignment.TopCenter
+            tooltipAlignment = Alignment.TopCenter,
         ),
         TutorialHighlight(
             title = "Filter Tabs",
             description = "Use these tabs to filter screenshots: All, Marked for deletion, Kept permanently, or Unmarked.",
-            tooltipAlignment = Alignment.TopCenter
+            tooltipAlignment = Alignment.TopCenter,
         ),
         TutorialHighlight(
             title = "Screenshot Cards",
             description = "Each screenshot appears as a card with thumbnail, name, and size. Tap to view, use buttons to keep or delete.",
-            tooltipAlignment = Alignment.Center
+            tooltipAlignment = Alignment.Center,
         ),
         TutorialHighlight(
             title = "Action Buttons",
             description = "The top button scrolls to newest screenshots. The bottom button opens settings.",
-            tooltipAlignment = Alignment.BottomCenter
-        )
+            tooltipAlignment = Alignment.BottomCenter,
+        ),
     )
 
     Scaffold(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize(),
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
             // Main tutorial content
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {
                     Text(
@@ -88,7 +88,7 @@ fun TutorialScreen(
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 32.dp)
+                            .padding(vertical = 32.dp),
                     )
                 }
 
@@ -96,7 +96,7 @@ fun TutorialScreen(
                     item {
                         TutorialStepContent(
                             step = step,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
                 }
@@ -107,18 +107,18 @@ fun TutorialScreen(
                             .fillMaxWidth()
                             .padding(vertical = 32.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         Button(
                             onClick = { showOverlayTutorial = true },
-                            modifier = Modifier.fillMaxWidth(0.8f)
+                            modifier = Modifier.fillMaxWidth(0.8f),
                         ) {
                             Text("Start Interactive Tutorial")
                         }
 
                         OutlinedButton(
                             onClick = onSkip,
-                            modifier = Modifier.fillMaxWidth(0.8f)
+                            modifier = Modifier.fillMaxWidth(0.8f),
                         ) {
                             Text("Skip Tutorial")
                         }
@@ -146,7 +146,7 @@ fun TutorialScreen(
                 onFinish = {
                     showOverlayTutorial = false
                     onComplete()
-                }
+                },
             )
         }
     }
@@ -160,7 +160,7 @@ fun TutorialScreenPreview() {
     MaterialTheme {
         TutorialScreen(
             onComplete = {},
-            onSkip = {}
+            onSkip = {},
         )
     }
 }

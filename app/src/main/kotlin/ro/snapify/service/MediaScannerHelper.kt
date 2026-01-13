@@ -25,10 +25,12 @@ class MediaScannerHelper(
     private val contentResolver: ContentResolver,
     private val repository: MediaRepository,
     private val preferences: AppPreferences,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
 ) {
 
-    private val TAG = "MediaScannerHelper"
+    companion object {
+        private const val TAG = "MediaScannerHelper"
+    }
 
     /**
      * Scans all existing media in configured folders.
@@ -54,7 +56,7 @@ class MediaScannerHelper(
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                 isVideo = false,
                 existingFilePaths,
-                mediaFolders
+                mediaFolders,
             )
 
             // Scan videos
@@ -62,7 +64,7 @@ class MediaScannerHelper(
                 MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
                 isVideo = true,
                 existingFilePaths,
-                mediaFolders
+                mediaFolders,
             )
 
             DebugLogger.info(TAG, "Media scan completed, inserted $totalInserted new items")
@@ -81,7 +83,7 @@ class MediaScannerHelper(
         uri: Uri,
         isVideo: Boolean,
         existingFilePaths: Set<String>,
-        mediaFolders: List<String>
+        mediaFolders: List<String>,
     ): Int {
         var insertedCount = 0
         val mediaTypeLabel = if (isVideo) "videos" else "images"
@@ -94,7 +96,7 @@ class MediaScannerHelper(
                 projection,
                 null,
                 null,
-                "${MediaStore.MediaColumns.DATE_ADDED} DESC"
+                "${MediaStore.MediaColumns.DATE_ADDED} DESC",
             )?.use { cursor ->
                 while (cursor.moveToNext()) {
                     try {
@@ -138,7 +140,7 @@ class MediaScannerHelper(
                     createdAt = mediaData.createdAt,
                     deletionTimestamp = null,
                     isKept = false,
-                    contentUri = mediaData.contentUri
+                    contentUri = mediaData.contentUri,
                 )
 
                 repository.insert(mediaItem)
@@ -234,7 +236,7 @@ class MediaScannerHelper(
     suspend fun cleanUpItemsNotInConfiguredFolders() {
         try {
             val configuredFolders = getConfiguredMediaFolders()
-            
+
             if (configuredFolders.isEmpty()) {
                 // If no folders configured, don't delete items (user may re-add folders)
                 DebugLogger.info(TAG, "No configured folders, skipping cleanup of unconfigured items")
@@ -266,40 +268,36 @@ class MediaScannerHelper(
     /**
      * Gets configured media folder paths.
      */
-    private suspend fun getConfiguredMediaFolders(): List<String> {
-        return try {
-            val configuredUris = preferences.mediaFolderUris.first()
-            UriPathConverter.decodeMediaFolderUris(configuredUris.toList())
-        } catch (e: Exception) {
-            DebugLogger.warning(TAG, "Error getting configured folders, using default", e)
-            val defaultUri = UriPathConverter.getDefaultScreenshotUri()
-            UriPathConverter.decodeMediaFolderUris(listOf(defaultUri))
-        }
+    private suspend fun getConfiguredMediaFolders(): List<String> = try {
+        val configuredUris = preferences.mediaFolderUris.first()
+        UriPathConverter.decodeMediaFolderUris(configuredUris.toList())
+    } catch (e: Exception) {
+        DebugLogger.warning(TAG, "Error getting configured folders, using default", e)
+        val defaultUri = UriPathConverter.getDefaultScreenshotUri()
+        UriPathConverter.decodeMediaFolderUris(listOf(defaultUri))
     }
 
     /**
      * Gets the projection (columns) to query for a media type.
      */
-    private fun getMediaProjection(isVideo: Boolean): Array<String> {
-        return if (isVideo) {
-            arrayOf(
-                MediaStore.Video.Media._ID,
-                MediaStore.Video.Media.DISPLAY_NAME,
-                MediaStore.Video.Media.SIZE,
-                MediaStore.Video.Media.DATE_ADDED,
-                MediaStore.Video.Media.DATA,
-                MediaStore.MediaColumns.RELATIVE_PATH  // For Android 11+
-            )
-        } else {
-            arrayOf(
-                MediaStore.Images.Media._ID,
-                MediaStore.Images.Media.DISPLAY_NAME,
-                MediaStore.Images.Media.SIZE,
-                MediaStore.Images.Media.DATE_ADDED,
-                MediaStore.Images.Media.DATA,
-                MediaStore.MediaColumns.RELATIVE_PATH  // For Android 11+
-            )
-        }
+    private fun getMediaProjection(isVideo: Boolean): Array<String> = if (isVideo) {
+        arrayOf(
+            MediaStore.Video.Media._ID,
+            MediaStore.Video.Media.DISPLAY_NAME,
+            MediaStore.Video.Media.SIZE,
+            MediaStore.Video.Media.DATE_ADDED,
+            MediaStore.Video.Media.DATA,
+            MediaStore.MediaColumns.RELATIVE_PATH, // For Android 11+
+        )
+    } else {
+        arrayOf(
+            MediaStore.Images.Media._ID,
+            MediaStore.Images.Media.DISPLAY_NAME,
+            MediaStore.Images.Media.SIZE,
+            MediaStore.Images.Media.DATE_ADDED,
+            MediaStore.Images.Media.DATA,
+            MediaStore.MediaColumns.RELATIVE_PATH, // For Android 11+
+        )
     }
 
     /**
@@ -307,17 +305,17 @@ class MediaScannerHelper(
      */
     private fun extractMediaData(cursor: android.database.Cursor, isVideo: Boolean, baseUri: Uri): MediaData {
         val id = cursor.getLong(
-            cursor.getColumnIndexOrThrow(if (isVideo) MediaStore.Video.Media._ID else MediaStore.Images.Media._ID)
+            cursor.getColumnIndexOrThrow(if (isVideo) MediaStore.Video.Media._ID else MediaStore.Images.Media._ID),
         )
         val contentUri = ContentUris.withAppendedId(baseUri, id).toString()
         val fileName = cursor.getString(
-            cursor.getColumnIndexOrThrow(if (isVideo) MediaStore.Video.Media.DISPLAY_NAME else MediaStore.Images.Media.DISPLAY_NAME)
+            cursor.getColumnIndexOrThrow(if (isVideo) MediaStore.Video.Media.DISPLAY_NAME else MediaStore.Images.Media.DISPLAY_NAME),
         )
         val fileSize = cursor.getLong(
-            cursor.getColumnIndexOrThrow(if (isVideo) MediaStore.Video.Media.SIZE else MediaStore.Images.Media.SIZE)
+            cursor.getColumnIndexOrThrow(if (isVideo) MediaStore.Video.Media.SIZE else MediaStore.Images.Media.SIZE),
         )
         val dateAdded = cursor.getLong(
-            cursor.getColumnIndexOrThrow(if (isVideo) MediaStore.Video.Media.DATE_ADDED else MediaStore.Images.Media.DATE_ADDED)
+            cursor.getColumnIndexOrThrow(if (isVideo) MediaStore.Video.Media.DATE_ADDED else MediaStore.Images.Media.DATE_ADDED),
         ) * 1000L // Convert to milliseconds
 
         // Try to get file path from cursor
@@ -333,7 +331,7 @@ class MediaScannerHelper(
                     filePath = dataPath
                 }
             }
-            
+
             // If DATA column failed, construct path from RELATIVE_PATH (Android 11+)
             if (filePath.isEmpty()) {
                 try {
@@ -341,20 +339,20 @@ class MediaScannerHelper(
                     if (relativePathIndex != -1) {
                         val relativePath = cursor.getString(relativePathIndex)
                         if (!relativePath.isNullOrEmpty()) {
-                            filePath = "${android.os.Environment.getExternalStorageDirectory().absolutePath}/${relativePath}${fileName}"
+                            filePath = "${android.os.Environment.getExternalStorageDirectory().absolutePath}/${relativePath}$fileName"
                         }
                     }
                 } catch (e: Exception) {
                     DebugLogger.debug(TAG, "Failed to get RELATIVE_PATH: ${e.message}")
                 }
             }
-            
+
             // Last resort: construct from standard locations
             if (filePath.isEmpty()) {
                 val defaultPath = if (isVideo) {
-                    "${android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_MOVIES).absolutePath}/${fileName}"
+                    "${android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_MOVIES).absolutePath}/$fileName"
                 } else {
-                    "${android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_PICTURES).absolutePath}/${fileName}"
+                    "${android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_PICTURES).absolutePath}/$fileName"
                 }
                 if (java.io.File(defaultPath).exists()) {
                     filePath = defaultPath
@@ -369,7 +367,7 @@ class MediaScannerHelper(
             fileName = fileName,
             fileSize = fileSize,
             createdAt = dateAdded,
-            filePath = filePath
+            filePath = filePath,
         )
     }
 
@@ -381,6 +379,6 @@ class MediaScannerHelper(
         val fileName: String,
         val fileSize: Long,
         val createdAt: Long,
-        val filePath: String
+        val filePath: String,
     )
 }

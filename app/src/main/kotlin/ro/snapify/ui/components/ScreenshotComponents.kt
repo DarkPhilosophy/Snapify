@@ -4,10 +4,8 @@ import android.graphics.Bitmap
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
@@ -17,7 +15,6 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,8 +24,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -46,15 +41,11 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedIconButton
-import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -115,11 +106,10 @@ class MultiVideoManager {
     private val videoContexts = mutableMapOf<String, android.content.Context>()
     private val videoCreationTimes = mutableMapOf<String, Long>()
 
-
     fun getOrCreatePlayerForVideo(
         context: android.content.Context,
         videoId: String,
-        videoUri: android.net.Uri
+        videoUri: android.net.Uri,
     ): ExoPlayer? {
         return try {
             // Check if we already have a player for this video
@@ -129,14 +119,13 @@ class MultiVideoManager {
                 return existingPlayer
             }
 
-
             // Create new player for this video with reduced buffer sizes to prevent OOM
             val loadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
                     VideoConstants.BUFFER_DURATION_MIN_MS,
                     VideoConstants.BUFFER_DURATION_MAX_MS,
                     VideoConstants.BUFFER_DURATION_PLAYBACK_MS,
-                    VideoConstants.BUFFER_DURATION_REBUFFER_MS
+                    VideoConstants.BUFFER_DURATION_REBUFFER_MS,
                 )
                 .setTargetBufferBytes(VideoConstants.TARGET_BUFFER_BYTES)
                 .setPrioritizeTimeOverSizeThresholds(false)
@@ -159,20 +148,18 @@ class MultiVideoManager {
 
             DebugLogger.info(
                 "VideoLifecycle",
-                "Created NEW player for $videoId, active players: ${activePlayers.size}"
+                "Created NEW player for $videoId, active players: ${activePlayers.size}",
             )
 
             player
         } catch (e: Exception) {
             DebugLogger.error(
                 "VideoLifecycle",
-                "Failed to create player for $videoId: ${e.message}"
+                "Failed to create player for $videoId: ${e.message}",
             )
             null
         }
     }
-
-
 
     fun pauseAll() {
         activePlayers.values.forEach { it.pause() }
@@ -182,14 +169,9 @@ class MultiVideoManager {
         activePlayers.values.forEach { it.playWhenReady = true }
     }
 
-
     fun getPlayerForVideo(videoId: String): ExoPlayer? = activePlayers[videoId]
 
-
-
-    fun getActiveVideoIds(): Set<String> {
-        return activePlayers.keys
-    }
+    fun getActiveVideoIds(): Set<String> = activePlayers.keys
 
     fun cleanupInvisibleVideos() {
         // Get videos that are no longer visible (not in the scoring map)
@@ -243,12 +225,14 @@ private val recentlyStartedVideos = mutableSetOf<String>()
 private var updateJob: kotlinx.coroutines.Job? = null
 
 // Helper functions for video and file utilities
-private fun isVideoFile(filePath: String): Boolean {
-    return filePath.lowercase().let {
-        it.endsWith(".mp4") || it.endsWith(".avi") || it.endsWith(".mov") || it.endsWith(".mkv") || it.endsWith(
-            ".webm"
+private fun isVideoFile(filePath: String): Boolean = filePath.lowercase().let {
+    it.endsWith(".mp4") ||
+        it.endsWith(".avi") ||
+        it.endsWith(".mov") ||
+        it.endsWith(".mkv") ||
+        it.endsWith(
+            ".webm",
         )
-    }
 }
 
 private fun getFileSizeText(filePath: String): String {
@@ -262,7 +246,7 @@ private fun getFileSizeText(filePath: String): String {
 
 private suspend fun loadVideoThumbnail(
     context: android.content.Context,
-    screenshot: MediaItem
+    screenshot: MediaItem,
 ): Bitmap? {
     val uri = screenshot.contentUri?.toUri() ?: File(screenshot.filePath).toUri()
     return getVideoThumbnail(context, uri)
@@ -270,7 +254,7 @@ private suspend fun loadVideoThumbnail(
 
 private fun calculateVisibilityScore(
     bounds: androidx.compose.ui.geometry.Rect,
-    screenHeight: Float
+    screenHeight: Float,
 ): Float {
     val visibleHeight = maxOf(0f, minOf(bounds.bottom, screenHeight) - maxOf(bounds.top, 0f))
     val totalHeight = bounds.bottom - bounds.top
@@ -299,7 +283,6 @@ private fun doUpdateActivePlayers() {
         .map { it.key }
         .toSet()
 
-
     // Get current active players
     val currentActiveVideos = globalVideoManager.getActiveVideoIds()
 
@@ -312,7 +295,7 @@ private fun doUpdateActivePlayers() {
     if (videosToStart.isNotEmpty() || videosToStop.isNotEmpty()) {
         DebugLogger.debug(
             "VideoUpdate",
-            "Current active: $currentActiveVideos, To START: $videosToStart, To STOP: $videosToStop"
+            "Current active: $currentActiveVideos, To START: $videosToStart, To STOP: $videosToStop",
         )
     }
 
@@ -343,7 +326,7 @@ private fun doUpdateActivePlayers() {
         if (videosToStart.isNotEmpty() || videosToStop.isNotEmpty()) {
             DebugLogger.debug(
                 "VideoUpdate",
-                "Cleanup done, active players: ${globalVideoManager.getActiveVideoIds().size}"
+                "Cleanup done, active players: ${globalVideoManager.getActiveVideoIds().size}",
             )
         }
     }
@@ -356,12 +339,11 @@ fun VisibilityAwareVideo(
     videoId: String,
     videoUri: android.net.Uri,
     modifier: Modifier = Modifier,
-    content: @Composable (ExoPlayer?, Boolean) -> Unit
+    content: @Composable (ExoPlayer?, Boolean) -> Unit,
 ) {
     val context = LocalContext.current
     var isPlayerCreated by remember { mutableStateOf(false) }
     var currentIsPlaying by remember { mutableStateOf(false) }
-
 
     // Listen to player state changes to update playing status
     val currentPlayer = remember { mutableStateOf<ExoPlayer?>(null) }
@@ -395,7 +377,7 @@ fun VisibilityAwareVideo(
             currentIsPlaying = p.isPlaying
             DebugLogger.info(
                 "VideoPlayer",
-                "Initial state for $videoId: playing=${p.isPlaying}, state=${p.playbackState}"
+                "Initial state for $videoId: playing=${p.isPlaying}, state=${p.playbackState}",
             )
         } else {
             currentIsPlaying = false
@@ -420,48 +402,50 @@ fun VisibilityAwareVideo(
         }
     }
 
-    Box(modifier = modifier.onGloballyPositioned { coordinates ->
-        val bounds = coordinates.boundsInWindow()
-        val screenHeight =
-            android.content.res.Resources.getSystem().displayMetrics.heightPixels.toFloat()
+    Box(
+        modifier = modifier.onGloballyPositioned { coordinates ->
+            val bounds = coordinates.boundsInWindow()
+            val screenHeight =
+                android.content.res.Resources.getSystem().displayMetrics.heightPixels.toFloat()
 
-        // Calculate visibility score (0.0 to 1.0)
-        val visibilityScore = calculateVisibilityScore(bounds, screenHeight)
+            // Calculate visibility score (0.0 to 1.0)
+            val visibilityScore = calculateVisibilityScore(bounds, screenHeight)
 
-        if (visibilityScore > 0f) { // Any pixel visible
-            // Video is at least partially visible - include in priority list
-            visibleVideosWithScores[videoId] = visibilityScore
-            // DebugLogger.debug("VideoLifecycle", "Video $videoId ENTER visible with score $visibilityScore")
-        } else {
-            // Video is completely off screen - remove from priority list
-            visibleVideosWithScores.remove(videoId)
-            // DebugLogger.debug("VideoLifecycle", "Video $videoId EXIT not visible")
-        }
-
-        // Update which videos should be active based on scores
-        updateActivePlayers()
-
-        // Calculate current top visible videos
-        val currentTopVisible = visibleVideosWithScores.entries
-            .sortedWith(compareByDescending<Map.Entry<String, Float>> { it.value }.thenBy { it.key })
-            .take(VideoConstants.MAX_SLOTS)
-            .map { it.key }
-            .toSet()
-
-        if (visibilityScore > 0f) {
-            // Create player if not already created, in top visible, and not recently started
-            if (!isPlayerCreated && videoId in currentTopVisible && videoId !in recentlyStartedVideos) {
-                val createdPlayer =
-                    globalVideoManager.getOrCreatePlayerForVideo(context, videoId, videoUri)
-                isPlayerCreated = true
-                currentPlayer.value = createdPlayer
-                // DebugLogger.debug("VideoLifecycle", "Created player for $videoId: ${player != null}")
+            if (visibilityScore > 0f) { // Any pixel visible
+                // Video is at least partially visible - include in priority list
+                visibleVideosWithScores[videoId] = visibilityScore
+                // DebugLogger.debug("VideoLifecycle", "Video $videoId ENTER visible with score $visibilityScore")
+            } else {
+                // Video is completely off screen - remove from priority list
+                visibleVideosWithScores.remove(videoId)
+                // DebugLogger.debug("VideoLifecycle", "Video $videoId EXIT not visible")
             }
-        }
 
-        // Update the player state
-        currentPlayer.value = globalVideoManager.getPlayerForVideo(videoId)
-    }) {
+            // Update which videos should be active based on scores
+            updateActivePlayers()
+
+            // Calculate current top visible videos
+            val currentTopVisible = visibleVideosWithScores.entries
+                .sortedWith(compareByDescending<Map.Entry<String, Float>> { it.value }.thenBy { it.key })
+                .take(VideoConstants.MAX_SLOTS)
+                .map { it.key }
+                .toSet()
+
+            if (visibilityScore > 0f) {
+                // Create player if not already created, in top visible, and not recently started
+                if (!isPlayerCreated && videoId in currentTopVisible && videoId !in recentlyStartedVideos) {
+                    val createdPlayer =
+                        globalVideoManager.getOrCreatePlayerForVideo(context, videoId, videoUri)
+                    isPlayerCreated = true
+                    currentPlayer.value = createdPlayer
+                    // DebugLogger.debug("VideoLifecycle", "Created player for $videoId: ${player != null}")
+                }
+            }
+
+            // Update the player state
+            currentPlayer.value = globalVideoManager.getPlayerForVideo(videoId)
+        },
+    ) {
         // Check if this video is currently one of the active playing videos
         val topVisibleVideos = visibleVideosWithScores
             .entries
@@ -516,13 +500,13 @@ fun ServiceStatusIndicator(
     allPermissionsGranted: Boolean,
     onStatusClick: () -> Unit,
     onPermissionsClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     AnimatedVisibility(
         visible = true,
         enter = fadeIn() + slideInVertically(),
         exit = fadeOut() + slideOutVertically(),
-        modifier = modifier.zIndex(1f)
+        modifier = modifier.zIndex(1f),
     ) {
         val (backgroundColor, statusText) = when (monitoringStatus) {
             MonitoringStatus.STOPPED -> ErrorRed to stringResource(R.string.monitoring_stopped)
@@ -541,20 +525,18 @@ fun ServiceStatusIndicator(
                     } else {
                         onStatusClick()
                     }
-                }
+                },
         ) {
             Text(
                 text = statusText,
                 color = Color.White,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(8.dp),
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium,
             )
         }
     }
 }
-
-
 
 /**
  * Empty state screen for when no screenshots match the current filter
@@ -565,7 +547,7 @@ fun EmptyStateScreen(
     configuredPath: String? = null,
     filterState: ro.snapify.data.model.FilterState? = null,
     selectedFolderPaths: List<String> = emptyList(),
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val icon = when (tab) {
         ScreenshotTab.MARKED -> Icons.Default.Schedule
@@ -590,45 +572,45 @@ fun EmptyStateScreen(
 
     Box(
         modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(32.dp)
+            modifier = Modifier.padding(32.dp),
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(72.dp),
-                tint = MaterialTheme.colorScheme.outline
+                tint = MaterialTheme.colorScheme.outline,
             )
             Text(
                 text = title,
                 style = MaterialTheme.typography.headlineSmall,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
             )
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            
+
             // Show filter information when applicable
             if (filterState != null && selectedFolderPaths.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = if (selectedFolderPaths.size == 1) "Filtering path:" else "Filtering paths:",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(4.dp))
                         .padding(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     selectedFolderPaths.forEach { path ->
                         Text(
@@ -639,7 +621,7 @@ fun EmptyStateScreen(
                             overflow = TextOverflow.Ellipsis,
                             fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
                 }
@@ -649,7 +631,7 @@ fun EmptyStateScreen(
                 Text(
                     text = "Monitoring path:",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
                     text = configuredPath,
@@ -662,7 +644,7 @@ fun EmptyStateScreen(
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                     fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -676,22 +658,20 @@ fun EmptyStateScreen(
 fun LoadingScreen(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             CircularProgressIndicator()
             Text(
                 text = stringResource(R.string.loading_screenshots),
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
             )
         }
     }
 }
-
-
 
 /**
  * Small colored status chip for screenshot status
@@ -700,18 +680,18 @@ fun LoadingScreen(modifier: Modifier = Modifier) {
 fun StatusChip(
     text: String,
     color: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Surface(
         color = color.copy(alpha = 0.1f),
         shape = RoundedCornerShape(12.dp),
-        modifier = modifier.padding(top = 4.dp)
+        modifier = modifier.padding(top = 4.dp),
     ) {
         Text(
             text = text,
             color = color,
             style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
         )
     }
 }
@@ -725,14 +705,14 @@ private fun StatusSection(screenshot: MediaItem, currentTime: Long) {
         screenshot.id == -1L -> {
             StatusChip(
                 text = stringResource(R.string.deleting),
-                color = ErrorRed
+                color = ErrorRed,
             )
         }
 
         screenshot.isKept -> {
             StatusChip(
                 text = stringResource(R.string.kept),
-                color = SuccessGreen
+                color = SuccessGreen,
             )
         }
 
@@ -742,14 +722,14 @@ private fun StatusSection(screenshot: MediaItem, currentTime: Long) {
                 StatusChip(
                     text = stringResource(
                         R.string.deletes_in_template,
-                        TimeUtils.formatTimeRemaining(remaining)
+                        TimeUtils.formatTimeRemaining(remaining),
                     ),
-                    color = WarningOrange
+                    color = WarningOrange,
                 )
             } else {
                 StatusChip(
                     text = stringResource(R.string.deleting),
-                    color = ErrorRed
+                    color = ErrorRed,
                 )
             }
         }
@@ -758,7 +738,7 @@ private fun StatusSection(screenshot: MediaItem, currentTime: Long) {
             val statusText = stringResource(R.string.unmarked)
             StatusChip(
                 text = statusText,
-                color = MaterialTheme.colorScheme.outline
+                color = MaterialTheme.colorScheme.outline,
             )
         }
     }
@@ -772,22 +752,22 @@ private fun ActionButtons(
     screenshot: MediaItem,
     onKeepClick: () -> Unit,
     onUnkeepClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.padding(end = 8.dp)
+        modifier = Modifier.padding(end = 8.dp),
     ) {
         if (screenshot.isKept) {
             OutlinedIconButton(
                 onClick = onUnkeepClick,
                 modifier = Modifier.size(40.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
             ) {
                 Icon(
                     imageVector = Icons.Default.Star,
                     contentDescription = stringResource(R.string.unkeep_screenshot),
-                    tint = MaterialTheme.colorScheme.outline
+                    tint = MaterialTheme.colorScheme.outline,
                 )
             }
         } else {
@@ -795,13 +775,13 @@ private fun ActionButtons(
                 onClick = onKeepClick,
                 modifier = Modifier.size(40.dp),
                 colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = SuccessGreen
-                )
+                    containerColor = SuccessGreen,
+                ),
             ) {
                 Icon(
                     imageVector = Icons.Default.Star,
                     contentDescription = stringResource(R.string.keep_screenshot),
-                    tint = Color.White
+                    tint = Color.White,
                 )
             }
         }
@@ -809,12 +789,12 @@ private fun ActionButtons(
         OutlinedIconButton(
             onClick = onDeleteClick,
             modifier = Modifier.size(40.dp),
-            border = BorderStroke(1.dp, ErrorRed)
+            border = BorderStroke(1.dp, ErrorRed),
         ) {
             Icon(
                 imageVector = Icons.Default.Delete,
                 contentDescription = stringResource(R.string.delete_screenshot),
-                tint = ErrorRed
+                tint = ErrorRed,
             )
         }
     }
@@ -829,7 +809,7 @@ private fun ThumbnailSection(
     liveVideoPreviewEnabled: Boolean,
     isVideo: Boolean,
     videoThumbnail: Bitmap?,
-    onClick: (androidx.compose.ui.geometry.Offset) -> Unit
+    onClick: (androidx.compose.ui.geometry.Offset) -> Unit,
 ) {
     val context = LocalContext.current
 
@@ -849,14 +829,14 @@ private fun ThumbnailSection(
                         // Convert local position to global position
                         val globalClickPosition = globalPosition + offset
                         onClick(globalClickPosition)
-                    }
+                    },
                 )
-            }
+            },
     ) {
         if (isVideo) {
             DebugLogger.debug(
                 "ThumbnailSection",
-                "Video ${screenshot.fileName}: liveVideoPreviewEnabled=$liveVideoPreviewEnabled"
+                "Video ${screenshot.fileName}: liveVideoPreviewEnabled=$liveVideoPreviewEnabled",
             )
         }
         if (isVideo && liveVideoPreviewEnabled) {
@@ -865,22 +845,22 @@ private fun ThumbnailSection(
             VisibilityAwareVideo(
                 videoId = screenshot.filePath,
                 videoUri = videoUri,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
             ) { player, isCurrentlyPlaying ->
                 DebugLogger.info(
                     "ThumbnailSection",
-                    "Rendering for ${screenshot.fileName}: player=${player != null}, isPlaying=$isCurrentlyPlaying"
+                    "Rendering for ${screenshot.fileName}: player=${player != null}, isPlaying=$isCurrentlyPlaying",
                 )
                 if (player != null) {
                     DebugLogger.debug(
                         "ThumbnailSection",
-                        "Creating AndroidView for ${screenshot.fileName}"
+                        "Creating AndroidView for ${screenshot.fileName}",
                     )
                     AndroidView(
                         factory = { ctx ->
                             DebugLogger.debug(
                                 "ThumbnailSection",
-                                "Factory for ${screenshot.fileName}"
+                                "Factory for ${screenshot.fileName}",
                             )
                             androidx.media3.ui.PlayerView(ctx).apply {
                                 setPlayer(player)
@@ -894,25 +874,28 @@ private fun ThumbnailSection(
                         update = { view ->
                             DebugLogger.debug(
                                 "ThumbnailSection",
-                                "Update AndroidView for ${screenshot.fileName}: player=${view.player != null}"
+                                "Update AndroidView for ${screenshot.fileName}: player=${view.player != null}",
                             )
                             view.player = player
                             view.player?.playWhenReady = true
-                        }
+                        },
                     )
                 } else {
                     AsyncImage(
                         model = ImageRequest.Builder(context)
                             .data(
-                                if (videoThumbnail != null) videoThumbnail else {
+                                if (videoThumbnail != null) {
+                                    videoThumbnail
+                                } else {
                                     screenshot.contentUri?.toUri() ?: File(screenshot.filePath)
-                                })
+                                },
+                            )
                             .crossfade(true)
                             .build(),
                         contentDescription = stringResource(R.string.screenshot_thumbnail),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
-                        placeholder = painterResource(R.drawable.ic_launcher_foreground)
+                        placeholder = painterResource(R.drawable.ic_launcher_foreground),
                     )
 
                     Icon(
@@ -921,7 +904,7 @@ private fun ThumbnailSection(
                         modifier = Modifier
                             .align(Alignment.Center)
                             .size(32.dp),
-                        tint = Color.White.copy(alpha = 0.7f)
+                        tint = Color.White.copy(alpha = 0.7f),
                     )
                 }
             }
@@ -929,15 +912,18 @@ private fun ThumbnailSection(
             AsyncImage(
                 model = ImageRequest.Builder(context)
                     .data(
-                        if (isVideo && videoThumbnail != null) videoThumbnail else {
+                        if (isVideo && videoThumbnail != null) {
+                            videoThumbnail
+                        } else {
                             screenshot.contentUri?.toUri() ?: File(screenshot.filePath)
-                        })
+                        },
+                    )
                     .crossfade(true)
                     .build(),
                 contentDescription = stringResource(R.string.screenshot_thumbnail),
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
-                placeholder = painterResource(R.drawable.ic_launcher_foreground)
+                placeholder = painterResource(R.drawable.ic_launcher_foreground),
             )
             if (isVideo) {
                 Icon(
@@ -946,7 +932,7 @@ private fun ThumbnailSection(
                     modifier = Modifier
                         .align(Alignment.Center)
                         .size(48.dp),
-                    tint = Color.White
+                    tint = Color.White,
                 )
             }
         }
@@ -960,16 +946,16 @@ private fun ThumbnailSection(
 private fun ContentSection(
     screenshot: MediaItem,
     currentTime: Long,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier.padding(vertical = 8.dp)
+        modifier = modifier.padding(vertical = 8.dp),
     ) {
         Text(
             text = screenshot.fileName,
             style = MaterialTheme.typography.titleMedium,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
         )
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -979,7 +965,7 @@ private fun ContentSection(
         Text(
             text = sizeText,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         StatusSection(screenshot, currentTime)
@@ -1001,7 +987,7 @@ fun ScreenshotCard(
     onKeepClick: () -> Unit,
     onUnkeepClick: () -> Unit,
     onDeleteClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val alpha = animateFloatAsState(if (isRefreshing) 0.7f else 1f).value
@@ -1023,14 +1009,14 @@ fun ScreenshotCard(
             .animateContentSize() // Add smooth animation for content changes
             .pointerInput(Unit) {
                 detectTapGestures(
-                    onLongPress = { onLongPress() }
+                    onLongPress = { onLongPress() },
                 )
             },
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             ThumbnailSection(screenshot, liveVideoPreviewEnabled, isVideo, videoThumbnail, onClick)
 

@@ -49,7 +49,7 @@ class ScreenshotMonitorService : Service() {
         serviceScope.launch {
             DebugLogger.info(
                 "ScreenshotMonitorService",
-                "Scanning existing media on service start"
+                "Scanning existing media on service start",
             )
             mediaScanner.scanExistingMedia()
             observeConfiguredFolders()
@@ -94,7 +94,7 @@ class ScreenshotMonitorService : Service() {
             serviceScope,
             onItemDeleted = { mediaId ->
                 MainViewModel.mediaEventFlow.tryEmit(MediaEvent.ItemDeleted(mediaId))
-            }
+            },
         )
 
         // For foreground service, we must call startForeground within a few seconds
@@ -102,14 +102,14 @@ class ScreenshotMonitorService : Service() {
         startForeground(
             NOTIFICATION_ID,
             createForegroundNotification(),
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
         )
 
         // Check permissions after starting foreground to avoid system timeout
         if (PermissionUtils.getMissingPermissions(this).isNotEmpty()) {
             DebugLogger.error(
                 "ScreenshotMonitorService",
-                "Required permissions not granted, stopping service"
+                "Required permissions not granted, stopping service",
             )
             stopSelf()
             return
@@ -139,7 +139,7 @@ class ScreenshotMonitorService : Service() {
             this,
             0,
             notificationIntent,
-            PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_IMMUTABLE,
         )
 
         return NotificationCompat.Builder(this, ScreenshotApp.CHANNEL_ID_SERVICE)
@@ -164,11 +164,9 @@ class ScreenshotMonitorService : Service() {
         contentResolver.registerContentObserver(videoUri, true, contentObserver)
         DebugLogger.info(
             "ScreenshotMonitorService",
-            "Content observers registered for $imageUri and $videoUri"
+            "Content observers registered for $imageUri and $videoUri",
         )
     }
-
-
 
     private fun handleNewMedia(uri: Uri) {
         val isVideo = uri.toString().contains("video")
@@ -179,7 +177,7 @@ class ScreenshotMonitorService : Service() {
                 MediaStore.Video.Media.SIZE,
                 MediaStore.Video.Media.DATE_ADDED,
                 MediaStore.Video.Media.DATA,
-                MediaStore.MediaColumns.RELATIVE_PATH  // For Android 11+
+                MediaStore.MediaColumns.RELATIVE_PATH, // For Android 11+
             )
         } else {
             arrayOf(
@@ -188,7 +186,7 @@ class ScreenshotMonitorService : Service() {
                 MediaStore.Images.Media.SIZE,
                 MediaStore.Images.Media.DATE_ADDED,
                 MediaStore.Images.Media.DATA,
-                MediaStore.MediaColumns.RELATIVE_PATH  // For Android 11+
+                MediaStore.MediaColumns.RELATIVE_PATH, // For Android 11+
             )
         }
         serviceScope.launch {
@@ -210,7 +208,7 @@ class ScreenshotMonitorService : Service() {
                         val id = cursor.getLong(idIndex)
                         val contentUri = ContentUris.withAppendedId(
                             if (isVideo) MediaStore.Video.Media.EXTERNAL_CONTENT_URI else MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                            id
+                            id,
                         ).toString()
 
                         // Extract file path with fallbacks for Android 11+
@@ -220,21 +218,21 @@ class ScreenshotMonitorService : Service() {
                             if (dataIndex != -1) {
                                 filePath = cursor.getString(dataIndex)
                             }
-                            
+
                             // Fallback: try RELATIVE_PATH for Android 11+
                             if (filePath.isNullOrEmpty()) {
                                 val relativePathIndex = cursor.getColumnIndex(MediaStore.MediaColumns.RELATIVE_PATH)
                                 if (relativePathIndex != -1) {
                                     val relativePath = cursor.getString(relativePathIndex)
                                     if (!relativePath.isNullOrEmpty()) {
-                                        filePath = "${android.os.Environment.getExternalStorageDirectory().absolutePath}/${relativePath}${fileName}"
+                                        filePath = "${android.os.Environment.getExternalStorageDirectory().absolutePath}/${relativePath}$fileName"
                                     }
                                 }
                             }
                         } catch (e: Exception) {
                             DebugLogger.warning("ScreenshotMonitorService", "Error extracting file path: ${e.message}")
                         }
-                        
+
                         val fileSize = cursor.getLong(sizeIndex)
                         val dateAdded = cursor.getLong(dateIndex) * 1000L
 
@@ -254,7 +252,7 @@ class ScreenshotMonitorService : Service() {
                             if (existing == null) {
                                 // Check for recent notification to prevent duplicates
                                 val currentTime = System.currentTimeMillis()
-                                val dedupeKey = filePath ?: contentUri ?: "unknown_${currentTime}"
+                                val dedupeKey = filePath ?: contentUri ?: "unknown_$currentTime"
                                 val lastNotificationTime = recentNotifications[dedupeKey] ?: 0L
 
                                 if (currentTime - lastNotificationTime > MediaMonitorConfig.NOTIFICATION_DEDUPE_WINDOW) {
@@ -271,7 +269,7 @@ class ScreenshotMonitorService : Service() {
                                 } else {
                                     DebugLogger.info(
                                         "ScreenshotMonitorService",
-                                        "Skipping duplicate notification for $fileName"
+                                        "Skipping duplicate notification for $fileName",
                                     )
                                 }
                             } else {
@@ -303,7 +301,7 @@ class ScreenshotMonitorService : Service() {
         contentUri: String?,
         fileName: String,
         fileSize: Long,
-        createdAt: Long
+        createdAt: Long,
     ) {
         // Validate existence
         val exists = validateMediaExists(contentUri, filePath)
@@ -352,7 +350,7 @@ class ScreenshotMonitorService : Service() {
                 createdAt = createdAt,
                 deletionTimestamp = null,
                 isKept = false,
-                contentUri = contentUri
+                contentUri = contentUri,
             )
 
             // Emit detection event
@@ -390,7 +388,7 @@ class ScreenshotMonitorService : Service() {
                 createdAt = createdAt,
                 deletionTimestamp = deletionTimestamp,
                 isKept = false,
-                contentUri = contentUri
+                contentUri = contentUri,
             )
 
             // Emit detection event
@@ -417,7 +415,7 @@ class ScreenshotMonitorService : Service() {
                 calculatedDeletionTimestamp,
                 deletionTime,
                 isManualMode = false,
-                preferences = preferences
+                preferences = preferences,
             )
             DebugLogger.info("ScreenshotMonitorService", "Notification shown for media item ID: $id")
         }
@@ -474,13 +472,13 @@ class ScreenshotMonitorService : Service() {
                                     mediaItem.deletionTimestamp!!,
                                     preferences.deletionTimeMillis.first(),
                                     isManualMode = false,
-                                    preferences = preferences
+                                    preferences = preferences,
                                 )
                             }
                         } catch (e: Exception) {
                             DebugLogger.warning(
                                 "ScreenshotMonitorService",
-                                "Error updating notification for $mediaId: ${e.message}"
+                                "Error updating notification for $mediaId: ${e.message}",
                             )
                         }
                     }
@@ -507,7 +505,7 @@ class ScreenshotMonitorService : Service() {
                     if (expiredMediaItems.isNotEmpty()) {
                         DebugLogger.info(
                             "ScreenshotMonitorService",
-                            "Found ${expiredMediaItems.size} expired media items, initiating deletion"
+                            "Found ${expiredMediaItems.size} expired media items, initiating deletion",
                         )
                         expiredMediaItems.forEach { mediaItem ->
                             // Cancel the timer first
@@ -526,13 +524,12 @@ class ScreenshotMonitorService : Service() {
                     (currentlyTracked - stillMarked).forEach { mediaItemId ->
                         DebugLogger.info(
                             "ScreenshotMonitorService",
-                            "Cancelling timer for item $mediaItemId - no longer marked for deletion"
+                            "Cancelling timer for item $mediaItemId - no longer marked for deletion",
                         )
                         deletionTimerManager.cancelDeletionTimer(mediaItemId)
                     }
 
                     delay(MediaMonitorConfig.DELETION_CHECK_INTERVAL_MS)
-
                 } catch (e: Exception) {
                     if (e !is kotlinx.coroutines.CancellationException) {
                         DebugLogger.error("ScreenshotMonitorService", "Error in deletion check", e)

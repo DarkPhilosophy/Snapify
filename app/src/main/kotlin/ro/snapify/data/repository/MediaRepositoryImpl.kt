@@ -7,7 +7,7 @@ import ro.snapify.data.entity.MediaItem
 import javax.inject.Inject
 
 class MediaRepositoryImpl @Inject constructor(
-    private val mediaDao: MediaDao
+    private val mediaDao: MediaDao,
 ) : MediaRepository {
 
     override fun getAllMediaItems(): Flow<List<MediaItem>> = mediaDao.getAllMediaItems()

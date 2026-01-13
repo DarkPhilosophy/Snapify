@@ -32,9 +32,9 @@ fun LoadingBar(modifier: Modifier = Modifier) {
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 900, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
+            repeatMode = RepeatMode.Reverse,
         ),
-        label = "loading_bar_position"
+        label = "loading_bar_position",
     )
 
     // We still use BoxWithConstraints to make it responsive.
@@ -42,7 +42,7 @@ fun LoadingBar(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .height(12.dp)
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 16.dp),
     ) {
         val barWidth = 60.dp
 
@@ -58,8 +58,8 @@ fun LoadingBar(modifier: Modifier = Modifier) {
                 .offset(x = maxOffset * position) // Use the offset modifier here!
                 .clip(RoundedCornerShape(6.dp))
                 .background(
-                    if (position > 0.5f) Color.Red else Color.Blue
-                )
+                    if (position > 0.5f) Color.Red else Color.Blue,
+                ),
         )
     }
 }

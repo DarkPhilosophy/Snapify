@@ -13,7 +13,6 @@ import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import ro.snapify.data.preferences.AppPreferences
 import ro.snapify.data.repository.MediaRepository
@@ -22,7 +21,9 @@ import ro.snapify.util.DebugLogger
 import javax.inject.Inject
 
 @HiltAndroidApp
-class ScreenshotApp : Application(), Configuration.Provider {
+class ScreenshotApp :
+    Application(),
+    Configuration.Provider {
 
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
@@ -85,7 +86,7 @@ class ScreenshotApp : Application(), Configuration.Provider {
             val serviceChannel = NotificationChannel(
                 CHANNEL_ID_SERVICE,
                 "Screenshot Monitor Service",
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_LOW,
             ).apply {
                 description = "Monitors screenshots in the background"
                 setShowBadge(false)
@@ -94,7 +95,7 @@ class ScreenshotApp : Application(), Configuration.Provider {
             val screenshotChannel = NotificationChannel(
                 CHANNEL_ID_SCREENSHOT,
                 "Screenshot Deletion Timers",
-                NotificationManager.IMPORTANCE_HIGH
+                NotificationManager.IMPORTANCE_HIGH,
             ).apply {
                 description = "Shows countdown timers for screenshot deletion"
                 setShowBadge(true)
@@ -136,7 +137,5 @@ object LanguageManager {
         currentLanguage = language
     }
 
-    fun getCurrentLanguage(): String {
-        return currentLanguage
-    }
+    fun getCurrentLanguage(): String = currentLanguage
 }

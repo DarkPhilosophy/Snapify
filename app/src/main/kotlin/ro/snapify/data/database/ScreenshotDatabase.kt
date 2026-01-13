@@ -16,28 +16,25 @@ abstract class ScreenshotDatabase : RoomDatabase() {
 
     companion object {
         @Volatile
-        private var INSTANCE: ScreenshotDatabase? = null
+        private var instance: ScreenshotDatabase? = null
 
-        private val MIGRATION_2_3 = object : Migration(2, 3) {
+        private val migration2To3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Add the new deletionWorkId column (nullable)
                 db.execSQL("ALTER TABLE screenshots ADD COLUMN deletionWorkId TEXT")
             }
         }
 
-
-        fun getDatabase(context: Context): ScreenshotDatabase {
-            return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    ScreenshotDatabase::class.java,
-                    "screenshot_database"
-                ).addMigrations(MIGRATION_2_3)
-                    .fallbackToDestructiveMigration(dropAllTables = true)
-                    .build()
-                INSTANCE = instance
-                instance
-            }
+        fun getDatabase(context: Context): ScreenshotDatabase = instance ?: synchronized(this) {
+            val instance = Room.databaseBuilder(
+                context.applicationContext,
+                ScreenshotDatabase::class.java,
+                "screenshot_database",
+            ).addMigrations(migration2To3)
+                .fallbackToDestructiveMigration(dropAllTables = true)
+                .build()
+            this.instance = instance
+            instance
         }
     }
 }

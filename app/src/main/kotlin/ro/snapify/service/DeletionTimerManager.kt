@@ -23,12 +23,15 @@ class DeletionTimerManager(
     private val context: Context,
     private val repository: MediaRepository,
     private val serviceScope: CoroutineScope,
-    private val onItemDeleted: (Long) -> Unit
+    private val onItemDeleted: (Long) -> Unit,
 ) {
+
+    companion object {
+        private const val TAG = "DeletionTimerManager"
+    }
 
     private val deletionJobs = mutableMapOf<Long, Job>()
     private val updateJobs = mutableMapOf<Long, Job>()
-    private val TAG = "DeletionTimerManager"
 
     /**
      * Launches a deletion timer for a media item.
@@ -109,13 +112,15 @@ class DeletionTimerManager(
                 lastException = e
                 DebugLogger.warning(
                     TAG,
-                    "Deletion attempt $attempt/${MediaMonitorConfig.MAX_DELETION_RETRIES} failed for ${mediaItem.fileName}: ${e.message}"
+                    "Deletion attempt $attempt/${MediaMonitorConfig.MAX_DELETION_RETRIES} failed for ${mediaItem.fileName}: ${e.message}",
                 )
 
                 // Calculate backoff delay
                 if (attempt < MediaMonitorConfig.MAX_DELETION_RETRIES) {
-                    val delayMs = (MediaMonitorConfig.INITIAL_RETRY_DELAY_MS *
-                            Math.pow(MediaMonitorConfig.RETRY_BACKOFF_MULTIPLIER, (attempt - 1).toDouble())).toLong()
+                    val delayMs = (
+                        MediaMonitorConfig.INITIAL_RETRY_DELAY_MS *
+                            Math.pow(MediaMonitorConfig.RETRY_BACKOFF_MULTIPLIER, (attempt - 1).toDouble())
+                        ).toLong()
                     delay(delayMs)
                 }
             }
@@ -125,7 +130,7 @@ class DeletionTimerManager(
         DebugLogger.warning(
             TAG,
             "All deletion retries exhausted for ${mediaItem.fileName}. " +
-                    "Removing from database. Last error: ${lastException?.message}"
+                "Removing from database. Last error: ${lastException?.message}",
         )
         removeFromDatabase(mediaItem)
         onItemDeleted(mediaItem.id)
@@ -148,13 +153,13 @@ class DeletionTimerManager(
                 deleted = rows > 0
                 DebugLogger.debug(
                     TAG,
-                    "ContentResolver.delete() result: $rows rows for ${mediaItem.fileName}"
+                    "ContentResolver.delete() result: $rows rows for ${mediaItem.fileName}",
                 )
                 if (deleted) return true
             } catch (e: Exception) {
                 DebugLogger.warning(
                     TAG,
-                    "ContentResolver deletion failed for ${mediaItem.id}: ${e.message}"
+                    "ContentResolver deletion failed for ${mediaItem.id}: ${e.message}",
                 )
             }
         }
@@ -167,7 +172,7 @@ class DeletionTimerManager(
                     deleted = file.delete()
                     DebugLogger.debug(
                         TAG,
-                        "File.delete() result: $deleted for ${mediaItem.filePath}"
+                        "File.delete() result: $deleted for ${mediaItem.filePath}",
                     )
                 } else {
                     // File doesn't exist - consider it deleted

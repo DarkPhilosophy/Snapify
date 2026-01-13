@@ -15,11 +15,13 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.graphics.drawable.toDrawable
-import androidx.core.view.WindowCompat
-import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 enum class ThemeMode {
-    LIGHT, DARK, SYSTEM, DYNAMIC, OLED
+    LIGHT,
+    DARK,
+    SYSTEM,
+    DYNAMIC,
+    OLED,
 }
 
 private val LightColors = lightColorScheme(
@@ -123,7 +125,7 @@ fun AppTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     dynamicColor: Boolean = true,
     skipWindowSetup: Boolean = false,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
 
@@ -149,34 +151,11 @@ fun AppTheme(
 
     if (!skipWindowSetup) {
         val view = LocalView.current
-
-        @Suppress("DEPRECATION")
-        val systemUiController = rememberSystemUiController()
-        val darkTheme = isSystemInDarkTheme()
-        val useDarkIcons = when (themeMode) {
-            ThemeMode.LIGHT -> true
-            ThemeMode.DARK, ThemeMode.SYSTEM, ThemeMode.DYNAMIC -> !darkTheme
-            ThemeMode.OLED -> false // OLED has black backgrounds, so use light icons
-        }
-
-        SideEffect {
-            val context = view.context
-            if (context is Activity) {
-                val window = context.window
-                WindowCompat.setDecorFitsSystemWindows(window, false)
-
-                // Set window background to match theme background
+        if (!view.isInEditMode) {
+            SideEffect {
+                val window = (view.context as Activity).window
+                // Ensure window background matches theme for edge-to-edge consistency
                 window.setBackgroundDrawable(colorScheme.background.toArgb().toDrawable())
-
-                // Update system bars to match theme
-                systemUiController.setSystemBarsColor(
-                    color = colorScheme.surface,
-                    darkIcons = useDarkIcons
-                )
-                systemUiController.setNavigationBarColor(
-                    color = colorScheme.surface,
-                    darkIcons = useDarkIcons
-                )
             }
         }
     }
@@ -184,6 +163,6 @@ fun AppTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = AppTypography,
-        content = content
+        content = content,
     )
 }

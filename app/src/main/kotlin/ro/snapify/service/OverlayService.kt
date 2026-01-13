@@ -9,51 +9,20 @@ import android.os.Build
 import android.os.IBinder
 import android.view.Gravity
 import android.view.WindowManager
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -83,13 +52,10 @@ import ro.snapify.ui.theme.ThemeMode
 import ro.snapify.util.DebugLogger
 import ro.snapify.util.NotificationHelper
 import ro.snapify.util.PermissionUtils
-import kotlin.math.abs
-import kotlin.math.min
 
 private const val FIFTEEN_MINUTES = 15L
 private const val THREE_DAYS = 3L
 private const val ONE_WEEK = 7L
-
 
 private fun formatTime(minutes: Int): String {
     val parts = mutableListOf<String>()
@@ -126,9 +92,10 @@ private fun formatTime(minutes: Int): String {
     return parts.joinToString(" ")
 }
 
-
-
-class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
+class OverlayService :
+    Service(),
+    LifecycleOwner,
+    SavedStateRegistryOwner {
 
     private lateinit var windowManager: WindowManager
     private var overlayView: ComposeView? = null
@@ -159,6 +126,15 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
         savedStateRegistryController = SavedStateRegistryController.create(this)
         savedStateRegistryController.performRestore(android.os.Bundle())
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
+
+        // Cleanup all share files on service start
+        serviceScope.launch(Dispatchers.IO) {
+            cacheDir?.listFiles { file -> file.name.startsWith("share_") }?.forEach {
+                try {
+                    it.delete()
+                } catch (_: Exception) {}
+            }
+        }
     }
 
     override fun onBind(intent: android.content.Intent?): IBinder? = null
@@ -169,7 +145,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
 
         DebugLogger.info(
             "OverlayService",
-            "onStartCommand called with screenshot ID: $mediaId, path: $filePath"
+            "onStartCommand called with screenshot ID: $mediaId, path: $filePath",
         )
 
         // Initialize dependencies from application
@@ -185,12 +161,12 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
                 } else {
                     DebugLogger.error(
                         "OverlayService",
-                        "Overlay permission not granted - manual mode requires overlay permission"
+                        "Overlay permission not granted - manual mode requires overlay permission",
                     )
                     NotificationHelper.showErrorNotification(
                         this,
                         "Manual Mode Error",
-                        "Overlay permission required. Grant in app settings."
+                        "Overlay permission required. Grant in app settings.",
                     )
                     showFallbackNotification()
                     stopSelf()
@@ -199,12 +175,12 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
                 DebugLogger.error(
                     "OverlayService",
                     "CRASH in manual mode: ${e.javaClass.simpleName} - ${e.message}",
-                    e
+                    e,
                 )
                 NotificationHelper.showErrorNotification(
                     this,
                     "Manual Mode Crashed",
-                    "Error: ${e.javaClass.simpleName} - ${e.message}"
+                    "Error: ${e.javaClass.simpleName} - ${e.message}",
                 )
                 showFallbackNotification()
                 stopSelf()
@@ -241,9 +217,9 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
                 WindowManager.LayoutParams.MATCH_PARENT,
                 layoutType,
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                        WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                        WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
-                PixelFormat.TRANSLUCENT
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                    WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+                PixelFormat.TRANSLUCENT,
             ).apply {
                 gravity = Gravity.CENTER
             }
@@ -309,36 +285,36 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
                                 .fillMaxHeight()
                                 .background(Color.Black.copy(alpha = 0.5f))
                                 .clickable { dismissWithNotification() },
-                            contentAlignment = Alignment.Center
+                            contentAlignment = Alignment.Center,
                         ) {
                             ScreenshotDetectionOverlay(
                                 detectedImage = imageBitmap,
                                 on15Minutes = {
                                     handleDeletionTime(
                                         java.util.concurrent.TimeUnit.MINUTES.toMillis(
-                                            FIFTEEN_MINUTES
-                                        )
+                                            FIFTEEN_MINUTES,
+                                        ),
                                     )
                                 },
                                 on2Hours = {
                                     handleDeletionTime(
                                         java.util.concurrent.TimeUnit.HOURS.toMillis(
-                                            2
-                                        )
+                                            2,
+                                        ),
                                     )
                                 },
                                 on3Days = {
                                     handleDeletionTime(
                                         java.util.concurrent.TimeUnit.DAYS.toMillis(
-                                            THREE_DAYS
-                                        )
+                                            THREE_DAYS,
+                                        ),
                                     )
                                 },
                                 on1Week = {
                                     handleDeletionTime(
                                         java.util.concurrent.TimeUnit.DAYS.toMillis(
-                                            ONE_WEEK
-                                        )
+                                            ONE_WEEK,
+                                        ),
                                     )
                                 },
                                 onKeep = { handleKeep() },
@@ -348,10 +324,10 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
                                 onCustomTime = { minutes ->
                                     handleDeletionTime(
                                         java.util.concurrent.TimeUnit.MINUTES.toMillis(
-                                            minutes.toLong()
-                                        )
+                                            minutes.toLong(),
+                                        ),
                                     )
-                                }
+                                },
                             )
                         }
                     }
@@ -378,13 +354,12 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
             DebugLogger.error(
                 "OverlayService",
                 "Crash prevented: ${e.javaClass.simpleName} - ${e.message}",
-                e
+                e,
             )
             overlayView = null
             stopSelf()
         }
     }
-
 
     private fun handleDeletionTime(timeMillis: Long) {
         serviceScope.launch(Dispatchers.IO) {
@@ -400,20 +375,20 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
             // Show notification to confirm the scheduled deletion
             val screenshot = repository.getById(mediaId)
             screenshot?.let {
-            NotificationHelper.showScreenshotNotification(
-            this@OverlayService,
-            mediaId,
-            it.fileName,
-            it.filePath,
-            deletionTimestamp,
-            timeMillis,
-            isManualMode = false, // Show countdown like automatic mode
-            preferences = preferences
-            )
-            DebugLogger.info(
-            "OverlayService",
-            "Notification shown after time selection in manual mode"
-            )
+                NotificationHelper.showScreenshotNotification(
+                    this@OverlayService,
+                    mediaId,
+                    it.fileName,
+                    it.filePath,
+                    deletionTimestamp,
+                    timeMillis,
+                    isManualMode = false, // Show countdown like automatic mode
+                    preferences = preferences,
+                )
+                DebugLogger.info(
+                    "OverlayService",
+                    "Notification shown after time selection in manual mode",
+                )
 
                 // Launch notification update job for live countdown updates
                 kotlinx.coroutines.GlobalScope.launch {
@@ -423,28 +398,28 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
                             NotificationHelper.showScreenshotNotification(
                                 this@OverlayService,
                                 mediaId,
-                            it.fileName,
-                            it.filePath,
-                            deletionTimestamp,
-                            timeMillis,
-                            isManualMode = false,
-                            preferences = preferences
-                        )
-                } catch (e: Exception) {
-                    DebugLogger.error(
-                            "OverlayService",
+                                it.fileName,
+                                it.filePath,
+                                deletionTimestamp,
+                                timeMillis,
+                                isManualMode = false,
+                                preferences = preferences,
+                            )
+                        } catch (e: Exception) {
+                            DebugLogger.error(
+                                "OverlayService",
                                 "Error updating notification for $mediaId",
-                                e
-                        )
-                }
-                }
+                                e,
+                            )
+                        }
+                    }
                 }
 
                 withContext(Dispatchers.Main) {
                     // Notify UI to update the specific item
                     DebugLogger.info(
-                    "OverlayService",
-                    "Emitting ItemUpdated event after marking for deletion"
+                        "OverlayService",
+                        "Emitting ItemUpdated event after marking for deletion",
                     )
                     MainViewModel.mediaEventFlow.tryEmit(MediaEvent.ItemUpdated(it))
                     dismissOverlay(showFallbackNotification = false)
@@ -455,19 +430,28 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
 
     private fun handleKeep() {
         serviceScope.launch(Dispatchers.IO) {
-                repository.markAsKept(mediaId)
-        val updatedItem = repository.getById(mediaId)
+            repository.markAsKept(mediaId)
+            val updatedItem = repository.getById(mediaId)
 
-                withContext(Dispatchers.Main) {
-                    // Notify UI to update the specific item
-                    DebugLogger.info("OverlayService", "Emitting ItemUpdated event after keeping media")
-                    updatedItem?.let { MainViewModel.mediaEventFlow.tryEmit(MediaEvent.ItemUpdated(it)) }
+            withContext(Dispatchers.Main) {
+                // Notify UI to update the specific item
+                DebugLogger.info("OverlayService", "Emitting ItemUpdated event after keeping media")
+                updatedItem?.let { MainViewModel.mediaEventFlow.tryEmit(MediaEvent.ItemUpdated(it)) }
                 dismissOverlay(showFallbackNotification = false)
             }
         }
     }
 
     private fun handleShare() {
+        // Clean up previous share files before creating a new one
+        try {
+            cacheDir?.listFiles { file -> file.name.startsWith("share_") }?.forEach {
+                try {
+                    it.delete()
+                } catch (_: Exception) {}
+            }
+        } catch (_: Exception) {}
+
         val file = java.io.File(filePath)
         if (file.exists()) {
             // Get the media item for deletion
@@ -481,7 +465,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
                         input.copyTo(output)
                     }
                 }
-                val shareUri = androidx.core.content.FileProvider.getUriForFile(this, "${packageName}.fileprovider", shareFile)
+                val shareUri = androidx.core.content.FileProvider.getUriForFile(this, "$packageName.fileprovider", shareFile)
                 val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                     type = "image/*"
                     putExtra(android.content.Intent.EXTRA_STREAM, shareUri)
@@ -500,11 +484,8 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
                     DebugLogger.info("OverlayService", "Emitting ItemDeleted event after sharing and deleting media")
                     MainViewModel.mediaEventFlow.tryEmit(MediaEvent.ItemDeleted(mediaId))
                 }
-                // Delete the cached file after a delay to allow sharing
-                serviceScope.launch {
-                    kotlinx.coroutines.delay(30000L) // 30 seconds
-                    shareFile.delete()
-                }
+                // NOTE: Do NOT delete shareFile here. It must persist for the receiving app.
+                // Cleanup is handled in onCreate of the next service start.
                 dismissOverlay(showFallbackNotification = false)
             } catch (e: Exception) {
                 DebugLogger.error("OverlayService", "Error sharing screenshot", e)
@@ -537,8 +518,8 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
             } catch (
                 @Suppress(
                     "TooGenericExceptionCaught",
-                    "PrintStackTrace"
-                ) e: Exception
+                    "PrintStackTrace",
+                ) e: Exception,
             ) {
                 e.printStackTrace()
                 overlayView = null
@@ -569,7 +550,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
                     deletionTimestamp,
                     deletionTime,
                     isManualMode = true,
-                    preferences = preferences
+                    preferences = preferences,
                 )
                 DebugLogger.info("OverlayService", "Fallback notification shown for manual mode")
             }
@@ -579,8 +560,6 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
     override fun onDestroy() {
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
         super.onDestroy()
-        // Clean up any remaining share files
-        cacheDir?.listFiles { file -> file.name.startsWith("share_") }?.forEach { it.delete() }
         // Cancel any running coroutines to avoid leaks
         try {
             serviceScope.cancel()

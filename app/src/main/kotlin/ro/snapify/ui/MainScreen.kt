@@ -1,5 +1,5 @@
 @file:OptIn(androidx.media3.common.util.UnstableApi::class)
-@file:Suppress("UnstableApiUsage")
+@file:Suppress("UnstableApiUsage", "ktlint:standard:no-wildcard-imports")
 
 package ro.snapify.ui
 
@@ -10,53 +10,44 @@ package ro.snapify.ui
 // import ro.snapify.ui.components.WelcomeDialog
 
 import android.Manifest
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
-import kotlin.math.pow
 import android.os.Build
 import android.os.Environment
 import android.os.PowerManager
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
-import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateTo
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.animation.Crossfade
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Shortcut
-import ro.snapify.ui.components.DuoDrawer
-import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Folder
@@ -101,41 +92,37 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import my.nanihadesuka.compose.LazyColumnScrollbar
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.foundation.combinedClickable
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
-import androidx.datastore.preferences.preferencesDataStore
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootNavGraph
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import androidx.core.content.ContextCompat
-import java.io.File
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
+import com.ramcosta.composedestinations.annotation.Destination
+import com.ramcosta.composedestinations.annotation.RootNavGraph
+import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import my.nanihadesuka.compose.LazyColumnScrollbar
 import ro.snapify.BuildConfig
 import ro.snapify.R
 import ro.snapify.data.entity.MediaItem
 import ro.snapify.data.model.FilterState
 import ro.snapify.data.model.ScreenshotTab
+import ro.snapify.ui.components.DuoDrawer
 import ro.snapify.ui.components.EmptyStateScreen
 import ro.snapify.ui.components.FolderFilterBar
 import ro.snapify.ui.components.LoadingBar
@@ -156,27 +143,28 @@ import ro.snapify.ui.theme.ThemeMode
 import ro.snapify.ui.theme.WarningOrange
 import ro.snapify.util.DebugLogger
 import ro.snapify.util.UriPathConverter
+import kotlin.math.pow
 
 // Reusable bounce animation function
 suspend fun animatedBounce(
     animatable: Animatable<Float, AnimationVector1D>,
     startDistance: Float,
     numBounces: Int,
-    baseDuration: Long
+    baseDuration: Long,
 ) {
     animatable.snapTo(startDistance)
     for (i in 0 until numBounces) {
         // Bounce to left (0)
         animatable.animateTo(
             targetValue = 0f,
-            animationSpec = tween(durationMillis = (baseDuration * 0.8.pow(i)).toLong().coerceAtLeast(150L).toInt())
+            animationSpec = tween(durationMillis = (baseDuration * 0.8.pow(i)).toLong().coerceAtLeast(150L).toInt()),
         )
         if (i < numBounces - 1) {
             // Bounce back to right with decreasing amplitude
             val nextDist = startDistance * 0.6.pow(i + 1).toFloat()
             animatable.animateTo(
                 targetValue = nextDist,
-                animationSpec = tween(durationMillis = (baseDuration * 0.85.pow(i)).toLong().coerceAtLeast(150L).toInt())
+                animationSpec = tween(durationMillis = (baseDuration * 0.85.pow(i)).toLong().coerceAtLeast(150L).toInt()),
             )
         }
     }
@@ -185,14 +173,14 @@ suspend fun animatedBounce(
 // Reusable typewriter animation function
 suspend fun animateTypewriter(
     alphas: List<Animatable<Float, AnimationVector1D>>,
-    delays: List<Long>
+    delays: List<Long>,
 ) {
     alphas.forEach { it.snapTo(0f) }
     alphas.forEachIndexed { index, animatable ->
         kotlinx.coroutines.delay(delays.getOrElse(index) { 0L })
         animatable.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = 100)
+            animationSpec = tween(durationMillis = 100),
         )
     }
 }
@@ -204,7 +192,7 @@ fun MainScreen(
     onOpenDrawer: () -> Unit = {},
     preferences: ro.snapify.data.preferences.AppPreferences? = null,
     isDrawerOpen: Boolean = false,
-    navigator: DestinationsNavigator? = null
+    navigator: DestinationsNavigator? = null,
 ) {
     DebugLogger.info("MainScreen", "RECOMPOSING")
 
@@ -224,16 +212,16 @@ fun MainScreen(
     // Debug currentFilterState changes
     // Observe mediaItems list changes - force recomposition when SnapshotStateList mutates
     var mediaItemsSnapshot by remember { mutableStateOf(actualViewModel.mediaItems.toList()) }
-    
+
     LaunchedEffect(actualViewModel.mediaItems.size) {
         mediaItemsSnapshot = actualViewModel.mediaItems.toList()
         DebugLogger.info("MainScreen", "mediaItems updated: ${mediaItemsSnapshot.size} items")
     }
-    
+
     LaunchedEffect(currentFilterState) {
         DebugLogger.info(
             "MainScreen",
-            "currentFilterState changed: folders=${currentFilterState.selectedFolders.size}, tags=${currentFilterState.selectedTags}"
+            "currentFilterState changed: folders=${currentFilterState.selectedFolders.size}, tags=${currentFilterState.selectedTags}",
         )
     }
     val mediaItems = actualViewModel.mediaItems
@@ -244,18 +232,18 @@ fun MainScreen(
         DebugLogger.info("MainScreen", "RefreshTrigger changed to: $refreshTrigger")
     }
     val rawMediaFolderUris by actualViewModel.mediaFolderUris.collectAsStateWithLifecycle(initialValue = emptySet())
-    
+
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    
+
     // Deduplicate URIs to remove incomplete versions when complete ones exist
     val mediaFolderUris by remember(rawMediaFolderUris, context) {
         derivedStateOf {
             val resolved = rawMediaFolderUris
-                .mapNotNull { uri -> 
+                .mapNotNull { uri ->
                     uri to UriPathConverter.resolveUriToFilePath(uri, context)
                 }
-            
+
             // Keep only one URI per resolved path (prefer the one that came first)
             resolved
                 .distinctBy { (_, path) -> path }
@@ -265,7 +253,7 @@ fun MainScreen(
     }
     val monitoringStatus by actualViewModel.monitoringStatus.collectAsState(initial = MonitoringStatus.STOPPED)
     val liveVideoPreviewEnabled by actualViewModel.liveVideoPreviewEnabled.collectAsStateWithLifecycle(
-        initialValue = false
+        initialValue = false,
     )
     val deletingIds by actualViewModel.deletingIds.collectAsStateWithLifecycle(initialValue = emptySet())
 
@@ -286,7 +274,7 @@ fun MainScreen(
             scope.launch {
                 snackbarHostState.showSnackbar(
                     message = "Press back again to exit",
-                    duration = SnackbarDuration.Short
+                    duration = SnackbarDuration.Short,
                 )
                 delay(2000)
                 backPressedOnce = false
@@ -294,14 +282,14 @@ fun MainScreen(
         }
     }
     val permanentSettingMenuEnabled by preferences?.permanentSettingMenuEnabled?.collectAsState(
-        initial = false
+        initial = false,
     ) ?: remember { mutableStateOf(false) }
 
     // Calculate filtered item count for UI logic
     val filteredItemCount by remember(mediaItems.size, currentFilterState, mediaFolderUris) {
         derivedStateOf {
             mediaItems.count { item ->
-               // Folder filter logic:
+                // Folder filter logic:
                 // - Always filter by selectedFolders if not empty
                 // - If selectedFolders is empty: show nothing (no folders selected)
                 val folderMatches = when {
@@ -335,7 +323,7 @@ fun MainScreen(
             if (event == Lifecycle.Event.ON_RESUME) {
                 DebugLogger.info(
                     "MainScreen",
-                    "ON_RESUME: App regained focus - refreshing media items and monitoring status"
+                    "ON_RESUME: App regained focus - refreshing media items and monitoring status",
                 )
                 actualViewModel.refreshMediaItems()
                 actualViewModel.refreshMonitoringStatus()
@@ -360,7 +348,7 @@ fun MainScreen(
             readPerm,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) "manage" else null,
             "overlay",
-            "battery"
+            "battery",
             // Notifications are now optional, removed from required permissions
         )
 
@@ -452,8 +440,6 @@ fun MainScreen(
         }
     }
 
-
-
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
@@ -466,18 +452,18 @@ fun MainScreen(
                     }
                     val alpha by animateFloatAsState(
                         targetValue = if (isVisible) 1f else 0f,
-                        label = "titleAlpha"
+                        label = "titleAlpha",
                     )
                     Text(
-                    text = BuildConfig.APP_DISPLAY_NAME,
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Serif
-                    ),
-                    modifier = Modifier
-                    .alpha(alpha)
-                    .padding(start = 72.dp)
-        )
+                        text = BuildConfig.APP_DISPLAY_NAME,
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Serif,
+                        ),
+                        modifier = Modifier
+                            .alpha(alpha)
+                            .padding(start = 72.dp),
+                    )
                 },
 
                 actions = {
@@ -500,15 +486,16 @@ fun MainScreen(
                                 MonitoringStatus.ACTIVE -> stringResource(R.string.stop_service)
                                 MonitoringStatus.MISSING_PERMISSIONS -> stringResource(R.string.grant_permissions)
                             },
-                            tint = color
+                            tint = color,
                         )
                     }
                     IconButton(
-                        onClick = { actualViewModel.refreshMediaItems() }, enabled = true
+                        onClick = { actualViewModel.refreshMediaItems() },
+                        enabled = true,
                     ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
-                            contentDescription = stringResource(R.string.refresh)
+                            contentDescription = stringResource(R.string.refresh),
                         )
                     }
 
@@ -516,15 +503,15 @@ fun MainScreen(
                         IconButton(onClick = { actualViewModel.showPermissionsDialog() }) {
                             Icon(
                                 imageVector = Icons.Default.Lock,
-                                contentDescription = stringResource(R.string.permissions)
+                                contentDescription = stringResource(R.string.permissions),
                             )
                         }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                )
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                ),
             )
         },
 
@@ -534,13 +521,13 @@ fun MainScreen(
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
                 // Page indicator (appears when scrolled)
                 AnimatedVisibility(
                     visible = isScrolled && visiblePageText.isNotEmpty(),
                     enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-                    exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 })
+                    exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
                 ) {
                     Text(
                         text = visiblePageText,
@@ -548,10 +535,10 @@ fun MainScreen(
                         modifier = Modifier
                             .background(
                                 MaterialTheme.colorScheme.primaryContainer,
-                                RoundedCornerShape(16.dp)
+                                RoundedCornerShape(16.dp),
                             )
                             .padding(horizontal = 12.dp, vertical = 6.dp),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 }
 
@@ -559,7 +546,7 @@ fun MainScreen(
                 AnimatedVisibility(
                     visible = isScrolled,
                     enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-                    exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 })
+                    exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
                 ) {
                     FloatingActionButton(
                         onClick = {
@@ -570,11 +557,11 @@ fun MainScreen(
                             userHasScrolled = false
                         },
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     ) {
                         Icon(
                             Icons.Filled.KeyboardArrowUp,
-                            contentDescription = "Back to top"
+                            contentDescription = "Back to top",
                         )
                     }
                 }
@@ -586,12 +573,12 @@ fun MainScreen(
                         icon = {
                             Icon(
                                 Icons.Default.Settings,
-                                stringResource(R.string.settings_button)
+                                stringResource(R.string.settings_button),
                             )
                         },
                         text = { Text(stringResource(R.string.settings_button)) },
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 }
             }
@@ -600,7 +587,7 @@ fun MainScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(paddingValues),
         ) {
             // Service status indicator
             ServiceStatusIndicator(
@@ -613,28 +600,31 @@ fun MainScreen(
                         MonitoringStatus.MISSING_PERMISSIONS -> {} // Should not happen if permissions granted
                     }
                 },
-                onPermissionsClick = { actualViewModel.showPermissionsDialog() }
+                onPermissionsClick = { actualViewModel.showPermissionsDialog() },
             )
-
 
             // Filters (always visible)
             TagFilterBar(
                 selectedTags = currentFilterState.selectedTags,
                 onTagSelectionChanged = { selected ->
-                    val effective = if (selected.isEmpty()) setOf(
-                        ScreenshotTab.MARKED,
-                        ScreenshotTab.KEPT,
-                        ScreenshotTab.UNMARKED
-                    ) else selected
+                    val effective = if (selected.isEmpty()) {
+                        setOf(
+                            ScreenshotTab.MARKED,
+                            ScreenshotTab.KEPT,
+                            ScreenshotTab.UNMARKED,
+                        )
+                    } else {
+                        selected
+                    }
                     actualViewModel.updateTagSelection(effective)
-                }
+                },
             )
 
             FolderFilterBar(
                 availableUris = availableUris,
                 availablePaths = availablePaths,
                 selectedPaths = currentFilterState.selectedFolders,
-                onFolderSelectionChanged = { actualViewModel.updateFolderSelection(it) }
+                onFolderSelectionChanged = { actualViewModel.updateFolderSelection(it) },
             )
 
             // Content
@@ -651,7 +641,7 @@ fun MainScreen(
                     EmptyStateScreen(
                         tab = ScreenshotTab.ALL,
                         filterState = currentFilterState,
-                        selectedFolderPaths = selectedFolderDisplayPaths
+                        selectedFolderPaths = selectedFolderDisplayPaths,
                     )
                 }
 
@@ -662,7 +652,7 @@ fun MainScreen(
                             localLoading = true
                         } else {
                             delay(
-                                (200..1200).random().toLong()
+                                (200..1200).random().toLong(),
                             ) // Show for 1.5 seconds after loading stops
                             localLoading = false
                         }
@@ -677,13 +667,13 @@ fun MainScreen(
                                     listState.animateScrollToItem(0)
                                 }
                             }
-                        }
+                        },
                     )
                     val refreshState = rememberPullToRefreshState()
                     PullToRefreshBox(
                         isRefreshing = uiState.isLoading,
                         onRefresh = { actualViewModel.refreshMediaItems() },
-                        state = refreshState
+                        state = refreshState,
                     ) {
                         Column {
                             if (localLoading) {
@@ -697,7 +687,7 @@ fun MainScreen(
                                     { item: MediaItem, position: androidx.compose.ui.geometry.Offset ->
                                         actualViewModel.openMediaItem(
                                             item,
-                                            position
+                                            position,
                                         )
                                     }
                                 }
@@ -731,7 +721,7 @@ fun MainScreen(
                                 },
                                 onDismissInfoDialog = {
                                     showInfoDialog = false
-                                }
+                                },
                             )
                         }
                     }
@@ -745,7 +735,7 @@ fun MainScreen(
         VideoPreviewDialog(
             mediaItem = mediaItem,
             position = uiState.videoPreviewPosition,
-            onDismiss = { actualViewModel.closeVideoPreview() }
+            onDismiss = { actualViewModel.closeVideoPreview() },
         )
     }
 
@@ -753,7 +743,7 @@ fun MainScreen(
     uiState.imagePreviewItem?.let { mediaItem ->
         PicturePreviewDialog(
             mediaItem = mediaItem,
-            onDismiss = { actualViewModel.closeImagePreview() }
+            onDismiss = { actualViewModel.closeImagePreview() },
         )
     }
 }
@@ -761,30 +751,34 @@ fun MainScreen(
 fun updatePermissionStatuses(
     context: Context,
     permissions: List<String>,
-    onUpdate: (Map<String, Boolean>) -> Unit
+    onUpdate: (Map<String, Boolean>) -> Unit,
 ) {
     val newStatuses = permissions.associate { perm ->
         perm to when (perm) {
             Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.READ_MEDIA_IMAGES -> ContextCompat.checkSelfPermission(
                 context,
-                perm
+                perm,
             ) == PackageManager.PERMISSION_GRANTED
 
             Manifest.permission.WRITE_EXTERNAL_STORAGE -> ContextCompat.checkSelfPermission(
                 context,
-                perm
+                perm,
             ) == PackageManager.PERMISSION_GRANTED
 
             Manifest.permission.POST_NOTIFICATIONS -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 ContextCompat.checkSelfPermission(
                     context,
-                    perm
+                    perm,
                 ) == PackageManager.PERMISSION_GRANTED
-            } else true // Assume granted for older versions
+            } else {
+                true // Assume granted for older versions
+            }
             "manage" -> {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     Environment.isExternalStorageManager()
-                } else true
+                } else {
+                    true
+                }
             }
 
             "overlay" -> Settings.canDrawOverlays(context)
@@ -814,16 +808,16 @@ private fun MainScreenContentPreview() {
                     .padding(paddingValues)
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.Center,
             ) {
                 Text(
                     text = "Main Screen Preview Content",
-                    style = MaterialTheme.typography.headlineMedium
+                    style = MaterialTheme.typography.headlineMedium,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 CircularProgressIndicator()
             }
-        }
+        },
     )
 }
 
@@ -855,7 +849,7 @@ fun ScreenshotCardPreview() {
         createdAt = System.currentTimeMillis() - 3600000L, // 1 hour ago
         deletionTimestamp = System.currentTimeMillis() + 60000L, // 1 minute from now
         isKept = false,
-        contentUri = "content://media/external/images/media/12345"
+        contentUri = "content://media/external/images/media/12345",
     )
 
     AppTheme {
@@ -866,12 +860,10 @@ fun ScreenshotCardPreview() {
             onLongPress = {},
             onKeepClick = {},
             onUnkeepClick = {},
-            onDeleteClick = {}
+            onDeleteClick = {},
         )
     }
 }
-
-
 
 internal fun LazyListScope.SettingsContent(
     settingsViewModel: SettingsViewModel,
@@ -886,7 +878,7 @@ internal fun LazyListScope.SettingsContent(
     onOpenPermissions: () -> Unit = {},
     onShowFolderDialog: () -> Unit = {},
     onNavigateToConsole: () -> Unit = {},
-    onThemeChangeCallback: (String) -> Unit = {}
+    onThemeChangeCallback: (String) -> Unit = {},
 ) {
     // Interface & Appearance
     item {
@@ -901,7 +893,7 @@ internal fun LazyListScope.SettingsContent(
                     settingsViewModel.setThemeMode(theme)
                 }
             },
-            onThemeChange = { /* callback if needed */ }
+            onThemeChange = { /* callback if needed */ },
         )
     }
 
@@ -912,7 +904,7 @@ internal fun LazyListScope.SettingsContent(
                 scope.launch {
                     settingsViewModel.setLanguage(lang)
                 }
-            }
+            },
         )
     }
 
@@ -943,7 +935,7 @@ internal fun LazyListScope.SettingsContent(
                 scope.launch {
                     settingsViewModel.setDeletionTime(time)
                 }
-            }
+            },
         )
     }
 
@@ -955,7 +947,7 @@ internal fun LazyListScope.SettingsContent(
                     settingsViewModel.setNotificationsEnabled(enabled)
                 }
             },
-            onRequestPermission = { permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) }
+            onRequestPermission = { permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
         )
     }
 
@@ -982,14 +974,14 @@ internal fun LazyListScope.SettingsContent(
         OutlinedCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onShowFolderDialog)
+                .clickable(onClick = onShowFolderDialog),
         ) {
             ListItem(
                 headlineContent = { Text("Media Folders") },
                 supportingContent = { Text(summaryText) },
                 trailingContent = {
                     Icon(Icons.Default.Folder, contentDescription = "Manage folders")
-                }
+                },
             )
         }
     }
@@ -1006,7 +998,7 @@ internal fun LazyListScope.SettingsContent(
                 scope.launch {
                     settingsViewModel.setAutoCleanupEnabled(enabled)
                 }
-            }
+            },
         )
     }
 
@@ -1017,7 +1009,7 @@ internal fun LazyListScope.SettingsContent(
                 scope.launch {
                     settingsViewModel.setLiveVideoPreviewEnabled(enabled)
                 }
-            }
+            },
         )
     }
 
@@ -1028,7 +1020,7 @@ internal fun LazyListScope.SettingsContent(
                 scope.launch {
                     settingsViewModel.setPermanentSettingMenuEnabled(enabled)
                 }
-            }
+            },
         )
     }
 
@@ -1050,18 +1042,16 @@ internal fun LazyListScope.SettingsContent(
                         Text(
                             "Disable developer options and features.",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     },
                     trailingContent = {
                         OutlinedButton(onClick = onDeveloperLocked) {
                             Text("Turn Off")
                         }
-                    }
+                    },
                 )
             }
-
-
         }
     }
 
@@ -1074,7 +1064,7 @@ internal fun LazyListScope.SettingsContent(
                     Text(
                         "Force a layout recomposition for testing purposes. Triggered: $recomposeTrigger",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 },
                 trailingContent = {
@@ -1086,7 +1076,7 @@ internal fun LazyListScope.SettingsContent(
                     }) {
                         Text("Recompose")
                     }
-                }
+                },
             )
         }
     }
@@ -1100,7 +1090,7 @@ internal fun LazyListScope.SettingsContent(
         VersionInfo(
             isDeveloperMode = developerUnlocked,
             snackbarHostState = snackbarHostState,
-            onActivateDeveloperMode = onDeveloperUnlocked
+            onActivateDeveloperMode = onDeveloperUnlocked,
         )
     }
 
@@ -1120,7 +1110,7 @@ fun MenuContent(
     mainViewModel: MainViewModel? = null,
     settingsViewModel: SettingsViewModel? = null,
     navigator: DestinationsNavigator? = null,
-    dialogContent: @Composable () -> Unit = {}
+    dialogContent: @Composable () -> Unit = {},
 ) {
     val actualMainViewModel = mainViewModel ?: hiltViewModel()
     val actualSettingsViewModel = settingsViewModel ?: hiltViewModel()
@@ -1138,14 +1128,14 @@ fun MenuContent(
 
     // Folder picker launcher
     val folderPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocumentTree()
+        contract = ActivityResultContracts.OpenDocumentTree(),
     ) { uri ->
         uri?.let {
             val contentResolver = context.contentResolver
             // Take persistable permission
             contentResolver.takePersistableUriPermission(
                 it,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
             )
             // Save the URI
             scope.launch {
@@ -1156,7 +1146,7 @@ fun MenuContent(
 
     // Permission launcher for notifications
     val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
+        contract = ActivityResultContracts.RequestPermission(),
     ) { _ ->
         // Update permission status for UI
         // The NotificationToggle will check the actual permission
@@ -1176,21 +1166,21 @@ fun MenuContent(
                         animatable: Animatable<Float, AnimationVector1D>,
                         startDistance: Float,
                         numBounces: Int,
-                        baseDuration: Long
+                        baseDuration: Long,
                     ) {
                         animatable.snapTo(startDistance)
                         for (i in 0 until numBounces) {
                             // Bounce to left (0)
                             animatable.animateTo(
                                 targetValue = 0f,
-                                animationSpec = tween(durationMillis = (baseDuration * 0.8.pow(i)).toLong().coerceAtLeast(150L).toInt())
+                                animationSpec = tween(durationMillis = (baseDuration * 0.8.pow(i)).toLong().coerceAtLeast(150L).toInt()),
                             )
                             if (i < numBounces - 1) {
                                 // Bounce back to right with decreasing amplitude
                                 val nextDist = startDistance * 0.6.pow(i + 1).toFloat()
                                 animatable.animateTo(
                                     targetValue = nextDist,
-                                    animationSpec = tween(durationMillis = (baseDuration * 0.85.pow(i)).toLong().coerceAtLeast(150L).toInt())
+                                    animationSpec = tween(durationMillis = (baseDuration * 0.85.pow(i)).toLong().coerceAtLeast(150L).toInt()),
                                 )
                             }
                         }
@@ -1199,14 +1189,14 @@ fun MenuContent(
                     // Reusable typewriter animation function
                     suspend fun animateTypewriter(
                         alphas: List<Animatable<Float, AnimationVector1D>>,
-                        delays: List<Long>
+                        delays: List<Long>,
                     ) {
                         alphas.forEach { it.snapTo(0f) }
                         alphas.forEachIndexed { index, animatable ->
                             kotlinx.coroutines.delay(delays.getOrElse(index) { 0L })
                             animatable.animateTo(
                                 targetValue = 1f,
-                                animationSpec = tween(durationMillis = 100)
+                                animationSpec = tween(durationMillis = 100),
                             )
                         }
                     }
@@ -1229,7 +1219,7 @@ fun MenuContent(
                     }
                     Box(modifier = Modifier.padding(start = titlePadding)) {
                         Row(
-                            modifier = Modifier.offset(x = textXAnimatable.value.dp)
+                            modifier = Modifier.offset(x = textXAnimatable.value.dp),
                         ) {
                             text.forEachIndexed { index, char ->
                                 Text(
@@ -1237,7 +1227,7 @@ fun MenuContent(
                                     style = MaterialTheme.typography.headlineMedium,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.alpha(letterAlphas[index].value),
-                                    maxLines = 1
+                                    maxLines = 1,
                                 )
                             }
                         }
@@ -1245,45 +1235,42 @@ fun MenuContent(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                )
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                ),
             )
-        }
+        },
     ) { padding ->
-    val listState = rememberLazyListState()
-    LazyColumnScrollbar(
-    state = listState,
-    settings = my.nanihadesuka.compose.ScrollbarSettings(alwaysShowScrollbar = true)
-    ) {
-    LazyColumn(
-    state = listState,
-    modifier = Modifier
-    .fillMaxSize()
-    .background(MaterialTheme.colorScheme.surface)
-        .padding(horizontal = 16.dp, vertical = 16.dp)
-            .padding(padding),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+        val listState = rememberLazyListState()
+        LazyColumnScrollbar(
+            state = listState,
+            settings = my.nanihadesuka.compose.ScrollbarSettings(alwaysShowScrollbar = true),
+        ) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                    .padding(padding),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-
-    // Settings Content
-    SettingsContent(
-            settingsViewModel = actualSettingsViewModel,
+                // Settings Content
+                SettingsContent(
+                    settingsViewModel = actualSettingsViewModel,
                     scope = scope,
                     snackbarHostState = snackbarHostState,
                     folderPicker = folderPicker,
-            permissionLauncher = permissionLauncher,
-        developerUnlocked = developerUnlocked,
-            navigator = navigator,
-                onDeveloperUnlocked = { actualSettingsViewModel.setDeveloperModeEnabled(true) },
+                    permissionLauncher = permissionLauncher,
+                    developerUnlocked = developerUnlocked,
+                    navigator = navigator,
+                    onDeveloperUnlocked = { actualSettingsViewModel.setDeveloperModeEnabled(true) },
                     onDeveloperLocked = { actualSettingsViewModel.setDeveloperModeEnabled(false) },
                     onOpenPermissions = { showPermissionDialog = true },
                     onShowFolderDialog = { showFolderDialog = true },
                     onNavigateToConsole = {
                         context.startActivity(Intent(context, DebugConsoleActivity::class.java))
-                    }
+                    },
                 )
-
-
 
                 item {
                     Spacer(modifier = Modifier.height(16.dp))
@@ -1298,7 +1285,7 @@ fun MenuContent(
             onAddFolder = { folderPicker.launch(null) },
             onAddUri = { uri -> actualSettingsViewModel.addMediaFolder(uri) },
             onRemoveFolder = { actualSettingsViewModel.removeMediaFolder(it) },
-            onDismiss = { showFolderDialog = false }
+            onDismiss = { showFolderDialog = false },
         )
     }
 
@@ -1309,7 +1296,7 @@ fun MenuContent(
                 // Start the service when permissions are granted
                 val intent = android.content.Intent(
                     context,
-                    ro.snapify.service.ScreenshotMonitorService::class.java
+                    ro.snapify.service.ScreenshotMonitorService::class.java,
                 )
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
                     context.startForegroundService(intent)
@@ -1317,14 +1304,12 @@ fun MenuContent(
                     context.startService(intent)
                 }
             },
-            autoCloseWhenGranted = false
+            autoCloseWhenGranted = false,
         )
     }
 
     dialogContent()
 }
-
-
 
 @Composable
 private fun FolderManagementDialog(
@@ -1332,7 +1317,7 @@ private fun FolderManagementDialog(
     onAddFolder: () -> Unit,
     onAddUri: (String) -> Unit,
     onRemoveFolder: (String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -1341,7 +1326,7 @@ private fun FolderManagementDialog(
         // Deduplicate: remove URIs that resolve to the same file path
         val seenPaths = mutableSetOf<String>()
         val deduplicated = mutableSetOf<String>()
-        
+
         mediaFolderUris.forEach { uri ->
             val filePath = UriPathConverter.resolveUriToFilePath(uri, context)
             if (filePath != null) {
@@ -1355,7 +1340,7 @@ private fun FolderManagementDialog(
                 deduplicated.add(uri)
             }
         }
-        
+
         deduplicated.sortedBy { it }
     }
 
@@ -1363,15 +1348,19 @@ private fun FolderManagementDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
-        modifier = if (isOLED) Modifier.border(
-            1.dp,
-            Color.White,
-            RoundedCornerShape(28.dp)
-        ) else Modifier,
+        modifier = if (isOLED) {
+            Modifier.border(
+                1.dp,
+                Color.White,
+                RoundedCornerShape(28.dp),
+            )
+        } else {
+            Modifier
+        },
         title = {
             Text(
                 "Manage Media Folders",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
             )
         },
         text = {
@@ -1380,19 +1369,19 @@ private fun FolderManagementDialog(
                     if (mediaFolderUris.isEmpty()) {
                         Text(
                             "No folders selected.",
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                     } else {
                         Text(
                             "Selected folders:",
                             style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            modifier = Modifier.padding(bottom = 8.dp),
                         )
 
                         LazyColumn(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(max = 300.dp)
+                                .heightIn(max = 300.dp),
                         ) {
                             folderItems.forEach { uri ->
                                 item {
@@ -1405,7 +1394,7 @@ private fun FolderManagementDialog(
                                     MediaFolderItem(
                                         path = formattedPath,
                                         uri = uri,
-                                        onRemove = { onRemoveFolder(uri) }
+                                        onRemove = { onRemoveFolder(uri) },
                                     )
                                 }
                             }
@@ -1416,7 +1405,7 @@ private fun FolderManagementDialog(
 
                     OutlinedButton(
                         onClick = onAddFolder,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
@@ -1429,7 +1418,7 @@ private fun FolderManagementDialog(
             TextButton(onClick = onDismiss) {
                 Text("Done")
             }
-        }
+        },
     )
 }
 
@@ -1437,33 +1426,33 @@ private fun FolderManagementDialog(
 private fun MediaFolderItem(
     path: String,
     uri: String,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     var showInfo by remember { mutableStateOf(false) }
-    
+
     if (showInfo) {
         val resolvedPath = UriPathConverter.uriToFilePath(uri, context) ?: uri
         val displayName = UriPathConverter.uriToDisplayName(uri, context)
-        
+
         AlertDialog(
             onDismissRequest = { showInfo = false },
-            title = { 
+            title = {
                 Text(
                     "Folder Information",
-                    color = MaterialTheme.colorScheme.onSurface
-                ) 
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
             },
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     // Original URI
                     Text(
                         text = "Original URI:",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
                         text = uri,
@@ -1475,27 +1464,27 @@ private fun MediaFolderItem(
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
                         fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    
+
                     // Display Name
                     Text(
                         text = "Display Name:",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
                         text = displayName,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                    
+
                     // Resolved Path
                     Text(
                         text = "Resolved Path:",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
                         text = resolvedPath,
@@ -1507,7 +1496,7 @@ private fun MediaFolderItem(
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
                         fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             },
@@ -1515,15 +1504,15 @@ private fun MediaFolderItem(
                 TextButton(onClick = { showInfo = false }) {
                     Text(
                         "Close",
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface,
-            titleContentColor = MaterialTheme.colorScheme.onSurface
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
         )
     }
-    
+
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -1531,27 +1520,27 @@ private fun MediaFolderItem(
                 .padding(16.dp)
                 .combinedClickable(
                     onClick = {},
-                    onLongClick = { showInfo = true }
+                    onLongClick = { showInfo = true },
                 ),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 Icons.Default.Folder,
                 contentDescription = null,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(24.dp),
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = path,
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
                 )
             }
             IconButton(onClick = onRemove) {
                 Icon(
                     Icons.Default.Close,
                     contentDescription = "Remove folder",
-                    tint = MaterialTheme.colorScheme.error
+                    tint = MaterialTheme.colorScheme.error,
                 )
             }
         }
@@ -1571,19 +1560,19 @@ fun AnimatedScreenshotCard(
     onKeepClick: () -> Unit,
     onUnkeepClick: () -> Unit,
     onDeleteClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     key(screenshot.id) {
         AnimatedVisibility(
             visible = isVisible,
             enter = fadeIn(animationSpec = tween(1000)) + slideInVertically(
                 initialOffsetY = { it },
-                animationSpec = tween(1000)
+                animationSpec = tween(1000),
             ),
             exit = fadeOut(animationSpec = tween(500)) + scaleOut(
                 targetScale = 0.8f,
-                animationSpec = tween(500)
-            )
+                animationSpec = tween(500),
+            ),
         ) {
             ScreenshotCard(
                 screenshot = screenshot,
@@ -1594,7 +1583,7 @@ fun AnimatedScreenshotCard(
                 onLongPress = onLongPress,
                 onKeepClick = onKeepClick,
                 onUnkeepClick = onUnkeepClick,
-                onDeleteClick = onDeleteClick
+                onDeleteClick = onDeleteClick,
             )
         }
     }
@@ -1620,7 +1609,7 @@ fun ScreenshotListComposable(
     selectedMediaItem: MediaItem?,
     onShowInfoDialog: (MediaItem) -> Unit,
     onDismissInfoDialog: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     // Use remember with mediaItems.size as key to force recomposition when list changes
     val filteredMediaItems by remember(mediaItems.size, currentFilterState, mediaFolderUris) {
@@ -1654,15 +1643,15 @@ fun ScreenshotListComposable(
             }
         }
     }
-    
+
     DebugLogger.info(
         "ScreenshotListComposable",
-        "Filtering: mediaItems.size=${mediaItems.size}, filtered=${filteredMediaItems.size}, folders=${currentFilterState.selectedFolders}"
+        "Filtering: mediaItems.size=${mediaItems.size}, filtered=${filteredMediaItems.size}, folders=${currentFilterState.selectedFolders}",
     )
 
     DebugLogger.info(
         "ScreenshotListComposable",
-        "RECOMPOSING: filteredItems=${filteredMediaItems.size}"
+        "RECOMPOSING: filteredItems=${filteredMediaItems.size}",
     )
 
     // Content
@@ -1709,18 +1698,18 @@ fun ScreenshotListComposable(
                 text = displayText,
                 Modifier.background(if (isThumbSelected) Color.Red else Color.Black, CircleShape)
             )
-            */
-        }
+             */
+        },
     ) {
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             items(
                 count = filteredMediaItems.size,
-                key = { index -> filteredMediaItems[index].id }
+                key = { index -> filteredMediaItems[index].id },
             ) { index ->
                 val screenshot = filteredMediaItems[index]
 
@@ -1729,7 +1718,7 @@ fun ScreenshotListComposable(
                     { position: androidx.compose.ui.geometry.Offset ->
                         onScreenshotClick(
                             screenshot,
-                            position
+                            position,
                         )
                     }
                 }
@@ -1752,7 +1741,7 @@ fun ScreenshotListComposable(
                     onLongPress = onLongPressCallback,
                     onKeepClick = onKeepCallback,
                     onUnkeepClick = onUnkeepCallback,
-                    onDeleteClick = onDeleteCallback
+                    onDeleteClick = onDeleteCallback,
                 )
             }
 
@@ -1763,7 +1752,7 @@ fun ScreenshotListComposable(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
                     ) {
                         CircularProgressIndicator()
                     }
@@ -1786,20 +1775,17 @@ fun ScreenshotListComposable(
                     onDeleteClick(selectedMediaItem!!)
                     onDismissInfoDialog()
                 },
-                onDismiss = onDismissInfoDialog
+                onDismiss = onDismissInfoDialog,
             )
         }
     }
 }
 
-
-
-
 @Destination
 @RootNavGraph(start = true)
 @Composable
 fun MainScreenDestination(
-    navigator: DestinationsNavigator
+    navigator: DestinationsNavigator,
 ) {
     val viewModel = androidx.hilt.navigation.compose.hiltViewModel<MainViewModel>()
     val uiState by viewModel.uiState.collectAsState()
@@ -1811,7 +1797,7 @@ fun MainScreenDestination(
 
     val fabX by animateDpAsState(
         targetValue = if (isDrawerOpen) (LocalConfiguration.current.screenWidthDp.dp - 72.dp) else 16.dp,
-        animationSpec = tween(durationMillis = 600)
+        animationSpec = tween(durationMillis = 600),
     )
 
     BackHandler(enabled = isDrawerOpen) {
@@ -1824,15 +1810,15 @@ fun MainScreenDestination(
         onCloseDrawer = { isDrawerOpen = false },
         showDialog = uiState.showPermissionDialog,
         menuContent = { drawerOpen ->
-        MenuContent(
-        isOpen = drawerOpen,
-        onHomeClick = { isDrawerOpen = false },
-        onCloseDrawer = { isDrawerOpen = false },
-        isDrawerOpen = isDrawerOpen,
-        preferences = preferences,
-        mainViewModel = viewModel,
-        navigator = navigator,
-            dialogContent = {}
+            MenuContent(
+                isOpen = drawerOpen,
+                onHomeClick = { isDrawerOpen = false },
+                onCloseDrawer = { isDrawerOpen = false },
+                isDrawerOpen = isDrawerOpen,
+                preferences = preferences,
+                mainViewModel = viewModel,
+                navigator = navigator,
+                dialogContent = {},
             )
         },
         content = {
@@ -1840,7 +1826,7 @@ fun MainScreenDestination(
                 viewModel = viewModel,
                 onOpenDrawer = { isDrawerOpen = true },
                 preferences = preferences,
-                isDrawerOpen = isDrawerOpen
+                isDrawerOpen = isDrawerOpen,
             )
         },
         dialogContent = {
@@ -1851,10 +1837,10 @@ fun MainScreenDestination(
                         // Permissions were just granted, start the service
                         viewModel.startMonitoring()
                     },
-                    autoCloseWhenGranted = true
+                    autoCloseWhenGranted = true,
                 )
             }
-        }
+        },
     )
 
     // FAB for drawer toggle
@@ -1862,20 +1848,18 @@ fun MainScreenDestination(
         onClick = { isDrawerOpen = !isDrawerOpen },
         modifier = Modifier.offset(
             x = fabX,
-            y = 40.dp
+            y = 40.dp,
         ),
         containerColor = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
     ) {
         Crossfade(targetState = isDrawerOpen) { open ->
             Icon(
                 imageVector = if (open) Icons.AutoMirrored.Filled.Shortcut else Icons.AutoMirrored.Filled.List,
-                contentDescription = if (open) "Close drawer" else "Open drawer"
+                contentDescription = if (open) "Close drawer" else "Open drawer",
             )
         }
     }
-
-
 }
 
 @Preview(showBackground = true)

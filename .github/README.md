@@ -3,8 +3,23 @@
 [![Pre-Build Status](https://github.com/DarkPhilosophy/Ko/actions/workflows/pre-merge.yaml/badge.svg)](https://github.com/DarkPhilosophy/Ko/actions)
 [![Build Status](https://github.com/DarkPhilosophy/Ko/actions/workflows/build-apk.yaml/badge.svg)](https://github.com/DarkPhilosophy/Ko/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Version 1.0.0](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://github.com/DarkPhilosophy/android-Snapify)
 
 A modern, intelligent Android application to automatically manage and organize your screenshots. Keep what matters, delete the rest automatically.
+
+<!-- LATEST-VERSION-START -->
+<!-- LATEST-VERSION-END -->
+
+## Validation Status
+<!-- LINT-RESULT-START -->
+<!-- LINT-RESULT-END -->
+
+### Latest Update (v1.0.0)
+- **Edge-to-Edge UI**: Migrated legacy UI flags to `enableEdgeToEdge()` for a modern, immersive experience.
+- **Project Structure**: Added `version.properties` for automated version management.
+
+### Fixed
+- **Share and Delete**: Removed arbitrary timers and implemented aggressive cache cleanup in `OverlayService` (on create & pre-share) to fix sharing failures and storage leaks.
 
 ## ✨ Features
 

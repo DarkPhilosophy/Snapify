@@ -1,0 +1,17 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{kt,kts}]
+# Disable function naming rule because it conflicts with Jetpack Compose (PascalCase functions)
+ktlint_standard_function-naming = disabled
+# Disable filename rule because sometimes we have multiple classes/extensions and strict naming is annoying
+ktlint_standard_filename = disabled
+# Disable wildcard imports because Compose uses them heavily and manual expansion is tedious
+ktlint_standard_no-wildcard-imports = disabled

@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 fun NewScreenshotDetector(
     newScreenshotFlow: Flow<Unit>,
     onLoadingChange: (Boolean) -> Unit,
-    onNewScreenshot: () -> Unit = {}
+    onNewScreenshot: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     val loadingJob = remember { mutableStateOf<Job?>(null) }

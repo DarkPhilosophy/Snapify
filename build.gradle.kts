@@ -15,7 +15,6 @@ buildscript {
 
 allprojects {
     apply(plugin = "io.gitlab.arturbosch.detekt")
-    apply(plugin = "com.diffplug.spotless")
 
     configurations.all {
         resolutionStrategy.force("com.squareup:javapoet:1.13.0")

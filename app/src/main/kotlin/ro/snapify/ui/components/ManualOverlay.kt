@@ -3,7 +3,6 @@ package ro.snapify.ui.components
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -16,7 +15,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -47,8 +45,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import kotlin.math.abs
 import kotlin.math.min
 
@@ -67,7 +65,7 @@ fun ScreenshotDetectionOverlay(
     onShare: () -> Unit,
     onClose: () -> Unit,
     onDismiss: () -> Unit,
-    onCustomTime: (Int) -> Unit
+    onCustomTime: (Int) -> Unit,
 ) {
     val alphaAnimatable = remember { Animatable(0f) }
     val translationYAnimatable = remember { Animatable(100f) }
@@ -86,17 +84,21 @@ fun ScreenshotDetectionOverlay(
             .alpha(alphaAnimatable.value)
             .graphicsLayer(translationY = translationYAnimatable.value)
             .then(
-                if (isOLED) Modifier.border(
-                    1.dp,
-                    Color.White,
-                    RoundedCornerShape(16.dp)
-                ) else Modifier
+                if (isOLED) {
+                    Modifier.border(
+                        1.dp,
+                        Color.White,
+                        RoundedCornerShape(16.dp),
+                    )
+                } else {
+                    Modifier
+                },
             ),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
     ) {
         Column(
             modifier = Modifier
@@ -104,28 +106,28 @@ fun ScreenshotDetectionOverlay(
                 .fillMaxHeight()
                 .padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Center,
         ) {
             // Title with close button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     text = "Screenshot Detect",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
                 )
                 IconButton(
                     onClick = onClose,
-                    modifier = Modifier.padding(0.dp)
+                    modifier = Modifier.padding(0.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close",
                         tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(4.dp)
+                        modifier = Modifier.padding(4.dp),
                     )
                 }
             }
@@ -133,55 +135,55 @@ fun ScreenshotDetectionOverlay(
             androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(4.dp))
 
             Text(
-            text = "Select a time when the screenshot should be deleted otherwise you can keep",
-            style = MaterialTheme.typography.labelSmall,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
+                text = "Select a time when the screenshot should be deleted otherwise you can keep",
+                style = MaterialTheme.typography.labelSmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
             )
 
             androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(8.dp))
 
             // Row: Left - Detected Media, Right - Choices
             Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-            // Left: Detected Media
-            Box(
-            modifier = Modifier.weight(1f),
-            contentAlignment = Alignment.Center
-            ) {
-            if (detectedImage != null) {
-                Image(
-                    bitmap = detectedImage,
-                    contentDescription = "Detected Screenshot",
-                    modifier = Modifier.fillMaxWidth()
-                )
-            } else {
-                Text("No Image Detected")
-            }
-            }
+                // Left: Detected Media
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (detectedImage != null) {
+                        Image(
+                            bitmap = detectedImage,
+                            contentDescription = "Detected Screenshot",
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    } else {
+                        Text("No Image Detected")
+                    }
+                }
 
-            // Right: Choices
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+                // Right: Choices
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     // Row 1: 1 Week | 3 Days
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Button(
-                                onClick = on1Week,
-                        modifier = Modifier.weight(1f).height(40.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                        ),
-                        contentPadding = PaddingValues(0.dp)
+                            onClick = on1Week,
+                            modifier = Modifier.weight(1f).height(40.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            ),
+                            contentPadding = PaddingValues(0.dp),
                         ) {
                             Text(text = "1 Week")
                         }
@@ -190,9 +192,9 @@ fun ScreenshotDetectionOverlay(
                             modifier = Modifier.weight(1f).height(40.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                             ),
-                            contentPadding = PaddingValues(0.dp)
+                            contentPadding = PaddingValues(0.dp),
                         ) {
                             Text(text = "3 Days")
                         }
@@ -200,28 +202,28 @@ fun ScreenshotDetectionOverlay(
 
                     // Row 2: 2 Hours | 15 Min
                     Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                    Button(
-                    onClick = on2Hours,
-                    modifier = Modifier.weight(1f).height(40.dp),
-                    colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                    ),
-                        contentPadding = PaddingValues(0.dp)
+                        Button(
+                            onClick = on2Hours,
+                            modifier = Modifier.weight(1f).height(40.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            ),
+                            contentPadding = PaddingValues(0.dp),
                         ) {
                             Text(text = "2 Hours")
-                    }
-                    Button(
-                    onClick = on15Minutes,
-                    modifier = Modifier.weight(1f).height(40.dp),
-                    colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                    ),
-                        contentPadding = PaddingValues(0.dp)
+                        }
+                        Button(
+                            onClick = on15Minutes,
+                            modifier = Modifier.weight(1f).height(40.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            ),
+                            contentPadding = PaddingValues(0.dp),
                         ) {
                             Text(text = "15 Min")
                         }
@@ -230,7 +232,7 @@ fun ScreenshotDetectionOverlay(
                     // Custom Time Picker
                     CustomTimePicker(
                         onTimeSelected = onCustomTime,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     )
 
                     // Keep Button
@@ -239,9 +241,9 @@ fun ScreenshotDetectionOverlay(
                         modifier = Modifier.fillMaxWidth().height(40.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
                         ),
-                        contentPadding = PaddingValues(0.dp)
+                        contentPadding = PaddingValues(0.dp),
                     ) {
                         Text(text = "Keep")
                     }
@@ -252,9 +254,9 @@ fun ScreenshotDetectionOverlay(
                         modifier = Modifier.fillMaxWidth().height(40.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.secondary,
-                            contentColor = MaterialTheme.colorScheme.onSecondary
+                            contentColor = MaterialTheme.colorScheme.onSecondary,
                         ),
-                        contentPadding = PaddingValues(0.dp)
+                        contentPadding = PaddingValues(0.dp),
                     ) {
                         Text(text = "Share and Delete")
                     }
@@ -277,14 +279,14 @@ fun ScreenshotDetectionOverlayPreview() {
         onShare = {},
         onClose = {},
         onDismiss = {},
-        onCustomTime = {}
+        onCustomTime = {},
     )
 }
 
 @Composable
 private fun CustomTimePicker(
     onTimeSelected: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var minutes by remember { mutableIntStateOf(30) }
     var scrollTrigger by remember { mutableIntStateOf(0) }
@@ -326,9 +328,9 @@ private fun CustomTimePicker(
         modifier = modifier,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
         ),
-        shape = RoundedCornerShape(8.dp)
+        shape = RoundedCornerShape(8.dp),
     ) {
         Box(
             modifier = Modifier
@@ -342,13 +344,19 @@ private fun CustomTimePicker(
                             currentDistance = 0f
                         },
                         onDragEnd = { adjustmentMode = 0 },
-                        onDragCancel = { adjustmentMode = 0 }
+                        onDragCancel = { adjustmentMode = 0 },
                     ) { change, _ ->
                         val currentY = change.position.y
                         val newDistance = kotlin.math.abs(currentY - initialY)
                         currentDistance = newDistance
                         val newMode =
-                            if (currentY < initialY) 1 else if (currentY > initialY) -1 else 0
+                            if (currentY < initialY) {
+                                1
+                            } else if (currentY > initialY) {
+                                -1
+                            } else {
+                                0
+                            }
                         if (adjustmentMode != newMode) {
                             modeStartTime = System.currentTimeMillis()
                             adjustmentMode = newMode
@@ -356,11 +364,11 @@ private fun CustomTimePicker(
                         change.consume()
                     }
                 },
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
         ) {
             Row(
                 horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
                     imageVector = Icons.Default.Refresh,
@@ -368,7 +376,7 @@ private fun CustomTimePicker(
                     modifier = Modifier
                         .size(24.dp)
                         .graphicsLayer(rotationZ = gearRotation.value),
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
                 )
                 androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(horizontal = 8.dp))
                 Text(
@@ -377,7 +385,7 @@ private fun CustomTimePicker(
                         .clickable { onTimeSelected(minutes) }
                         .graphicsLayer(scaleX = textScale.value, scaleY = textScale.value),
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
                 )
             }
         }
@@ -424,4 +432,3 @@ private fun formatTime(minutes: Int): String {
 
     return parts.joinToString(" ")
 }
-

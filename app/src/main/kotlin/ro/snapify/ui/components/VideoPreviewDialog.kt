@@ -66,21 +66,19 @@ internal object DialogConstants {
 fun calculateVideoDisplaySize(
     videoSize: IntSize?,
     availableWidthPx: Float,
-    availableHeightPx: Float
-): Pair<Float, Float> {
-    return if (videoSize != null) {
-        val aspectRatio = videoSize.width.toFloat() / videoSize.height.toFloat()
-        if (aspectRatio > availableWidthPx / availableHeightPx) {
-            // Video is wider, fit to width
-            availableWidthPx to (availableWidthPx / aspectRatio)
-        } else {
-            // Video is taller, fit to height
-            (availableHeightPx * aspectRatio) to availableHeightPx
-        }
+    availableHeightPx: Float,
+): Pair<Float, Float> = if (videoSize != null) {
+    val aspectRatio = videoSize.width.toFloat() / videoSize.height.toFloat()
+    if (aspectRatio > availableWidthPx / availableHeightPx) {
+        // Video is wider, fit to width
+        availableWidthPx to (availableWidthPx / aspectRatio)
     } else {
-        // Default size while loading
-        kotlin.math.min(availableWidthPx, 300f) to kotlin.math.min(availableHeightPx, 200f)
+        // Video is taller, fit to height
+        (availableHeightPx * aspectRatio) to availableHeightPx
     }
+} else {
+    // Default size while loading
+    kotlin.math.min(availableWidthPx, 300f) to kotlin.math.min(availableHeightPx, 200f)
 }
 
 // Helper function to calculate safe positioning
@@ -91,7 +89,7 @@ fun calculateSafePosition(
     leftInsetPx: Float,
     topInsetPx: Float,
     availableScreenWidth: Float,
-    availableScreenHeight: Float
+    availableScreenHeight: Float,
 ): Offset {
     val preferredX = position?.x?.minus(displayWidthPx / 2) ?: 0f
     val preferredY = position?.y?.minus(displayHeightPx / 2) ?: 0f
@@ -111,7 +109,7 @@ fun calculateSafePosition(
 fun VideoPreviewDialog(
     mediaItem: MediaItem,
     position: androidx.compose.ui.geometry.Offset? = null,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     // Handle back press to dismiss dialog
     BackHandler { onDismiss() }
@@ -155,16 +153,15 @@ fun VideoPreviewDialog(
         }
     }
 
-
     val dialogScale by animateFloatAsState(
         targetValue = 1f,
         animationSpec = tween(500, easing = EaseOutCubic),
-        label = "dialogScale"
+        label = "dialogScale",
     )
     val dialogAlpha by animateFloatAsState(
         targetValue = 1f,
         animationSpec = tween(500, easing = EaseOutCubic),
-        label = "dialogAlpha"
+        label = "dialogAlpha",
     )
 
     // Video player state
@@ -183,12 +180,12 @@ fun VideoPreviewDialog(
 
     val leftInsetPx = max(
         systemBarsInsets.getLeft(density, layoutDirection),
-        displayCutoutInsets.getLeft(density, layoutDirection)
+        displayCutoutInsets.getLeft(density, layoutDirection),
     )
     val topInsetPx = max(systemBarsInsets.getTop(density), displayCutoutInsets.getTop(density))
     val rightInsetPx = max(
         systemBarsInsets.getRight(density, layoutDirection),
-        displayCutoutInsets.getRight(density, layoutDirection)
+        displayCutoutInsets.getRight(density, layoutDirection),
     )
     val bottomInsetPx =
         max(systemBarsInsets.getBottom(density), displayCutoutInsets.getBottom(density))
@@ -199,30 +196,30 @@ fun VideoPreviewDialog(
 
     DebugLogger.info(
         "VideoPreviewDialog",
-        "Full screen: ${fullScreenWidthPx.toInt()}x${fullScreenHeightPx.toInt()} px"
+        "Full screen: ${fullScreenWidthPx.toInt()}x${fullScreenHeightPx.toInt()} px",
     )
     DebugLogger.info(
         "VideoPreviewDialog",
-        "Insets - L:$leftInsetPx T:$topInsetPx R:$rightInsetPx B:$bottomInsetPx"
+        "Insets - L:$leftInsetPx T:$topInsetPx R:$rightInsetPx B:$bottomInsetPx",
     )
     DebugLogger.info(
         "VideoPreviewDialog",
-        "Safe area: ${availableScreenWidth.toInt()}x${availableScreenHeight.toInt()} px"
+        "Safe area: ${availableScreenWidth.toInt()}x${availableScreenHeight.toInt()} px",
     )
     DebugLogger.info(
         "VideoPreviewDialog",
-        "Has camera cutout: ${localView.rootWindowInsets?.displayCutout != null}"
+        "Has camera cutout: ${localView.rootWindowInsets?.displayCutout != null}",
     )
 
     // Calculate available screen space as percentage of safe area
     val safeWidthDp = availableScreenWidth / density.density
     val safeHeightDp = availableScreenHeight / density.density
-    val availableWidthDp = safeWidthDp * 0.95f  // 95% of safe area width
-    val availableHeightDp = safeHeightDp * 0.95f  // 95% of safe area height
+    val availableWidthDp = safeWidthDp * 0.95f // 95% of safe area width
+    val availableHeightDp = safeHeightDp * 0.95f // 95% of safe area height
 
     DebugLogger.info(
         "VideoPreviewDialog",
-        "Available: ${availableWidthDp.toInt()}x${availableHeightDp.toInt()} dp"
+        "Available: ${availableWidthDp.toInt()}x${availableHeightDp.toInt()} dp",
     )
 
     // Video preview overlay in main window to draw behind cutouts
@@ -230,7 +227,7 @@ fun VideoPreviewDialog(
         modifier = Modifier
             .fillMaxSize()
             .graphicsLayer(clip = false)
-            .clickable(onClick = onDismiss)
+            .clickable(onClick = onDismiss),
     ) {
         // Get video size to calculate display size
         var videoSizeState by remember { mutableStateOf<androidx.compose.ui.unit.IntSize?>(null) }
@@ -246,11 +243,11 @@ fun VideoPreviewDialog(
 
             DebugLogger.info(
                 "VideoPreviewDialog",
-                "Video size: ${videoSize.width}x${videoSize.height}, aspectRatio: $aspectRatio"
+                "Video size: ${videoSize.width}x${videoSize.height}, aspectRatio: $aspectRatio",
             )
             DebugLogger.info(
                 "VideoPreviewDialog",
-                "Available px: ${availableWidthPx.toInt()}x${availableHeightPx.toInt()}"
+                "Available px: ${availableWidthPx.toInt()}x${availableHeightPx.toInt()}",
             )
 
             if (aspectRatio > availableWidthPx / availableHeightPx) {
@@ -259,7 +256,7 @@ fun VideoPreviewDialog(
                 displayHeightPx = availableWidthPx / aspectRatio
                 DebugLogger.info(
                     "VideoPreviewDialog",
-                    "Fitting to width: ${displayWidthPx.toInt()}x${displayHeightPx.toInt()}"
+                    "Fitting to width: ${displayWidthPx.toInt()}x${displayHeightPx.toInt()}",
                 )
             } else {
                 // Video is taller, fit to height
@@ -267,7 +264,7 @@ fun VideoPreviewDialog(
                 displayWidthPx = availableHeightPx * aspectRatio
                 DebugLogger.info(
                     "VideoPreviewDialog",
-                    "Fitting to height: ${displayWidthPx.toInt()}x${displayHeightPx.toInt()}"
+                    "Fitting to height: ${displayWidthPx.toInt()}x${displayHeightPx.toInt()}",
                 )
             }
         } else {
@@ -276,7 +273,7 @@ fun VideoPreviewDialog(
             displayHeightPx = min(availableHeightDp * density.density, 200f * density.density)
             DebugLogger.info(
                 "VideoPreviewDialog",
-                "Default size: ${displayWidthPx.toInt()}x${displayHeightPx.toInt()}"
+                "Default size: ${displayWidthPx.toInt()}x${displayHeightPx.toInt()}",
             )
         }
 
@@ -287,11 +284,11 @@ fun VideoPreviewDialog(
 
         DebugLogger.info(
             "VideoPreviewDialog",
-            "Display: ${displayWidthPx.toInt()}x${displayHeightPx.toInt()} px"
+            "Display: ${displayWidthPx.toInt()}x${displayHeightPx.toInt()} px",
         )
         DebugLogger.info(
             "VideoPreviewDialog",
-            "Effective: ${effectiveWidthPx.toInt()}x${effectiveHeightPx.toInt()} px"
+            "Effective: ${effectiveWidthPx.toInt()}x${effectiveHeightPx.toInt()} px",
         )
 
         // Get cutout dimensions for video extension
@@ -310,28 +307,32 @@ fun VideoPreviewDialog(
                         // Offset by left inset and constrain within safe area
                         (preferredX - leftInsetPx).coerceIn(
                             0f,
-                            max(0f, availableScreenWidth - effectiveWidthPx)
+                            max(0f, availableScreenWidth - effectiveWidthPx),
                         )
-                    } else 0f
+                    } else {
+                        0f
+                    }
 
                     val baseY = if (position != null) {
                         val preferredY = position.y - displayHeightPx / 2
                         // Offset by top inset and constrain within safe area
                         (preferredY - topInsetPx).coerceIn(
                             0f,
-                            availableScreenHeight - effectiveHeightPx + topInsetPx.toFloat() + bottomInsetPx.toFloat()
+                            availableScreenHeight - effectiveHeightPx + topInsetPx.toFloat() + bottomInsetPx.toFloat(),
                         )
-                    } else 0f
+                    } else {
+                        0f
+                    }
 
                     // Add drag offset with bounds checking
                     val draggedX =
                         (baseX + offsetX).coerceIn(
                             0f,
-                            availableScreenWidth - effectiveWidthPx + leftInsetPx.toFloat() + rightInsetPx.toFloat()
+                            availableScreenWidth - effectiveWidthPx + leftInsetPx.toFloat() + rightInsetPx.toFloat(),
                         )
                     val draggedY = (baseY + offsetY).coerceIn(
                         topInsetPx.toFloat(),
-                        availableScreenHeight - effectiveHeightPx + topInsetPx.toFloat() + bottomInsetPx.toFloat()
+                        availableScreenHeight - effectiveHeightPx + topInsetPx.toFloat() + bottomInsetPx.toFloat(),
                     )
 
                     // Update offsets to stay within bounds
@@ -339,23 +340,24 @@ fun VideoPreviewDialog(
                     offsetY = draggedY - baseY
 
                     // Debug position when it changes significantly
-                    if (kotlin.math.abs(draggedX - lastLoggedX) > 30f || kotlin.math.abs(
-                            draggedY - lastLoggedY
+                    if (kotlin.math.abs(draggedX - lastLoggedX) > 30f ||
+                        kotlin.math.abs(
+                            draggedY - lastLoggedY,
                         ) > 30f
                     ) {
                         val maxX = availableScreenWidth - effectiveWidthPx
                         val maxY = availableScreenHeight - effectiveHeightPx
                         DebugLogger.info(
                             "VideoPreviewDialog",
-                            "Video position: (${draggedX.toInt()}, ${draggedY.toInt()}) pixels from safe area top-left"
+                            "Video position: (${draggedX.toInt()}, ${draggedY.toInt()}) pixels from safe area top-left",
                         )
                         DebugLogger.info(
                             "VideoPreviewDialog",
-                            "Safe area bounds: X=0-${maxX.toInt()}px, Y=0-${maxY.toInt()}px"
+                            "Safe area bounds: X=0-${maxX.toInt()}px, Y=0-${maxY.toInt()}px",
                         )
                         DebugLogger.info(
                             "VideoPreviewDialog",
-                            "Bottom gap: ${(availableScreenHeight - draggedY - effectiveHeightPx).toInt()}px"
+                            "Bottom gap: ${(availableScreenHeight - draggedY - effectiveHeightPx).toInt()}px",
                         )
                         lastLoggedX = draggedX
                         lastLoggedY = draggedY
@@ -373,16 +375,16 @@ fun VideoPreviewDialog(
                 .graphicsLayer(
                     scaleX = dialogScale,
                     scaleY = dialogScale,
-                    alpha = dialogAlpha
+                    alpha = dialogAlpha,
                 ),
             colors = androidx.compose.material3.CardDefaults.cardColors(
-                containerColor = Color.Black
+                containerColor = Color.Black,
             ),
-            elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 8.dp)
+            elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 8.dp),
         ) {
             val displayModifier = Modifier.size(
                 width = (displayWidthPx / density.density).dp,
-                height = (displayHeightPx / density.density).dp
+                height = (displayHeightPx / density.density).dp,
             )
 
             Box(
@@ -392,8 +394,8 @@ fun VideoPreviewDialog(
                     .border(
                         width = 2.dp,
                         color = MaterialTheme3.colorScheme.outline,
-                        shape = RoundedCornerShape(8.dp)
-                    )
+                        shape = RoundedCornerShape(8.dp),
+                    ),
             ) {
                 // Video player
                 Box(
@@ -403,8 +405,8 @@ fun VideoPreviewDialog(
                         .border(
                             width = 2.dp,
                             color = MaterialTheme3.colorScheme.outline,
-                            shape = RoundedCornerShape(8.dp)
-                        )
+                            shape = RoundedCornerShape(8.dp),
+                        ),
                 ) {
                     val (state, videoSize) = videoPlayer(
                         mediaItem = mediaItem,
@@ -419,7 +421,7 @@ fun VideoPreviewDialog(
                             player.seekTo(0)
                             player.play()
                         },
-                        rotationDegrees = 0
+                        rotationDegrees = 0,
                     )
                     videoState = state
                     videoSizeState = videoSize
@@ -431,7 +433,7 @@ fun VideoPreviewDialog(
                         .fillMaxSize()
                         .clickable {
                             controlsVisible = !controlsVisible
-                        }
+                        },
                 )
 
                 // Top bar
@@ -442,7 +444,7 @@ fun VideoPreviewDialog(
                             .fillMaxWidth()
                             .background(MaterialTheme3.colorScheme.surface.copy(alpha = 0.7f))
                             .padding(horizontal = 16.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
                             text = mediaItem.fileName,
@@ -450,23 +452,23 @@ fun VideoPreviewDialog(
                             color = MaterialTheme3.colorScheme.onSurface,
                             modifier = Modifier.weight(1f),
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
                         )
                         IconButton(
                             onClick = { rotation = 0f },
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(32.dp),
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Refresh,
                                 contentDescription = "Reset",
-                                tint = MaterialTheme3.colorScheme.onSurface
+                                tint = MaterialTheme3.colorScheme.onSurface,
                             )
                         }
                         IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Close",
-                                tint = MaterialTheme3.colorScheme.onSurface
+                                tint = MaterialTheme3.colorScheme.onSurface,
                             )
                         }
                     }
@@ -510,7 +512,7 @@ fun VideoPreviewDialog(
                             isFullscreen = !isFullscreen
                             // TODO: Implement fullscreen mode
                         },
-                        modifier = Modifier.align(Alignment.BottomCenter)
+                        modifier = Modifier.align(Alignment.BottomCenter),
                     )
                 }
             }

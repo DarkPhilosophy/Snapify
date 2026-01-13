@@ -18,20 +18,13 @@ object DataModule {
 
     @Provides
     @Singleton
-    fun provideScreenshotDatabase(@ApplicationContext context: Context): ScreenshotDatabase {
-        return ScreenshotDatabase.getDatabase(context)
-    }
+    fun provideScreenshotDatabase(@ApplicationContext context: Context): ScreenshotDatabase = ScreenshotDatabase.getDatabase(context)
 
     @Provides
     @Singleton
-    fun provideMediaDao(database: ScreenshotDatabase): MediaDao {
-        return database.mediaDao()
-    }
+    fun provideMediaDao(database: ScreenshotDatabase): MediaDao = database.mediaDao()
 
     @Provides
     @Singleton
-    fun provideMediaRepository(dao: MediaDao): MediaRepository {
-        return MediaRepositoryImpl(dao)
-    }
-
+    fun provideMediaRepository(dao: MediaDao): MediaRepository = MediaRepositoryImpl(dao)
 }

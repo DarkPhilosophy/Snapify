@@ -1,9 +1,10 @@
+@file:Suppress("ktlint:standard:no-wildcard-imports")
+
 package ro.snapify.ui.components
 
 import android.Manifest
 import android.content.Context
 import android.content.Intent
-import com.google.accompanist.permissions.*
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -49,8 +50,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import com.google.accompanist.permissions.*
 import ro.snapify.R
-import ro.snapify.util.PermissionUtils.updatePermissionStatuses
 import androidx.compose.material3.MaterialTheme as MaterialTheme3
 
 // Constants for dialog components
@@ -63,7 +64,7 @@ private const val BORDER_WIDTH = 1
 data class PermissionItem(
     val displayName: String,
     val permissionKey: String,
-    val isRequired: Boolean = true
+    val isRequired: Boolean = true,
 )
 
 /**
@@ -76,44 +77,50 @@ fun PermissionItem(
     isOptional: Boolean,
     showSettingsButton: Boolean = false,
     onOpenSettings: (() -> Unit)? = null,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .padding(vertical = PERMISSION_ITEM_PADDING_VERTICAL.dp)
+            .padding(vertical = PERMISSION_ITEM_PADDING_VERTICAL.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = name,
                 style = MaterialTheme3.typography.bodyLarge,
                 color = MaterialTheme3.colorScheme.onSurface,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             )
             if (showSettingsButton && onOpenSettings != null) {
                 TextButton(
                     onClick = onOpenSettings,
                     colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme3.colorScheme.primary
-                    )
+                        contentColor = MaterialTheme3.colorScheme.primary,
+                    ),
                 ) {
                     Text(
                         "Open Settings",
-                        style = MaterialTheme3.typography.bodySmall
+                        style = MaterialTheme3.typography.bodySmall,
                     )
                 }
             } else {
                 Text(
-                    text = if (isGranted) "✓" else if (isOptional) "○" else "✗",
+                    text = if (isGranted) {
+                        "✓"
+                    } else if (isOptional) {
+                        "○"
+                    } else {
+                        "✗"
+                    },
                     color = when {
                         isGranted -> Color.Green
                         isOptional -> Color.Gray
                         else -> Color.Red
-                    }
+                    },
                 )
             }
         }
@@ -124,8 +131,8 @@ fun PermissionItem(
                 color = Color.White.copy(alpha = 0.8f),
                 modifier = Modifier.padding(
                     horizontal = PERMISSION_ITEM_PADDING_HORIZONTAL.dp,
-                    vertical = PERMISSION_ITEM_PADDING_VERTICAL.dp
-                )
+                    vertical = PERMISSION_ITEM_PADDING_VERTICAL.dp,
+                ),
             )
         }
     }
@@ -139,7 +146,7 @@ fun PermissionItem(
 fun PermissionDialog(
     onDismiss: () -> Unit,
     onPermissionsUpdated: (() -> Unit)? = null,
-    autoCloseWhenGranted: Boolean = true
+    autoCloseWhenGranted: Boolean = true,
 ) {
     val context = LocalContext.current
     var selectedTabIndex by remember { mutableStateOf(0) }
@@ -150,16 +157,20 @@ fun PermissionDialog(
 
     val requiredPermissions: List<PermissionItem> = listOfNotNull(
         PermissionItem("Read Screenshots", readPerm),
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) PermissionItem(
-        "All Files Access",
-    "manage"
-    ) else null,
-    PermissionItem("Overlay Permission", "overlay"),
-    PermissionItem("Battery Optimization", "battery")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            PermissionItem(
+                "All Files Access",
+                "manage",
+            )
+        } else {
+            null
+        },
+        PermissionItem("Overlay Permission", "overlay"),
+        PermissionItem("Battery Optimization", "battery"),
     )
 
     val optionalPermissions: List<PermissionItem> = listOfNotNull(
-        PermissionItem("Notifications", Manifest.permission.POST_NOTIFICATIONS, isRequired = false)
+        PermissionItem("Notifications", Manifest.permission.POST_NOTIFICATIONS, isRequired = false),
     ).filter { it.permissionKey != Manifest.permission.POST_NOTIFICATIONS || Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU }
 
     val allPermissions = (requiredPermissions + optionalPermissions).map { it.permissionKey }
@@ -176,7 +187,9 @@ fun PermissionDialog(
                 statuses[key] = when (key) {
                     "manage" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                         android.os.Environment.isExternalStorageManager()
-                    } else true
+                    } else {
+                        true
+                    }
                     "overlay" -> android.provider.Settings.canDrawOverlays(context)
                     "battery" -> {
                         val powerManager = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
@@ -198,7 +211,7 @@ fun PermissionDialog(
 
     // Launcher for special permissions
     val specialLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
+        contract = ActivityResultContracts.StartActivityForResult(),
     ) { _ ->
         // Update special permissions after settings change
         val updatedStatuses = mutableMapOf<String, Boolean>()
@@ -207,8 +220,10 @@ fun PermissionDialog(
             if (!key.startsWith("android.permission.")) {
                 updatedStatuses[key] = when (key) {
                     "manage" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    android.os.Environment.isExternalStorageManager()
-                    } else true
+                        android.os.Environment.isExternalStorageManager()
+                    } else {
+                        true
+                    }
                     "overlay" -> android.provider.Settings.canDrawOverlays(context)
                     "battery" -> {
                         val powerManager = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
@@ -240,7 +255,7 @@ fun PermissionDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(DIALOG_PADDING.dp),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
         ) {
             val isOLED = MaterialTheme3.colorScheme.surface == Color.Black
             Card(
@@ -250,38 +265,38 @@ fun PermissionDialog(
                     .border(
                         width = if (isOLED) BORDER_WIDTH.dp else 0.dp,
                         color = if (isOLED) Color.White else Color.Transparent,
-                        shape = RoundedCornerShape(CARD_CORNER_RADIUS.dp)
+                        shape = RoundedCornerShape(CARD_CORNER_RADIUS.dp),
                     ),
                 shape = RoundedCornerShape(CARD_CORNER_RADIUS.dp),
-                colors = CardDefaults.cardColors(containerColor = if (isOLED) Color.Black else MaterialTheme3.colorScheme.surface)
+                colors = CardDefaults.cardColors(containerColor = if (isOLED) Color.Black else MaterialTheme3.colorScheme.surface),
             ) {
                 androidx.compose.material3.MaterialTheme(colorScheme = MaterialTheme3.colorScheme) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp)
+                            .padding(16.dp),
                     ) {
                         Text(
                             text = stringResource(R.string.permissions_required),
                             style = MaterialTheme.typography.headlineSmall,
-                            modifier = Modifier.padding(bottom = 16.dp)
+                            modifier = Modifier.padding(bottom = 16.dp),
                         )
 
                         // Tab row for Required vs Optional permissions
                         PrimaryTabRow(
                             selectedTabIndex = selectedTabIndex,
                             containerColor = MaterialTheme3.colorScheme.surfaceVariant,
-                            contentColor = MaterialTheme3.colorScheme.onSurfaceVariant
+                            contentColor = MaterialTheme3.colorScheme.onSurfaceVariant,
                         ) {
                             Tab(
                                 selected = selectedTabIndex == 0,
                                 onClick = { selectedTabIndex = 0 },
-                                text = { Text("Required") }
+                                text = { Text("Required") },
                             )
                             Tab(
                                 selected = selectedTabIndex == 1,
                                 onClick = { selectedTabIndex = 1 },
-                                text = { Text("Optional") }
+                                text = { Text("Optional") },
                             )
                         }
 
@@ -291,8 +306,8 @@ fun PermissionDialog(
                         Column(
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(
-                                PERMISSION_ITEM_PADDING_VERTICAL.dp
-                            )
+                                PERMISSION_ITEM_PADDING_VERTICAL.dp,
+                            ),
                         ) {
                             currentPermissions.forEach { permissionItem ->
                                 val isGranted =
@@ -314,18 +329,22 @@ fun PermissionDialog(
                                                 }
                                             context.startActivity(intent)
                                         }
-                                    } else null,
+                                    } else {
+                                        null
+                                    },
                                     onClick = {
-                                    when (permissionItem.permissionKey) {
-                                    Manifest.permission.READ_EXTERNAL_STORAGE,
-                                    Manifest.permission.READ_MEDIA_IMAGES,
-                                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                                    Manifest.permission.POST_NOTIFICATIONS -> {
-                                    multiplePermissionsState.launchMultiplePermissionRequest()
-                                    }
+                                        when (permissionItem.permissionKey) {
+                                            Manifest.permission.READ_EXTERNAL_STORAGE,
+                                            Manifest.permission.READ_MEDIA_IMAGES,
+                                            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                                            Manifest.permission.POST_NOTIFICATIONS,
+                                            -> {
+                                                multiplePermissionsState.launchMultiplePermissionRequest()
+                                            }
 
                                             "manage" -> {
-                                                @Suppress("NewApi") val intent =
+                                                @Suppress("NewApi")
+                                                val intent =
                                                     Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
                                                 specialLauncher.launch(intent)
                                             }
@@ -337,13 +356,14 @@ fun PermissionDialog(
                                             }
 
                                             "battery" -> {
-                                                @Suppress("BatteryLife") val intent =
+                                                @Suppress("BatteryLife")
+                                                val intent =
                                                     Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
                                                         .setData("package:${context.packageName}".toUri())
                                                 specialLauncher.launch(intent)
                                             }
                                         }
-                                    }
+                                    },
                                 )
                             }
                         }
@@ -353,7 +373,7 @@ fun PermissionDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .wrapContentWidth(Alignment.End)
-                                .padding(top = 4.dp)
+                                .padding(top = 4.dp),
                         ) {
                             Text(text = stringResource(R.string.close))
                         }
@@ -384,7 +404,7 @@ fun DebugFilterDialog(
     customText: String,
     onCustomTextChange: (String) -> Unit,
     useRegex: Boolean,
-    onUseRegexChange: (Boolean) -> Unit
+    onUseRegexChange: (Boolean) -> Unit,
 ) {
     if (showFilterDialog) {
         val isOLED = MaterialTheme3.colorScheme.surface == Color.Black
@@ -392,11 +412,15 @@ fun DebugFilterDialog(
             onDismissRequest = onDismiss,
             title = { Text("Log Filters") },
             containerColor = MaterialTheme3.colorScheme.surface,
-            modifier = if (isOLED) Modifier.border(
-                BORDER_WIDTH.dp,
-                Color.White,
-                RoundedCornerShape(CARD_CORNER_RADIUS.dp)
-            ) else Modifier,
+            modifier = if (isOLED) {
+                Modifier.border(
+                    BORDER_WIDTH.dp,
+                    Color.White,
+                    RoundedCornerShape(CARD_CORNER_RADIUS.dp),
+                )
+            } else {
+                Modifier
+            },
             text = {
                 androidx.compose.material3.MaterialTheme(colorScheme = MaterialTheme3.colorScheme) {
                     Column {
@@ -404,28 +428,28 @@ fun DebugFilterDialog(
                         Row {
                             Checkbox(
                                 checked = debugChecked,
-                                onCheckedChange = onDebugCheckedChange
+                                onCheckedChange = onDebugCheckedChange,
                             )
                             Text("Debug", modifier = Modifier.padding(start = 8.dp))
                         }
                         Row {
                             Checkbox(
                                 checked = infoChecked,
-                                onCheckedChange = onInfoCheckedChange
+                                onCheckedChange = onInfoCheckedChange,
                             )
                             Text("Info", modifier = Modifier.padding(start = 8.dp))
                         }
                         Row {
                             Checkbox(
                                 checked = warningChecked,
-                                onCheckedChange = onWarningCheckedChange
+                                onCheckedChange = onWarningCheckedChange,
                             )
                             Text("Warning", modifier = Modifier.padding(start = 8.dp))
                         }
                         Row {
                             Checkbox(
                                 checked = errorChecked,
-                                onCheckedChange = onErrorCheckedChange
+                                onCheckedChange = onErrorCheckedChange,
                             )
                             Text("Error", modifier = Modifier.padding(start = 8.dp))
                         }
@@ -434,7 +458,7 @@ fun DebugFilterDialog(
                             value = customText,
                             onValueChange = onCustomTextChange,
                             label = { Text("Custom search") },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
                         )
                         Row {
                             Checkbox(checked = useRegex, onCheckedChange = onUseRegexChange)
@@ -447,7 +471,7 @@ fun DebugFilterDialog(
                 OutlinedButton(onClick = onDismiss) {
                     Text("OK")
                 }
-            }
+            },
         )
     }
 }

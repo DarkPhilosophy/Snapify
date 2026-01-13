@@ -8,19 +8,23 @@ data class FilterState(
     val selectedTags: Set<ScreenshotTab> = setOf(
         ScreenshotTab.MARKED,
         ScreenshotTab.KEPT,
-        ScreenshotTab.UNMARKED
-    ), // Default: all selected
-    val selectedFolders: Set<String> = emptySet() // Empty means all folders
+        ScreenshotTab.UNMARKED,
+    ),
+    // Default: all selected
+    // Empty means all folders
+    val selectedFolders: Set<String> = emptySet(),
 ) {
     /**
      * Returns true if all possible tags are selected.
      * This includes either: ALL tag selected, or MARKED + KEPT + UNMARKED all selected
      */
-    fun isAllTagsSelected(): Boolean = 
-        ScreenshotTab.ALL in selectedTags || 
-        (selectedTags.contains(ScreenshotTab.MARKED) && 
-         selectedTags.contains(ScreenshotTab.KEPT) && 
-         selectedTags.contains(ScreenshotTab.UNMARKED))
+    fun isAllTagsSelected(): Boolean =
+        ScreenshotTab.ALL in selectedTags ||
+            (
+                selectedTags.contains(ScreenshotTab.MARKED) &&
+                    selectedTags.contains(ScreenshotTab.KEPT) &&
+                    selectedTags.contains(ScreenshotTab.UNMARKED)
+                )
 
     /**
      * Returns true if no tags are selected (treat as all).

@@ -36,7 +36,7 @@ import javax.inject.Inject
 enum class MonitoringStatus {
     STOPPED,
     ACTIVE,
-    MISSING_PERMISSIONS
+    MISSING_PERMISSIONS,
 }
 
 sealed class RecomposeReason {
@@ -55,7 +55,7 @@ data class MainUiState(
     val showDeletionTimeDialog: Boolean = false,
     val videoPreviewItem: MediaItem? = null,
     val videoPreviewPosition: androidx.compose.ui.geometry.Offset? = null,
-    val imagePreviewItem: MediaItem? = null
+    val imagePreviewItem: MediaItem? = null,
 )
 
 @HiltViewModel
@@ -63,13 +63,12 @@ class MainViewModel @Inject constructor(
     private val repository: MediaRepository,
     private val preferences: AppPreferences,
     @ApplicationContext private val context: Context,
-    private val recomposeFlow: MutableSharedFlow<RecomposeReason>
+    private val recomposeFlow: MutableSharedFlow<RecomposeReason>,
 ) : ViewModel() {
 
     companion object {
         val mediaEventFlow = MutableSharedFlow<MediaEvent>(replay = 1)
     }
-
 
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState = _uiState.asStateFlow()
@@ -102,10 +101,10 @@ class MainViewModel @Inject constructor(
     private val initialSelectedFolders = runBlocking {
         val loaded = preferences.selectedFolders.first()
         val configuredUris = preferences.mediaFolderUris.first()
-        val parsedConfigured = configuredUris.mapNotNull { 
-            UriPathConverter.resolveUriToFilePath(it, context) 
+        val parsedConfigured = configuredUris.mapNotNull {
+            UriPathConverter.resolveUriToFilePath(it, context)
         }.toSet()
-        
+
         // Use loaded folders if available, otherwise fall back to configured folders
         if (loaded.isNotEmpty() || parsedConfigured.isEmpty()) loaded else parsedConfigured
     }
@@ -113,7 +112,6 @@ class MainViewModel @Inject constructor(
     private val _currentFilterState =
         MutableStateFlow(FilterState(selectedFolders = initialSelectedFolders))
     val currentFilterState = _currentFilterState.asStateFlow()
-
 
     init {
         observeServiceStatus()
@@ -153,7 +151,6 @@ class MainViewModel @Inject constructor(
         }
     }
 
-
     private fun observeMediaEvents() {
         viewModelScope.launch {
             mediaEventFlow.collect { event ->
@@ -161,14 +158,14 @@ class MainViewModel @Inject constructor(
                     is MediaEvent.ItemAdded -> {
                         DebugLogger.info(
                             "MainViewModel",
-                            "ItemAdded: Adding new item ${event.mediaItem.fileName} (ID: ${event.mediaItem.id})"
+                            "ItemAdded: Adding new item ${event.mediaItem.fileName} (ID: ${event.mediaItem.id})",
                         )
                         _mediaItems.add(0, event.mediaItem)
                         // Trigger new screenshot detected for UI feedback
                         _newScreenshotDetected.emit(Unit)
                         DebugLogger.info(
                             "MainViewModel",
-                            "ItemAdded: Added item, mediaItems now has ${_mediaItems.size} items"
+                            "ItemAdded: Added item, mediaItems now has ${_mediaItems.size} items",
                         )
                     }
                     is MediaEvent.ItemDeleted -> {
@@ -201,13 +198,13 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             DebugLogger.info(
                 "MainViewModel",
-                "observeRecomposeEvents: Starting to observe recomposeFlow"
+                "observeRecomposeEvents: Starting to observe recomposeFlow",
             )
             recomposeFlow.collect { reason ->
                 val currentTime = System.currentTimeMillis()
                 DebugLogger.info(
                     "MainViewModel",
-                    "observeRecomposeEvents: Processing recompose $reason, updating refreshTrigger to $currentTime"
+                    "observeRecomposeEvents: Processing recompose $reason, updating refreshTrigger to $currentTime",
                 )
                 _refreshTrigger.value = currentTime
                 // Emit new screenshot detected event
@@ -261,26 +258,24 @@ class MainViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-             preferences.selectedFolders.collect { folders ->
-                  val configuredUris = preferences.mediaFolderUris.first()
-                  val parsedConfigured =
-                      configuredUris.mapNotNull { UriPathConverter.resolveUriToFilePath(it, context) }.toSet()
-                  
-                  // Deduplicate folders: remove parent directories when child directories exist
-                  val dedupFolders = folders.filter { path ->
-                      !folders.any { other ->
-                          other != path && other.startsWith(path + "/")
-                      }
-                  }.toSet()
-                  
-                  val effectiveFolders =
-                      if (dedupFolders.isNotEmpty() || parsedConfigured.isEmpty()) dedupFolders else parsedConfigured
-                  _currentFilterState.update { it.copy(selectedFolders = effectiveFolders) }
-              }
-          }
-         }
+            preferences.selectedFolders.collect { folders ->
+                val configuredUris = preferences.mediaFolderUris.first()
+                val parsedConfigured =
+                    configuredUris.mapNotNull { UriPathConverter.resolveUriToFilePath(it, context) }.toSet()
 
+                // Deduplicate folders: remove parent directories when child directories exist
+                val dedupFolders = folders.filter { path ->
+                    !folders.any { other ->
+                        other != path && other.startsWith(path + "/")
+                    }
+                }.toSet()
 
+                val effectiveFolders =
+                    if (dedupFolders.isNotEmpty() || parsedConfigured.isEmpty()) dedupFolders else parsedConfigured
+                _currentFilterState.update { it.copy(selectedFolders = effectiveFolders) }
+            }
+        }
+    }
 
     fun updateTagSelection(selectedTags: Set<ScreenshotTab>) {
         _currentFilterState.update { it.copy(selectedTags = selectedTags) }
@@ -297,7 +292,7 @@ class MainViewModel @Inject constructor(
                     other != path && other.startsWith(path + "/")
                 }
             }.toSet()
-            
+
             if (deduplicated != selectedFolders) {
                 DebugLogger.debug("MainViewModel.updateFolderSelection", "Removed duplicates: $selectedFolders -> $deduplicated")
             }
@@ -311,7 +306,7 @@ class MainViewModel @Inject constructor(
             try {
                 DebugLogger.info(
                     "MainViewModel",
-                    "loadMediaItems: Starting to load media items - THIS WILL REPLACE ENTIRE LIST"
+                    "loadMediaItems: Starting to load media items - THIS WILL REPLACE ENTIRE LIST",
                 )
                 _uiState.update { it.copy(isLoading = true) }
                 currentOffset = 0
@@ -325,7 +320,7 @@ class MainViewModel @Inject constructor(
 
                 DebugLogger.info(
                     "MainViewModel",
-                    "loadMediaItems: Clearing ${_mediaItems.size} existing items and adding ${sortedItems.size} new items"
+                    "loadMediaItems: Clearing ${_mediaItems.size} existing items and adding ${sortedItems.size} new items",
                 )
                 _mediaItems.clear()
                 _mediaItems.addAll(sortedItems)
@@ -334,7 +329,7 @@ class MainViewModel @Inject constructor(
 
                 DebugLogger.info(
                     "MainViewModel",
-                    "loadMediaItems: COMPLETED - mediaItems now has ${_mediaItems.size} items"
+                    "loadMediaItems: COMPLETED - mediaItems now has ${_mediaItems.size} items",
                 )
             } catch (e: Exception) {
                 DebugLogger.error("MainViewModel", "Error loading media items", e)
@@ -389,7 +384,7 @@ class MainViewModel @Inject constructor(
 
                 DebugLogger.info(
                     "MainViewModel",
-                    "Loaded ${filteredNewItems.size} more filtered media items"
+                    "Loaded ${filteredNewItems.size} more filtered media items",
                 )
             } catch (e: Exception) {
                 DebugLogger.error("MainViewModel", "Error loading more media items", e)
@@ -404,7 +399,6 @@ class MainViewModel @Inject constructor(
         _refreshTrigger.value = System.currentTimeMillis()
         loadMediaItems()
     }
-
 
     fun keepMediaItem(mediaItem: MediaItem) {
         viewModelScope.launch {
@@ -482,7 +476,7 @@ class MainViewModel @Inject constructor(
                     } catch (e: Exception) {
                         DebugLogger.warning(
                             "MainViewModel",
-                            "ContentResolver delete failed: ${e.message}"
+                            "ContentResolver delete failed: ${e.message}",
                         )
                     }
                 }
@@ -509,10 +503,10 @@ class MainViewModel @Inject constructor(
                 FirebaseAnalytics.getInstance(context).logEvent("media_delete", bundle)
 
                 _uiState.update { it.copy(message = "Media item deleted") }
-                
+
                 // Show deletion notification
                 NotificationHelper.showDeletedNotification(context, mediaItem.fileName)
-                
+
                 DebugLogger.info("MainViewModel", "Media item ${mediaItem.id} deleted")
 
                 // Remove from deleting ids
@@ -528,9 +522,13 @@ class MainViewModel @Inject constructor(
 
     fun openMediaItem(mediaItem: MediaItem, position: androidx.compose.ui.geometry.Offset) {
         val isVideo = mediaItem.filePath.lowercase().let {
-            it.endsWith(".mp4") || it.endsWith(".avi") || it.endsWith(".mov") || it.endsWith(".mkv") || it.endsWith(
-                ".webm"
-            )
+            it.endsWith(".mp4") ||
+                it.endsWith(".avi") ||
+                it.endsWith(".mov") ||
+                it.endsWith(".mkv") ||
+                it.endsWith(
+                    ".webm",
+                )
         }
 
         if (isVideo) {
@@ -548,7 +546,7 @@ class MainViewModel @Inject constructor(
                 putString(FirebaseAnalytics.Param.ITEM_NAME, mediaItem.fileName)
                 putString(
                     FirebaseAnalytics.Param.CONTENT_TYPE,
-                    if (mimeType.startsWith("image")) "image" else "video"
+                    if (mimeType.startsWith("image")) "image" else "video",
                 )
             }
             FirebaseAnalytics.getInstance(context)
@@ -563,7 +561,7 @@ class MainViewModel @Inject constructor(
                 FileProvider.getUriForFile(
                     context,
                     "${context.packageName}.fileprovider",
-                    file
+                    file,
                 )
             }
 
@@ -574,14 +572,13 @@ class MainViewModel @Inject constructor(
             }
 
             context.startActivity(
-                Intent.createChooser(intent, "Open with").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                Intent.createChooser(intent, "Open with").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             )
         } catch (e: Exception) {
             DebugLogger.error("MainViewModel", "Error opening media item", e)
             _uiState.update { it.copy(message = "Failed to open media item") }
         }
     }
-
 
     private fun startMonitoringService() {
         viewModelScope.launch {
@@ -605,7 +602,7 @@ class MainViewModel @Inject constructor(
 
             // Trigger UI update - status will be observed via preference flow
             _uiState.update { it.copy(message = "Screenshot monitoring started") }
-            
+
             // Emit recompose event to trigger UI refresh
             recomposeFlow.emit(RecomposeReason.Other)
         }
@@ -622,7 +619,6 @@ class MainViewModel @Inject constructor(
             _uiState.update { it.copy(message = "Screenshot monitoring stopped") }
         }
     }
-
 
     fun refreshMonitoringStatus() {
         updateMonitoringStatus()
@@ -675,7 +671,6 @@ class MainViewModel @Inject constructor(
     fun hideDeletionTimeDialog() {
         _uiState.update { it.copy(showDeletionTimeDialog = false) }
     }
-
 
     fun dismissWelcomeDialog() {
         _uiState.update { it.copy(showWelcomeDialog = false) }

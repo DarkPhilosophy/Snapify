@@ -19,7 +19,7 @@ class BootReceiver : BroadcastReceiver() {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
             val entryPoint = EntryPointAccessors.fromApplication(
                 context.applicationContext,
-                ReceiverEntryPoint::class.java
+                ReceiverEntryPoint::class.java,
             )
             val preferences = entryPoint.preferences()
 
@@ -27,7 +27,8 @@ class BootReceiver : BroadcastReceiver() {
                 try {
                     val isServiceEnabled = preferences.serviceEnabled.first()
 
-                    if (isServiceEnabled && PermissionUtils.getMissingPermissions(context)
+                    if (isServiceEnabled &&
+                        PermissionUtils.getMissingPermissions(context)
                             .isEmpty()
                     ) {
                         val serviceIntent = Intent(context, ScreenshotMonitorService::class.java)

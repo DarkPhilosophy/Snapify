@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Force JAVA_HOME for Antigravity/Extensions that miss the environment
+export JAVA_HOME="/var/home/alexa/.jdks/jbr-21.0.9"
+
 #
 # Copyright © 2015-2021 the original authors.
 #

@@ -49,7 +49,7 @@ import ro.snapify.util.PermissionUtils.updatePermissionStatuses
 fun PermissionOverlayDialog(
     onDismiss: () -> Unit,
     onPermissionGranted: (() -> Unit)? = null,
-    onPermissionDenied: (() -> Unit)? = null
+    onPermissionDenied: (() -> Unit)? = null,
 ) {
     // Handle back press to dismiss dialog
     BackHandler { onDismiss() }
@@ -59,12 +59,12 @@ fun PermissionOverlayDialog(
 
     // Launcher for overlay permission (opens settings)
     val overlayLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
+        contract = ActivityResultContracts.StartActivityForResult(),
     ) { result ->
         // Check if permission was granted after returning from settings
         updatePermissionStatuses(
             context,
-            listOf("overlay")
+            listOf("overlay"),
         ) { statusMap ->
             val isGranted = statusMap["overlay"] == true
             DebugLogger.info("PermissionOverlay", "Overlay permission result: $isGranted")
@@ -79,13 +79,13 @@ fun PermissionOverlayDialog(
 
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(24.dp),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
         ) {
             val isOLED = MaterialTheme.colorScheme.surface == Color.Black
             Card(
@@ -94,23 +94,23 @@ fun PermissionOverlayDialog(
                     .wrapContentHeight(),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (isOLED) Color.Black else MaterialTheme.colorScheme.surface
+                    containerColor = if (isOLED) Color.Black else MaterialTheme.colorScheme.surface,
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     // Icon
                     Icon(
                         imageVector = Icons.Default.Info,
                         contentDescription = null,
                         modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.primary,
                     )
 
                     // Title
@@ -118,7 +118,7 @@ fun PermissionOverlayDialog(
                         text = "Overlay Permission Required",
                         style = MaterialTheme.typography.headlineSmall,
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
 
                     // Description
@@ -126,28 +126,28 @@ fun PermissionOverlayDialog(
                         text = "To show the quick action overlay when you take screenshots, the app needs permission to draw over other apps. This allows instant access to keep or delete options.",
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
 
                     // Features list
                     Column(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(
                             text = "• Instant screenshot decisions",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
                             text = "• Quick keep/delete actions",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
                             text = "• No need to open the app",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                     }
 
@@ -156,11 +156,11 @@ fun PermissionOverlayDialog(
                     // Buttons
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         OutlinedButton(
                             onClick = onDismiss,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         ) {
                             Text("Skip for Now")
                         }
@@ -171,7 +171,7 @@ fun PermissionOverlayDialog(
                                 val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
                                 overlayLauncher.launch(intent)
                             },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         ) {
                             Text("Grant Permission")
                         }
@@ -182,7 +182,7 @@ fun PermissionOverlayDialog(
                         text = "You can change this later in Settings > Apps > [App Name] > Display over other apps",
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -198,7 +198,7 @@ fun PermissionOverlayDialog(
 fun requestOverlayPermission(
     onGranted: () -> Unit = {},
     onDenied: () -> Unit = {},
-    onDismissed: () -> Unit = {}
+    onDismissed: () -> Unit = {},
 ): Boolean {
     var showDialog by remember { mutableStateOf(false) }
     var permissionGranted by remember { mutableStateOf(false) }
@@ -208,7 +208,7 @@ fun requestOverlayPermission(
     // Check current permission status
     updatePermissionStatuses(
         context,
-        listOf("overlay")
+        listOf("overlay"),
     ) { statusMap ->
         val isGranted = statusMap["overlay"] == true
         if (isGranted) {
@@ -233,7 +233,7 @@ fun requestOverlayPermission(
             onPermissionDenied = {
                 showDialog = false
                 onDenied()
-            }
+            },
         )
     }
 
@@ -250,7 +250,7 @@ fun checkOverlayPermission(): Boolean {
 
     updatePermissionStatuses(
         context,
-        listOf("overlay")
+        listOf("overlay"),
     ) { statusMap ->
         isGranted = statusMap["overlay"] == true
     }

@@ -24,7 +24,7 @@ data class VideoPlayerState(
     var isPlaying: Boolean = true,
     var position: Float = 0f,
     var duration: Long = 0L,
-    var exoPlayer: ExoPlayer? = null
+    var exoPlayer: ExoPlayer? = null,
 )
 
 @androidx.media3.common.util.UnstableApi
@@ -35,7 +35,7 @@ fun videoPlayer(
     onStateChanged: (VideoPlayerState) -> Unit = {},
     onEndReached: (ExoPlayer) -> Unit = {},
     resizeMode: Int = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT,
-    rotationDegrees: Int = 0
+    rotationDegrees: Int = 0,
 ): Pair<VideoPlayerState, androidx.compose.ui.unit.IntSize?> {
     val lifecycleOwner = LocalLifecycleOwner.current
     var videoState by remember { mutableStateOf(VideoPlayerState()) }
@@ -81,7 +81,7 @@ fun videoPlayer(
                     override fun onVideoSizeChanged(videoSizeData: androidx.media3.common.VideoSize) {
                         videoSize = androidx.compose.ui.unit.IntSize(
                             videoSizeData.width,
-                            videoSizeData.height
+                            videoSizeData.height,
                         )
                     }
                 })
@@ -108,7 +108,7 @@ fun videoPlayer(
             // Clean up ExoPlayer
             view.player?.release()
         },
-        modifier = modifier
+        modifier = modifier,
     )
 
     // Poll position and duration
@@ -119,16 +119,12 @@ fun videoPlayer(
                 videoState = videoState.copy(
                     position = player.currentPosition.toFloat() / player.duration.coerceAtLeast(1)
                         .toFloat(),
-                    duration = player.duration
+                    duration = player.duration,
                 )
                 onStateChanged(videoState)
             }
         }
     }
 
-
-
     return Pair(videoState, videoSize)
 }
-
-

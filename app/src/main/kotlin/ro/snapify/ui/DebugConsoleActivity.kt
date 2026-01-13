@@ -106,7 +106,7 @@ class DebugConsoleActivity : ComponentActivity() {
             @Suppress("DEPRECATION")
             resources.updateConfiguration(
                 resources.configuration.apply { setLocale(newLocale) },
-                resources.displayMetrics
+                resources.displayMetrics,
             )
 
             CompositionLocalProvider(LocalConfiguration provides Configuration(resources.configuration)) {
@@ -146,7 +146,8 @@ fun DebugConsoleScreen(onNavigateBack: () -> Unit) {
 
     val allLogs = remember {
         mutableStateOf(
-            DebugLogger.getAllLogs().ifEmpty { DebugLogger.getRecentLogs() })
+            DebugLogger.getAllLogs().ifEmpty { DebugLogger.getRecentLogs() },
+        )
     }
     val filteredLogs =
         remember(
@@ -156,7 +157,7 @@ fun DebugConsoleScreen(onNavigateBack: () -> Unit) {
             errorChecked,
             customText,
             useRegex,
-            allLogs.value
+            allLogs.value,
         ) {
             allLogs.value.filter { entry ->
                 val levelMatch = when (entry.level) {
@@ -175,15 +176,21 @@ fun DebugConsoleScreen(onNavigateBack: () -> Unit) {
                     } else {
                         entry.getFormattedMessage().contains(customText, ignoreCase = true)
                     }
-                } else true
+                } else {
+                    true
+                }
                 levelMatch && textMatch
             }
         }
 
     val totalText =
-        if (DebugLogger.getAllLogs().isEmpty()) stringResource(R.string.recent) else stringResource(
-            R.string.total
-        )
+        if (DebugLogger.getAllLogs().isEmpty()) {
+            stringResource(R.string.recent)
+        } else {
+            stringResource(
+                R.string.total,
+            )
+        }
     val logCountText =
         "${filteredLogs.size} ${stringResource(R.string.log_entries_count)} (${allLogs.value.size} $totalText)"
 
@@ -212,7 +219,7 @@ fun DebugConsoleScreen(onNavigateBack: () -> Unit) {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
             )
         },
         floatingActionButton = {
@@ -220,30 +227,30 @@ fun DebugConsoleScreen(onNavigateBack: () -> Unit) {
                 Icon(ComposeIcons.Filled.FilterList, contentDescription = "Filters")
             }
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(padding),
         ) {
             // Buttons
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 OutlinedButton(
                     onClick = { showClearDialog = true },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 ) {
                     Text(stringResource(R.string.clear))
                 }
 
                 OutlinedButton(
                     onClick = { showExportDialog = true },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 ) {
                     Text(stringResource(R.string.export))
                 }
@@ -256,7 +263,7 @@ fun DebugConsoleScreen(onNavigateBack: () -> Unit) {
                         val clip =
                             android.content.ClipData.newPlainText(
                                 "Screenshot Manager Debug Logs",
-                                logsContent
+                                logsContent,
                             )
                         clipboard.setPrimaryClip(clip)
 
@@ -264,7 +271,7 @@ fun DebugConsoleScreen(onNavigateBack: () -> Unit) {
                             snackbarHostState.showSnackbar(getString(context, R.string.logs_copied))
                         }
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 ) {
                     Text(stringResource(R.string.copy))
                 }
@@ -277,11 +284,15 @@ fun DebugConsoleScreen(onNavigateBack: () -> Unit) {
                     onDismissRequest = { showFilterDialog = false },
                     title = { Text("Log Filters") },
                     containerColor = MaterialTheme.colorScheme.surface,
-                    modifier = if (isOLED) Modifier.border(
-                        1.dp,
-                        Color.White,
-                        RoundedCornerShape(28.dp)
-                    ) else Modifier,
+                    modifier = if (isOLED) {
+                        Modifier.border(
+                            1.dp,
+                            Color.White,
+                            RoundedCornerShape(28.dp),
+                        )
+                    } else {
+                        Modifier
+                    },
                     text = {
                         MaterialTheme(colorScheme = MaterialTheme.colorScheme) {
                             Column {
@@ -289,25 +300,29 @@ fun DebugConsoleScreen(onNavigateBack: () -> Unit) {
                                 Row {
                                     Checkbox(
                                         checked = debugChecked,
-                                        onCheckedChange = { debugChecked = it })
+                                        onCheckedChange = { debugChecked = it },
+                                    )
                                     Text("Debug", modifier = Modifier.padding(start = 8.dp))
                                 }
                                 Row {
                                     Checkbox(
                                         checked = infoChecked,
-                                        onCheckedChange = { infoChecked = it })
+                                        onCheckedChange = { infoChecked = it },
+                                    )
                                     Text("Info", modifier = Modifier.padding(start = 8.dp))
                                 }
                                 Row {
                                     Checkbox(
                                         checked = warningChecked,
-                                        onCheckedChange = { warningChecked = it })
+                                        onCheckedChange = { warningChecked = it },
+                                    )
                                     Text("Warning", modifier = Modifier.padding(start = 8.dp))
                                 }
                                 Row {
                                     Checkbox(
                                         checked = errorChecked,
-                                        onCheckedChange = { errorChecked = it })
+                                        onCheckedChange = { errorChecked = it },
+                                    )
                                     Text("Error", modifier = Modifier.padding(start = 8.dp))
                                 }
                                 Spacer(modifier = Modifier.height(16.dp))
@@ -315,12 +330,13 @@ fun DebugConsoleScreen(onNavigateBack: () -> Unit) {
                                     value = customText,
                                     onValueChange = { customText = it },
                                     label = { Text("Custom search") },
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier.fillMaxWidth(),
                                 )
                                 Row {
                                     Checkbox(
                                         checked = useRegex,
-                                        onCheckedChange = { useRegex = it })
+                                        onCheckedChange = { useRegex = it },
+                                    )
                                     Text("Use regex", modifier = Modifier.padding(start = 8.dp))
                                 }
                             }
@@ -330,7 +346,7 @@ fun DebugConsoleScreen(onNavigateBack: () -> Unit) {
                         OutlinedButton(onClick = { showFilterDialog = false }) {
                             Text("OK")
                         }
-                    }
+                    },
                 )
             }
 
@@ -340,7 +356,7 @@ fun DebugConsoleScreen(onNavigateBack: () -> Unit) {
                 modifier = Modifier.padding(8.dp),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
             )
 
             // Logs list
@@ -351,7 +367,7 @@ fun DebugConsoleScreen(onNavigateBack: () -> Unit) {
                         .fillMaxWidth()
                         .weight(1f)
                         .background(Color.Black)
-                        .padding(8.dp)
+                        .padding(8.dp),
                 ) {
                     items(filteredLogs) { entry ->
                         val color = when (entry.level) {
@@ -365,7 +381,7 @@ fun DebugConsoleScreen(onNavigateBack: () -> Unit) {
                             color = color,
                             fontSize = 11.sp,
                             fontFamily = FontFamily.Monospace,
-                            modifier = Modifier.padding(vertical = 2.dp)
+                            modifier = Modifier.padding(vertical = 2.dp),
                         )
                     }
                 }
@@ -379,11 +395,15 @@ fun DebugConsoleScreen(onNavigateBack: () -> Unit) {
                 onDismissRequest = { showClearDialog = false },
                 title = { Text("Clear Logs") },
                 containerColor = MaterialTheme.colorScheme.surface,
-                modifier = if (isOLED) Modifier.border(
-                    1.dp,
-                    Color.White,
-                    RoundedCornerShape(28.dp)
-                ) else Modifier,
+                modifier = if (isOLED) {
+                    Modifier.border(
+                        1.dp,
+                        Color.White,
+                        RoundedCornerShape(28.dp),
+                    )
+                } else {
+                    Modifier
+                },
                 text = { Text("Are you sure you want to clear all logs?") },
                 confirmButton = {
                     TextButton(
@@ -394,7 +414,7 @@ fun DebugConsoleScreen(onNavigateBack: () -> Unit) {
                             scope.launch {
                                 snackbarHostState.showSnackbar("Logs cleared")
                             }
-                        }
+                        },
                     ) {
                         Text("Clear")
                     }
@@ -403,7 +423,7 @@ fun DebugConsoleScreen(onNavigateBack: () -> Unit) {
                     TextButton(onClick = { showClearDialog = false }) {
                         Text("Cancel")
                     }
-                }
+                },
             )
         }
 
@@ -414,11 +434,15 @@ fun DebugConsoleScreen(onNavigateBack: () -> Unit) {
                 onDismissRequest = { showExportDialog = false },
                 title = { Text("Export Logs") },
                 containerColor = MaterialTheme.colorScheme.surface,
-                modifier = if (isOLED) Modifier.border(
-                    1.dp,
-                    Color.White,
-                    RoundedCornerShape(28.dp)
-                ) else Modifier,
+                modifier = if (isOLED) {
+                    Modifier.border(
+                        1.dp,
+                        Color.White,
+                        RoundedCornerShape(28.dp),
+                    )
+                } else {
+                    Modifier
+                },
                 text = { Text("Export debug logs to Downloads folder?") },
                 confirmButton = {
                     TextButton(
@@ -429,16 +453,16 @@ fun DebugConsoleScreen(onNavigateBack: () -> Unit) {
                                     val timestamp =
                                         SimpleDateFormat(
                                             "yyyyMMdd_HHmmss",
-                                            Locale.getDefault()
+                                            Locale.getDefault(),
                                         ).format(
-                                            Date()
+                                            Date(),
                                         )
                                     val fileName = "screenshot_manager_debug_logs_$timestamp.txt"
 
                                     withContext(Dispatchers.IO) {
                                         val downloadsDir =
                                             Environment.getExternalStoragePublicDirectory(
-                                                Environment.DIRECTORY_DOWNLOADS
+                                                Environment.DIRECTORY_DOWNLOADS,
                                             )
                                         val file = File(downloadsDir, fileName)
                                         file.writeText(logsContent)
@@ -451,7 +475,7 @@ fun DebugConsoleScreen(onNavigateBack: () -> Unit) {
                                     snackbarHostState.showSnackbar("Export failed: ${e.message}")
                                 }
                             }
-                        }
+                        },
                     ) {
                         Text("Export")
                     }
@@ -460,7 +484,7 @@ fun DebugConsoleScreen(onNavigateBack: () -> Unit) {
                     TextButton(onClick = { showExportDialog = false }) {
                         Text("Cancel")
                     }
-                }
+                },
             )
         }
     }

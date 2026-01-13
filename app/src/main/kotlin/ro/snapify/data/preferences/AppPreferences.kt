@@ -64,18 +64,16 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
     }
 
     val isManualMarkMode: Flow<Boolean> = context.dataStore.data.map { preferences ->
-        preferences[KEY_MANUAL_MARK_MODE] ?: true  // Default to Manual mode
+        preferences[KEY_MANUAL_MARK_MODE] ?: true // Default to Manual mode
     }
 
     val mediaFolderUris: Flow<Set<String>> = context.dataStore.data.map { preferences ->
         preferences[KEY_MEDIA_FOLDER_URIS] ?: DEFAULT_MEDIA_FOLDER_URIS
     }
 
-
     val serviceEnabled: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[KEY_SERVICE_ENABLED] ?: false
     }
-
 
     val language: Flow<String> = context.dataStore.data.map { preferences ->
         preferences[KEY_LANGUAGE] ?: getDeviceLanguage()
@@ -98,20 +96,20 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
     }
 
     val notificationsEnabled: Flow<Boolean> = context.dataStore.data.map { preferences ->
-        preferences[KEY_NOTIFICATIONS_ENABLED] ?: true  // Default to enabled
+        preferences[KEY_NOTIFICATIONS_ENABLED] ?: true // Default to enabled
     }
 
     val liveVideoPreviewEnabled: Flow<Boolean> = context.dataStore.data.map { preferences ->
-        preferences[KEY_LIVE_VIDEO_PREVIEW_ENABLED] ?: false  // Default to disabled
+        preferences[KEY_LIVE_VIDEO_PREVIEW_ENABLED] ?: false // Default to disabled
     }
 
     val permanentSettingMenuEnabled: Flow<Boolean> = context.dataStore.data.map { preferences ->
-        preferences[KEY_PERMANENT_SETTING_MENU_ENABLED] ?: false  // Default to disabled
+        preferences[KEY_PERMANENT_SETTING_MENU_ENABLED] ?: false // Default to disabled
     }
 
     val selectedFolders: Flow<Set<String>> = context.dataStore.data.map { preferences ->
         val stored = preferences[KEY_SELECTED_FOLDERS] ?: emptySet()
-        
+
         // Deduplicate: remove paths that are parent directories of other selected paths,
         // or remove duplicates that resolve to the same filesystem location
         stored.filter { path ->
@@ -165,7 +163,7 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
             preferences[KEY_MEDIA_FOLDER_PATHS] = Gson().toJson(resolvedPaths)
         }
     }
-    
+
     // Get resolved folder paths (not URIs)
     val mediaFolderPaths: Flow<Set<String>> = context.dataStore.data.map { preferences ->
         val jsonString = preferences[KEY_MEDIA_FOLDER_PATHS] ?: "[]"
@@ -183,13 +181,11 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
         }
     }
 
-
     suspend fun setServiceEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[KEY_SERVICE_ENABLED] = enabled
         }
     }
-
 
     suspend fun setLanguage(lang: String) {
         context.dataStore.edit { preferences ->
@@ -234,7 +230,6 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
         }
     }
 
-
     suspend fun getLanguageSync(): String {
         val prefs = context.dataStore.data.first()
         return prefs[KEY_LANGUAGE] ?: getDeviceLanguage()
@@ -257,5 +252,4 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
             preferences[KEY_HAS_INITIALIZED_FOLDERS] = initialized
         }
     }
-
 }
