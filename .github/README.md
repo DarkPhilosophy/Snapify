@@ -10,6 +10,13 @@
 A modern, intelligent Android application to automatically manage and organize your screenshots. Keep what matters, delete the rest automatically.
 
 <!-- LATEST-VERSION-START -->
+### Latest Update (v1.0.0)
+- **Edge-to-Edge UI**: Migrated legacy UI flags to `enableEdgeToEdge()` for a modern, immersive experience.
+- **Project Structure**: Added `version.properties` for automated version management.
+- **CI/CD**: Added robust GitHub Actions workflow with asset conflict resolution.
+
+### Fixed
+- **Share and Delete**: Removed arbitrary timers and implemented aggressive cache cleanup in `OverlayService` (on create & pre-share) to fix sharing failures and storage leaks.
 <!-- LATEST-VERSION-END -->
 
 ## Validation Status
@@ -280,7 +287,7 @@ Configuration cache entry stored.
 
 ### From GitHub Releases
 
-1. Go to [Releases](https://github.com/DarkPhilosophy/Ko/releases)
+1. Go to [Releases](https://github.com/DarkPhilosophy/Snapify/releases)
 2. Download the latest `screenshot-manager-debug.apk` or `screenshot-manager-release.apk`
 3. Install on your Android device (enable "Install unknown apps" if needed)
 
