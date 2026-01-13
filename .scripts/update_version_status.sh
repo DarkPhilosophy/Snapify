@@ -49,8 +49,9 @@ $CLEAN_CHANGELOG
 
     # 4. Replace in README using perl for multiline handling
     if [ -f "$README_FILE" ]; then
+        export NEW_BLOCK
         # Update Content
-        perl -i -0777 -pe "s|<!-- LATEST-VERSION-START -->.*<!-- LATEST-VERSION-END -->|$(echo "$NEW_BLOCK" | sed 's/|/\\|/g')|gs" "$README_FILE"
+        perl -i -0777 -pe 's|<!-- LATEST-VERSION-START -->.*<!-- LATEST-VERSION-END -->|$ENV{NEW_BLOCK}|gs' "$README_FILE"
         echo "✅ Updated Latest Update section in README.md"
 
         # Update Badge

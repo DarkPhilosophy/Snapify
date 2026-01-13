@@ -50,9 +50,9 @@ if [ -f "$LINT_OUTPUT_FILE" ]; then
 <details>
 <summary>Click to view full lint output</summary>
 
-\`\`\`
+\`\`\`\
 $SAFE_CONTENT
-\`\`\`
+\`\`\`\
 
 </details>
 <!-- LINT-RESULT-END -->"
@@ -79,16 +79,17 @@ $SAFE_CONTENT
     fi
 
     # 2. Build Status (Static)
-    BUILD_BADGE="[![Build Status](https://github.com/$FULL_REPO/actions/workflows/build-apk.yaml/badge.svg)](https://github.com/$FULL_REPO/actions)"
+    BUILD_BADGE="[![Build Status](https://github.com/$FULL_REPO/actions/workflows/ci.yaml/badge.svg)](https://github.com/$FULL_REPO/actions)"
 
     # 3. License (Static)
     LICENSE_BADGE="[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)"
 
     # 4. Version (Dynamic from version.properties)
-    if [ -f "version.properties" ]; then
-        MAJOR=$(grep "version.major" version.properties | cut -d'=' -f2)
-        MINOR=$(grep "version.minor" version.properties | cut -d'=' -f2)
-        PATCH=$(grep "version.patch" version.properties | cut -d'=' -f2)
+    VERSION_FILE="$PROJECT_DIR/version.properties"
+    if [ -f "$VERSION_FILE" ]; then
+        MAJOR=$(grep "version.major" "$VERSION_FILE" | cut -d'=' -f2 | tr -d '[:space:]')
+        MINOR=$(grep "version.minor" "$VERSION_FILE" | cut -d'=' -f2 | tr -d '[:space:]')
+        PATCH=$(grep "version.patch" "$VERSION_FILE" | cut -d'=' -f2 | tr -d '[:space:]')
         VERSION="$MAJOR.$MINOR.$PATCH"
         VERSION_BADGE="[![Version $VERSION](https://img.shields.io/badge/Version-$VERSION-blue.svg)](https://github.com/$FULL_REPO)"
     else
@@ -96,8 +97,11 @@ $SAFE_CONTENT
     fi
 
     if [ -f "$README_FILE" ]; then
+        export NEW_BLOCK
+        export BADGE_BLOCK
+        
         # Replace Lint Block
-        perl -i -0777 -pe "s|<!-- LINT-RESULT-START -->.*<!-- LINT-RESULT-END -->|$(echo "$NEW_BLOCK" | sed 's/|/\\|/g')|gs" "$README_FILE"
+        perl -i -0777 -pe 's|<!-- LINT-RESULT-START -->.*<!-- LINT-RESULT-END -->|$ENV{NEW_BLOCK}|gs' "$README_FILE"
         
         # Replace Badge Block
         BADGE_BLOCK="<!-- LATEST-BUILD-STATUS-START -->
@@ -107,11 +111,13 @@ $LICENSE_BADGE
 $VERSION_BADGE
 <!-- LATEST-BUILD-STATUS-END -->"
         
+        export BADGE_BLOCK
+
         # 1. Initial Replacement: If strictly the placeholder exists
-        perl -i -0777 -pe "s|<!-- LATEST-BUILD-STATUS -->|$BADGE_BLOCK|g" "$README_FILE"
+        perl -i -0777 -pe 's|<!-- LATEST-BUILD-STATUS -->|$ENV{BADGE_BLOCK}|g' "$README_FILE"
         
         # 2. Subsequent Updates: Replace content between START/END markers
-        perl -i -0777 -pe "s|<!-- LATEST-BUILD-STATUS-START -->.*<!-- LATEST-BUILD-STATUS-END -->|$(echo "$BADGE_BLOCK" | sed 's/|/\\|/g')|gs" "$README_FILE"
+        perl -i -0777 -pe 's|<!-- LATEST-BUILD-STATUS-START -->.*<!-- LATEST-BUILD-STATUS-END -->|$ENV{BADGE_BLOCK}|gs' "$README_FILE"
 
         echo "✅ Updated Lint Status & Badge Block in README.md"
     else

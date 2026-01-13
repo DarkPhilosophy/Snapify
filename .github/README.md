@@ -1,8 +1,8 @@
 # Screenshot Manager
 
 <!-- LATEST-BUILD-STATUS-START -->
-[![PreBuild](https://img.shields.io/badge/PreBuild-Passing-brightgreen)](https://github.com/DarkPhilosophy/Ko/actions)
-[![Build Status](https://github.com/DarkPhilosophy/Ko/actions/workflows/build-apk.yaml/badge.svg)](https://github.com/DarkPhilosophy/Ko/actions)
+(https://github.com/DarkPhilosophy/Ko/actions)
+[![Build Status](https://github.com/DarkPhilosophy/Ko/actions/workflows/ci.yaml/badge.svg)]
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Version 1.0.0](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://github.com/DarkPhilosophy/android-Snapify)
 <!-- LATEST-BUILD-STATUS-END -->
@@ -10,20 +10,13 @@
 A modern, intelligent Android application to automatically manage and organize your screenshots. Keep what matters, delete the rest automatically.
 
 <!-- LATEST-VERSION-START -->
-### Latest Update (v1.0.0)
-- **Edge-to-Edge UI**: Migrated legacy UI flags to `enableEdgeToEdge()` for a modern, immersive experience.
-- **Project Structure**: Added `version.properties` for automated version management.
-- **CI/CD**: Added robust GitHub Actions workflow with asset conflict resolution.
-
-### Fixed
-- **Share and Delete**: Removed arbitrary timers and implemented aggressive cache cleanup in `OverlayService` (on create & pre-share) to fix sharing failures and storage leaks.
 <!-- LATEST-VERSION-END -->
 
 ## Validation Status
 <!-- LINT-RESULT-START -->
 ### Linting Status
 > **Status**: ✅ **Passing**  
-> **Last Updated**: 2026-01-13 18:42:51 UTC  
+> **Last Updated**: 2026-01-13 05:40:01 UTC  
 > **Summary**: 0 errors, 0 warnings
 
 <details>
@@ -32,213 +25,18 @@ A modern, intelligent Android application to automatically manage and organize y
 ```
 Starting a Gradle Daemon (subsequent builds will be faster)
 Calculating task graph as no cached configuration is available for tasks: spotlessCheck detekt test
-> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
-> Task :buildSrc:pluginDescriptors
-> Task :buildSrc:processResources NO-SOURCE
-> Task :buildSrc:compileKotlin
-> Task :buildSrc:compileJava NO-SOURCE
-> Task :buildSrc:compileGroovy NO-SOURCE
-> Task :buildSrc:classes UP-TO-DATE
 
-> Task :buildSrc:jar
-:jar: No valid plugin descriptors were found in META-INF/gradle-plugins
+...
 
-> Task :detekt NO-SOURCE
-> Task :app:preBuild UP-TO-DATE
-> Task :app:preDebugBuild UP-TO-DATE
-> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
-> Task :spotlessInternalRegisterDependencies
-> Task :app:spotlessKotlin
-> Task :app:spotlessKotlinCheck
-> Task :app:dataBindingMergeDependencyArtifactsDebug
-> Task :app:generateDebugResValues
-> Task :app:generateDebugResources
-> Task :app:injectCrashlyticsMappingFileIdDebug
-> Task :app:injectCrashlyticsVersionControlInfoDebug
-> Task :app:processDebugGoogleServices
-> Task :core:preBuild UP-TO-DATE
-> Task :core:preDebugBuild UP-TO-DATE
-> Task :core:generateDebugResValues
-> Task :core:generateDebugResources
-> Task :core:packageDebugResources
-
-> Task :app:detekt
-Property 'style>ForbiddenComment>values' is deprecated. Use `comments` instead, make sure you escape your text for Regular Expressions..
-Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configuration is ignored and will be removed in the future.
-
-> Task :app:spotlessKotlinGradle
-> Task :app:spotlessKotlinGradleCheck
-> Task :app:spotlessCheck
-> Task :app:packageDebugResources
-> Task :core:processDebugNavigationResources
-> Task :app:processDebugNavigationResources
-> Task :core:detekt
-> Task :app:generateDebugBuildConfig
-> Task :core:writeDebugAarMetadata
-> Task :app:parseDebugLocalResources
-> Task :core:parseDebugLocalResources
-> Task :app:compileDebugNavigationResources
-> Task :app:mapDebugSourceSetPaths
-> Task :app:checkDebugAarMetadata
-> Task :app:createDebugCompatibleScreenManifests
-> Task :core:extractDeepLinksDebug
-> Task :app:extractDeepLinksDebug
-> Task :core:generateDebugRFile
-> Task :core:checkKotlinGradlePluginConfigurationErrors SKIPPED
-> Task :core:generateDebugBuildConfig
-> Task :core:compileDebugLibraryResources
-> Task :core:javaPreCompileDebug
-> Task :app:javaPreCompileDebug
-> Task :app:preDebugUnitTestBuild UP-TO-DATE
-> Task :core:processDebugManifest
-> Task :app:mergeDebugResources
-> Task :app:javaPreCompileDebugUnitTest
-> Task :app:preReleaseBuild UP-TO-DATE
-> Task :app:buildKotlinToolingMetadata
-> Task :app:dataBindingMergeDependencyArtifactsRelease
-> Task :app:generateReleaseResValues
-> Task :app:generateReleaseResources
-> Task :app:injectCrashlyticsMappingFileIdRelease
-> Task :app:extractReleaseVersionControlInfo
-> Task :app:injectCrashlyticsVersionControlInfoRelease
-> Task :app:processReleaseGoogleServices
-> Task :core:preReleaseBuild UP-TO-DATE
-> Task :core:generateReleaseResValues
-> Task :core:generateReleaseResources
-> Task :core:packageReleaseResources
-> Task :app:processDebugMainManifest
-> Task :app:dataBindingGenBaseClassesDebug
-> Task :app:packageReleaseResources
-> Task :core:processReleaseNavigationResources
-> Task :app:processReleaseNavigationResources
-> Task :app:parseReleaseLocalResources
-> Task :core:parseReleaseLocalResources
-> Task :core:generateReleaseRFile
-> Task :app:generateReleaseBuildConfig
-> Task :core:writeReleaseAarMetadata
-> Task :app:processDebugManifest
-> Task :app:checkReleaseAarMetadata
-> Task :app:compileReleaseNavigationResources
-> Task :app:processDebugManifestForPackage
-> Task :app:mapReleaseSourceSetPaths
-> Task :app:createReleaseCompatibleScreenManifests
-> Task :app:extractDeepLinksRelease
-> Task :core:extractDeepLinksRelease
-> Task :core:processReleaseManifest
-> Task :app:processReleaseMainManifest
-> Task :app:processReleaseManifest
-> Task :app:processReleaseManifestForPackage
-> Task :core:compileReleaseLibraryResources
-> Task :core:generateReleaseBuildConfig
-> Task :app:processDebugResources
-> Task :core:javaPreCompileRelease
-> Task :app:javaPreCompileRelease
-> Task :app:preReleaseUnitTestBuild UP-TO-DATE
-> Task :app:javaPreCompileReleaseUnitTest
-> Task :core:preDebugUnitTestBuild UP-TO-DATE
-> Task :core:generateDebugUnitTestStubRFile
-> Task :core:javaPreCompileDebugUnitTest
-> Task :core:preReleaseUnitTestBuild UP-TO-DATE
-> Task :core:generateReleaseUnitTestStubRFile
-> Task :core:javaPreCompileReleaseUnitTest
-> Task :app:mergeReleaseResources
-> Task :app:dataBindingGenBaseClassesRelease
-> Task :app:processReleaseResources
-> Task :core:compileReleaseKotlin
-> Task :core:compileDebugKotlin
-> Task :core:processDebugJavaRes
-> Task :core:processReleaseJavaRes
-> Task :core:compileReleaseJavaWithJavac
-> Task :core:compileDebugJavaWithJavac
-> Task :core:bundleLibRuntimeToJarRelease
-> Task :core:bundleLibRuntimeToJarDebug
-> Task :core:bundleLibCompileToJarDebug
-> Task :core:bundleLibCompileToJarRelease
-> Task :core:createFullJarDebug
-> Task :core:createFullJarRelease
-> Task :core:compileDebugUnitTestKotlin NO-SOURCE
-> Task :core:compileDebugUnitTestJavaWithJavac NO-SOURCE
-> Task :core:compileReleaseUnitTestKotlin NO-SOURCE
-> Task :core:processDebugUnitTestJavaRes NO-SOURCE
-> Task :core:compileReleaseUnitTestJavaWithJavac NO-SOURCE
-> Task :core:testDebugUnitTest NO-SOURCE
-> Task :core:processReleaseUnitTestJavaRes NO-SOURCE
-> Task :core:testReleaseUnitTest NO-SOURCE
-> Task :core:test UP-TO-DATE
-> Task :app:kspReleaseKotlin
-> Task :app:kspDebugKotlin
-
-> Task :app:compileReleaseKotlin
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/OverlayService.kt:394:36 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/ScreenshotMonitorService.kt:112:29 'static field FOREGROUND_SERVICE_TYPE_NONE: Int' is deprecated. Deprecated in Java.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/MainActivity.kt:1:13 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with ''. '' has no effect.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/MainScreen.kt:1:13 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with ''. '' has no effect.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/ScreenshotComponents.kt:267:36 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/ScreenshotComponents.kt:303:24 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/ScreenshotComponents.kt:317:32 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/VideoPlayer.kt:40:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/VideoPreviewDialog.kt:121:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
-
-> Task :app:compileDebugKotlin
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/OverlayService.kt:394:36 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/ScreenshotMonitorService.kt:112:29 'static field FOREGROUND_SERVICE_TYPE_NONE: Int' is deprecated. Deprecated in Java.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/MainActivity.kt:1:13 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with ''. '' has no effect.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/MainScreen.kt:1:13 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with ''. '' has no effect.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/ScreenshotComponents.kt:267:36 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/ScreenshotComponents.kt:303:24 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/ScreenshotComponents.kt:317:32 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/VideoPlayer.kt:40:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/VideoPreviewDialog.kt:121:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
-
-> Task :app:compileReleaseJavaWithJavac
-> Task :app:compileDebugJavaWithJavac
-> Task :app:hiltAggregateDepsRelease
-> Task :app:hiltAggregateDepsDebug
-> Task :app:hiltJavaCompileRelease
-> Task :app:hiltJavaCompileDebug
-> Task :app:processReleaseJavaRes
-> Task :app:processDebugJavaRes
-> Task :app:bundleReleaseClassesToCompileJar
-> Task :app:kspReleaseUnitTestKotlin NO-SOURCE
-> Task :app:compileReleaseUnitTestKotlin NO-SOURCE
-> Task :app:bundleDebugClassesToCompileJar
-> Task :app:compileReleaseUnitTestJavaWithJavac NO-SOURCE
-> Task :app:kspDebugUnitTestKotlin NO-SOURCE
-> Task :app:compileDebugUnitTestKotlin NO-SOURCE
-> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
-> Task :app:hiltAggregateDepsReleaseUnitTest
-> Task :app:hiltJavaCompileReleaseUnitTest NO-SOURCE
-> Task :app:hiltAggregateDepsDebugUnitTest
-> Task :app:hiltJavaCompileDebugUnitTest NO-SOURCE
-> Task :app:processReleaseUnitTestJavaRes NO-SOURCE
-> Task :app:processDebugUnitTestJavaRes NO-SOURCE
-> Task :app:transformReleaseClassesWithAsm
-> Task :app:transformDebugClassesWithAsm
-> Task :app:bundleReleaseClassesToRuntimeJar
-> Task :app:bundleDebugClassesToRuntimeJar
-> Task :app:transformReleaseUnitTestClassesWithAsm
-> Task :app:testReleaseUnitTest NO-SOURCE
-> Task :app:transformDebugUnitTestClassesWithAsm
-> Task :app:testDebugUnitTest NO-SOURCE
-> Task :app:test UP-TO-DATE
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/lint_step-1768329678943.json
-
-[Incubating] Problems report is available at: file:///home/runner/work/Snapify/Snapify/build/reports/problems/problems-report.html
-
-Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
-
-You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
-
-For more on this, please refer to https://docs.gradle.org/9.2.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
-
-BUILD SUCCESSFUL in 1m 37s
-120 actionable tasks: 120 executed
+BUILD SUCCESSFUL in 2m 7s
+115 actionable tasks: 115 executed
 Configuration cache entry stored.
 ```
 
 </details>
 <!-- LINT-RESULT-END -->
 
+<!-- PERSONAL-README-START -->
 ### Latest Update (v1.0.0)
 - **Edge-to-Edge UI**: Migrated legacy UI flags to `enableEdgeToEdge()` for a modern, immersive experience.
 - **Project Structure**: Added `version.properties` for automated version management.
@@ -353,4 +151,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Made with ❤️ by [Adalbert Alexandru Ungureanu](https://github.com/DarkPhilosophy)**
-
+<!-- PERSONAL-README-END -->
