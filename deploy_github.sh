@@ -22,13 +22,23 @@ echo "🛠️  Running Build..."
 ./gradlew assembleDebug
 
 # 3. Git Operations
-if [[ -n $(git status --porcelain) ]]; then
+# 3. Git Operations
+if [[ -n $(git status --porcelain) ]] || [[ "$2" == "--amend" ]]; then
     echo "📸 Committing changes..."
     git add .
-    git commit -m "$COMMIT_MSG"
     
-    echo "⬆️  Pushing to origin/$BRANCH..."
-    git push origin "$BRANCH"
+    if [[ "$2" == "--amend" ]]; then
+        echo "⚠️  Amending previous commit..."
+        git commit --amend -m "$COMMIT_MSG"
+        
+        echo "⬆️  Force Pushing to origin/$BRANCH..."
+        git push origin "$BRANCH" --force
+    else
+        git commit -m "$COMMIT_MSG"
+        
+        echo "⬆️  Pushing to origin/$BRANCH..."
+        git push origin "$BRANCH"
+    fi
     
     echo "✅ Deployed successfully!"
 else

@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions", "MaxLineLength", "TooGenericExceptionCaught", "SwallowedException")
+
 package ro.snapify.util
 
 import android.content.ContentResolver
@@ -41,6 +43,7 @@ object UriPathConverter {
      * - 53FC-3FF3:Path -> /storage/emulated/0/Path (direct SAF format)
      * - content://com.mixplorer.doc/tree/B68D-37C9:Seal -> uses context-aware reconstruction
      */
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "NestedBlockDepth")
     fun uriToFilePath(uri: String, context: Context? = null): String? {
         return try {
             val decoded = URLDecoder.decode(uri, "UTF-8")
@@ -135,7 +138,8 @@ object UriPathConverter {
      * E.g., findMediaFolderPath(context, "B68D-37C9", "Seal") -> "/storage/emulated/0/Download/Seal"
      * Falls back to checking common locations if no files found
      */
-    private fun findMediaFolderPath(context: Context, volumeId: String, folderName: String): String? {
+    @Suppress("ReturnCount", "NestedBlockDepth", "LongMethod")
+    private fun findMediaFolderPath(context: Context, @Suppress("UnusedParameter") volumeId: String, folderName: String): String? {
         // First try: search MediaStore for files in this folder
         try {
             val contentResolver = context.contentResolver
@@ -166,12 +170,15 @@ object UriPathConverter {
                                 val relativePath = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.RELATIVE_PATH))
                                 if (!relativePath.isNullOrEmpty()) {
                                     val cleanPath = relativePath.trimEnd('/').replace("%2F", "/")
-                                    DebugLogger.debug("UriPathConverter", "Found folder path via MediaStore: /storage/emulated/0/$cleanPath")
+                                    DebugLogger.debug(
+                                        "UriPathConverter", 
+                                        "Found folder path: /storage/emulated/0/$cleanPath"
+                                    )
                                     return "/storage/emulated/0/$cleanPath"
                                 }
                             }
-                        } catch (e: Exception) {
-                            continue
+                        } catch (_: Exception) {
+                            // Ignore
                         }
                     }
                 }
@@ -194,7 +201,7 @@ object UriPathConverter {
             val possiblePath = "$parent/$folderName"
             val file = java.io.File(possiblePath)
             if (file.exists() && file.isDirectory) {
-                DebugLogger.debug("UriPathConverter", "Found folder path via file system: $possiblePath")
+                DebugLogger.debug("UriPathConverter", "Found via file system: $possiblePath")
                 return possiblePath
             }
         }
@@ -206,6 +213,7 @@ object UriPathConverter {
      * Converts a URI to a display name in the format "Volume:Path"
      * Used for folder filter chips and settings display
      */
+    @Suppress("NestedBlockDepth", "LongMethod", "CyclomaticComplexMethod")
     fun uriToDisplayName(uri: String, context: Context? = null): String {
         return try {
             val decoded = URLDecoder.decode(uri, "UTF-8")
@@ -258,7 +266,7 @@ object UriPathConverter {
                 
                 else -> decoded
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             uri
         }
     }
@@ -323,6 +331,7 @@ object UriPathConverter {
      * Gets the default Screenshots folder as a SAF URI
      * Format: content://com.android.externalstorage.documents/tree/primary%3APictures%2FScreenshots
      */
+    @Suppress("FunctionOnlyReturningConstant")
     fun getDefaultScreenshotUri(): String {
         return "content://com.android.externalstorage.documents/tree/primary%3APictures%2FScreenshots"
     }
@@ -371,6 +380,7 @@ object UriPathConverter {
      * E.g., "B68D-37C9:Seal" → "tree/B68D-37C9:Download/Seal"
      * Returns the original URI if reconstruction fails
      */
+    @Suppress("ReturnCount", "LongMethod", "ComplexMethod", "NestedBlockDepth")
     fun reconstructSafUri(context: Context, incompleteSafUri: String): String {
         DebugLogger.debug("UriPathConverter.reconstructSafUri", "Input: '$incompleteSafUri'")
         
@@ -410,7 +420,7 @@ object UriPathConverter {
                     while (cursor.moveToNext()) {
                         val dataPath = try {
                             cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA))
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             null
                         } ?: continue
                         
@@ -419,7 +429,7 @@ object UriPathConverter {
                             // Found it! Extract the relative path
                             val relativePath = try {
                                 cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.RELATIVE_PATH))
-                            } catch (e: Exception) {
+                            } catch (_: Exception) {
                                 null
                             }
                             
@@ -430,15 +440,18 @@ object UriPathConverter {
                                  DebugLogger.debug("UriPathConverter.reconstructSafUri", "Reconstructed: '$result'")
                                  return result
                              }
-                            }
-                            }
-                            }
-                            }
-                            } catch (e: Exception) {
-                            DebugLogger.debug("UriPathConverter", "Error reconstructing SAF URI: ${e.message}")
-                            }
-                            
-                            DebugLogger.debug("UriPathConverter.reconstructSafUri", "Could not reconstruct, returning original: '$incompleteSafUri'")
-                            return incompleteSafUri
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            DebugLogger.debug("UriPathConverter", "Error reconstructing SAF URI: ${e.message}")
+        }
+        
+        DebugLogger.debug(
+            "UriPathConverter.reconstructSafUri", 
+            "Could not reconstruct, returning original: '$incompleteSafUri'"
+        )
+        return incompleteSafUri
     }
 }

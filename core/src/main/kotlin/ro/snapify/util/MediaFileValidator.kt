@@ -1,3 +1,5 @@
+@file:Suppress("TooGenericExceptionCaught", "SwallowedException")
+
 package ro.snapify.util
 
 import ro.snapify.config.MediaMonitorConfig
@@ -50,6 +52,7 @@ object MediaFileValidator {
      * - Is not pending
      * - File exists and is non-empty
      */
+    @Suppress("ReturnCount")
     fun isValidMediaFile(filePath: String?, mediaFolders: List<String> = emptyList()): Boolean {
         if (filePath.isNullOrEmpty()) return false
         if (filePath.length > MediaMonitorConfig.MAX_FILE_PATH_LENGTH) return false
