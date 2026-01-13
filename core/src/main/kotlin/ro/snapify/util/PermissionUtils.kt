@@ -21,17 +21,29 @@ object PermissionUtils {
                 missingPermissions.add("android.permission.MANAGE_EXTERNAL_STORAGE")
             }
         } else {
-            if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
                 missingPermissions.add(Manifest.permission.READ_EXTERNAL_STORAGE)
             }
-            if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
                 missingPermissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
             }
         }
 
         // Tiramisu Read Media Images
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.READ_MEDIA_IMAGES
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
                 missingPermissions.add(Manifest.permission.READ_MEDIA_IMAGES)
             }
         }
@@ -54,7 +66,11 @@ object PermissionUtils {
         return missingPermissions
     }
 
-    fun updatePermissionStatuses(context: Context, permissions: List<String>, onResult: (Map<String, Boolean>) -> Unit) {
+    fun updatePermissionStatuses(
+        context: Context,
+        permissions: List<String>,
+        onResult: (Map<String, Boolean>) -> Unit
+    ) {
         val statusMap = permissions.associateWith { permission ->
             if (permission == "overlay" || permission == Manifest.permission.SYSTEM_ALERT_WINDOW) {
                 Settings.canDrawOverlays(context)
