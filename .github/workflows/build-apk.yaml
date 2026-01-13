@@ -39,6 +39,25 @@ jobs:
       - name: Make executable
         run: chmod +x ./gradlew ./scripts/update_lint_status.sh
 
+      - name: Decode Keystore
+        run: echo "${{ secrets.KEYSTORE_B64 }}" | base64 -d > app/keystore.jks
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+
+      - name: Validate Keystore
+        run: |
+          md5=$(md5sum app/keystore.jks | awk '{print $1}')
+          echo "Keystore MD5: $md5"
+          if [ "$md5" != "9a8b86ee3370d37b2c8792ede9ff448a" ]; then
+            echo "Keystore MD5 mismatch!"
+            exit 1
+          fi
+
+      - name: Decode Google Services JSON
+        run: echo "${{ secrets.GOOGLE_SERVICES_JSON_B64 }}" | base64 -d > app/google-services.json
+        env:
+          GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
+
       - name: Run Lint & Tests
         id: lint_step
         shell: bash
