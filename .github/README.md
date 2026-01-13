@@ -1,6 +1,7 @@
 # Screenshot Manager
 
-<!-- LATEST-PRE-BUILD-STATUS -->
+<!-- LATEST-PRE-BUILD-STATUS-START -->
+<!-- LATEST-PRE-BUILD-STATUS-END -->
 [![Build Status](https://github.com/DarkPhilosophy/Ko/actions/workflows/build-apk.yaml/badge.svg)](https://github.com/DarkPhilosophy/Ko/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Version 1.0.0](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://github.com/DarkPhilosophy/android-Snapify)
