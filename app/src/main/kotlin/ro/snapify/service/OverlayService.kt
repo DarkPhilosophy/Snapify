@@ -458,7 +458,15 @@ class OverlayService :
             val mediaItem = runBlocking { repository.getById(mediaId) }
             // Copy to cache for sharing
             val cacheDir = cacheDir
-            val shareFile = java.io.File(cacheDir, "share_${System.currentTimeMillis()}.png")
+            val extension = file.extension.ifEmpty { "png" }
+            val shareFile = java.io.File(cacheDir, "share_${System.currentTimeMillis()}.$extension")
+            
+            // Determine MIME type
+            val mimeType = when (extension.lowercase()) {
+                "mp4", "avi", "mkv", "mov" -> "video/*"
+                else -> "image/*"
+            }
+
             try {
                 file.inputStream().use { input ->
                     shareFile.outputStream().use { output ->
@@ -467,7 +475,7 @@ class OverlayService :
                 }
                 val shareUri = androidx.core.content.FileProvider.getUriForFile(this, "$packageName.fileprovider", shareFile)
                 val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                    type = "image/*"
+                    type = mimeType
                     putExtra(android.content.Intent.EXTRA_STREAM, shareUri)
                     addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
