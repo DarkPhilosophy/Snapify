@@ -195,14 +195,21 @@ fun PicturePreviewDialog(
         availableHeightPx,
     )
 
+    // Account for border width in bounds calculation (matching VideoPreviewDialog)
+    val borderWidthPx = 4f * density.density
+    val effectiveWidthPx = displayWidthPx + borderWidthPx
+    val effectiveHeightPx = displayHeightPx + borderWidthPx
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         // Position the dialog within safe area bounds
         Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer(clip = false),
+            // contentAlignment = Alignment.Center, // REMOVED: This was offsetting the calculation logic!
         ) {
             Card(
                 modifier = Modifier
@@ -213,7 +220,7 @@ fun PicturePreviewDialog(
                             // Offset by left inset and constrain within safe area
                             (preferredX - leftInsetPx).coerceIn(
                                 0f,
-                                max(0f, availableScreenWidth - displayWidthPx),
+                                max(0f, availableScreenWidth - effectiveWidthPx),
                             )
                         } else {
                             0f
@@ -224,7 +231,7 @@ fun PicturePreviewDialog(
                             // Offset by top inset and constrain within safe area
                             (preferredY - topInsetPx).coerceIn(
                                 0f,
-                                availableScreenHeight - displayHeightPx + topInsetPx.toFloat() + bottomInsetPx.toFloat(),
+                                availableScreenHeight - effectiveHeightPx + topInsetPx.toFloat() + bottomInsetPx.toFloat(),
                             )
                         } else {
                             0f
@@ -234,11 +241,11 @@ fun PicturePreviewDialog(
                         val draggedX =
                             (baseX + windowOffsetX).coerceIn(
                                 0f,
-                                availableScreenWidth - displayWidthPx + leftInsetPx.toFloat() + rightInsetPx.toFloat(),
+                                availableScreenWidth - effectiveWidthPx + leftInsetPx.toFloat() + rightInsetPx.toFloat(),
                             )
                         val draggedY = (baseY + windowOffsetY).coerceIn(
                             topInsetPx.toFloat(),
-                            availableScreenHeight - displayHeightPx + topInsetPx.toFloat() + bottomInsetPx.toFloat(),
+                            availableScreenHeight - effectiveHeightPx + topInsetPx.toFloat() + bottomInsetPx.toFloat(),
                         )
 
                         // Update offsets to stay within bounds
