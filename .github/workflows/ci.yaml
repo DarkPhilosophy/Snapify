@@ -1,312 +1,318 @@
 name: Build & Release
 
 on:
-  push:
-    branches:
-      - main
-    tags:
-      - 'v*'
-  pull_request:
-    branches:
-      - "*"
-  workflow_dispatch:
+    push:
+        branches:
+            - main
+        tags:
+            - "v*"
+    pull_request:
+        branches:
+            - "*"
+    workflow_dispatch:
 
 jobs:
-  # =================================================================================================
-  # JOB 1: VALIDATION
-  # Runs Static Analysis & Tests. Updates README with Status. Stops on Fail.
-  # =================================================================================================
-  validate:
-    name: Validate & Lint
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+    # =================================================================================================
+    # JOB 1: VALIDATION
+    # Runs Static Analysis & Tests. Updates README with Status. Stops on Fail.
+    # =================================================================================================
+    validate:
+        name: Validate & Lint
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        steps:
+            - name: Checkout Repo
+              uses: actions/checkout@v4
+              with:
+                  token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: "temurin"
-          java-version: "17"
+            - name: Setup Java
+              uses: actions/setup-java@v4
+              with:
+                  distribution: "temurin"
+                  java-version: "17"
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+            - name: Setup Gradle
+              uses: gradle/actions/setup-gradle@v4
 
-      - name: Make executable
-        run: chmod +x ./gradlew ./.scripts/update_lint_status.sh
+            - name: Make executable
+              run: chmod +x ./gradlew ./.scripts/update_lint_status.sh
 
-      - name: Decode Keystore
-        run: echo "${{ secrets.KEYSTORE_B64 }}" | base64 -d > app/keystore.jks
-        env:
-          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+            - name: Decode Keystore
+              run: echo "${{ secrets.KEYSTORE_B64 }}" | base64 -d > app/keystore.jks
+              env:
+                  KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
 
-      - name: Validate Keystore
-        run: |
-          md5=$(md5sum app/keystore.jks | awk '{print $1}')
-          echo "Keystore MD5: $md5"
-          if [ "$md5" != "9a8b86ee3370d37b2c8792ede9ff448a" ]; then
-            echo "Keystore MD5 mismatch!"
-            exit 1
-          fi
+            - name: Validate Keystore
+              run: |
+                  md5=$(md5sum app/keystore.jks | awk '{print $1}')
+                  echo "Keystore MD5: $md5"
+                  if [ "$md5" != "9a8b86ee3370d37b2c8792ede9ff448a" ]; then
+                    echo "Keystore MD5 mismatch!"
+                    exit 1
+                  fi
 
-      - name: Decode Google Services JSON
-        run: echo "${{ secrets.GOOGLE_SERVICES_JSON_B64 }}" | base64 -d > app/google-services.json
-        env:
-          GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
+            - name: Decode Google Services JSON
+              run: echo "${{ secrets.GOOGLE_SERVICES_JSON_B64 }}" | base64 -d > app/google-services.json
+              env:
+                  GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
 
-      - name: Run Lint & Tests
-        id: lint_step
-        shell: bash
-        run: |
-          set +e
-          ./gradlew spotlessCheck detekt test --continue 2>&1 | tee lint_output.txt
-          EXIT_CODE=${PIPESTATUS[0]}
-          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
-          exit $EXIT_CODE
+            - name: Run Lint & Tests
+              id: lint_step
+              shell: bash
+              run: |
+                  set +e
+                  ./gradlew spotlessCheck detekt test --continue 2>&1 | tee lint_output.txt
+                  EXIT_CODE=${PIPESTATUS[0]}
+                  echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+                  exit $EXIT_CODE
 
-      - name: Update Lint Status in README
-        if: always() # Always run to report pass OR fail
-        run: |
-          # Determine status based on the exit code of the previous step
-          if [ "${{ steps.lint_step.outputs.exit_code }}" == "0" ]; then
-             STATUS="success"
-          else
-             STATUS="failure"
-          fi
-          ./.scripts/update_lint_status.sh lint_output.txt "$STATUS"
+            - name: Update Lint Status in README
+              if: always() # Always run to report pass OR fail
+              run: |
+                  # Determine status based on the exit code of the previous step
+                  if [ "${{ steps.lint_step.outputs.exit_code }}" == "0" ]; then
+                     STATUS="success"
+                  else
+                     STATUS="failure"
+                  fi
+                  ./.scripts/update_lint_status.sh lint_output.txt "$STATUS"
 
-      - name: Commit Validation Status
-        if: always()
-        run: |
-          git config --global user.name 'GitHub Action'
-          git config --global user.email 'action@github.com'
-          if [[ -n $(git status --porcelain .github/README.md) ]]; then
-            git add .github/README.md
-            git commit -m "chore: Update Validation Status [skip ci]"
-            git push
-          fi
+            - name: Commit Validation Status
+              if: always()
+              run: |
+                  git config --global user.name 'GitHub Action'
+                  git config --global user.email 'action@github.com'
+                  if [[ -n $(git status --porcelain .github/README.md) ]]; then
+                    git add .github/README.md
+                    git commit -m "chore: Update Validation Status [skip ci]"
+                    git push
+                  fi
 
-      - name: Fail Workflow if Lint Failed
-        if: steps.lint_step.outputs.exit_code != '0'
-        run: |
-            echo "❌ Validation Failed. Stopping Workflow."
-            exit 1
+            - name: Fail Workflow if Lint Failed
+              if: steps.lint_step.outputs.exit_code != '0'
+              run: |
+                  echo "❌ Validation Failed. Stopping Workflow."
+                  exit 1
 
-  # =================================================================================================
-  # JOB 2: BUILD
-  # Builds APKs. Only runs if Validation passed.
-  # =================================================================================================
-  build:
-    name: Build APKs
-    runs-on: ubuntu-latest
-    needs: validate
-    steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v4
+    # =================================================================================================
+    # JOB 2: BUILD
+    # Builds APKs. Only runs if Validation passed.
+    # =================================================================================================
+    build:
+        name: Build APKs
+        runs-on: ubuntu-latest
+        needs: validate
+        steps:
+            - name: Checkout Repo
+              uses: actions/checkout@v4
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: "temurin"
-          java-version: "17"
+            - name: Setup Java
+              uses: actions/setup-java@v4
+              with:
+                  distribution: "temurin"
+                  java-version: "17"
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+            - name: Setup Android SDK
+              uses: android-actions/setup-android@v3
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+            - name: Setup Gradle
+              uses: gradle/actions/setup-gradle@v4
 
-      - name: Decode Keystore
-        run: echo "${{ secrets.KEYSTORE_B64 }}" | base64 -d > app/keystore.jks
-        env:
-          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+            - name: Decode Keystore
+              run: echo "${{ secrets.KEYSTORE_B64 }}" | base64 -d > app/keystore.jks
+              env:
+                  KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
 
-      - name: Validate Keystore
-        run: |
-          md5=$(md5sum app/keystore.jks | awk '{print $1}')
-          echo "Keystore MD5: $md5"
-          if [ "$md5" != "9a8b86ee3370d37b2c8792ede9ff448a" ]; then
-            echo "Keystore MD5 mismatch!"
-            exit 1
-          fi
+            - name: Validate Keystore
+              run: |
+                  md5=$(md5sum app/keystore.jks | awk '{print $1}')
+                  echo "Keystore MD5: $md5"
+                  if [ "$md5" != "9a8b86ee3370d37b2c8792ede9ff448a" ]; then
+                    echo "Keystore MD5 mismatch!"
+                    exit 1
+                  fi
 
-      - name: Decode Google Services JSON
-        run: echo "${{ secrets.GOOGLE_SERVICES_JSON_B64 }}" | base64 -d > app/google-services.json
-        env:
-          GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
+            - name: Decode Google Services JSON
+              run: echo "${{ secrets.GOOGLE_SERVICES_JSON_B64 }}" | base64 -d > app/google-services.json
+              env:
+                  GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
 
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
+            - name: Make gradlew executable
+              run: chmod +x ./gradlew
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
+            - name: Build Debug APK
+              run: ./gradlew assembleDebug
 
-      - name: Build Release APK
-        run: ./gradlew assembleRelease -PstorePassword=${{ secrets.STORE_PASSWORD }} -PkeyPassword=${{ secrets.KEY_PASSWORD }} -PkeyAlias=${{ secrets.KEY_ALIAS }}
+            - name: Build Release APK
+              run: ./gradlew assembleRelease -PstorePassword=${{ secrets.STORE_PASSWORD }} -PkeyPassword=${{ secrets.KEY_PASSWORD }} -PkeyAlias=${{ secrets.KEY_ALIAS }}
 
-      - name: Upload Debug APK
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: App-debug
-          path: app/build/outputs/apk/debug/*.apk
+            - name: Upload Debug APK
+              if: success()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: App-debug
+                  path: app/build/outputs/apk/debug/*.apk
 
-      - name: Upload Release APK
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: App-release
-          path: app/build/outputs/apk/release/*.apk
+            - name: Upload Release APK
+              if: success()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: App-release
+                  path: app/build/outputs/apk/release/*.apk
 
-  # =================================================================================================
-  # JOB 3: RELEASE
-  # Updates Version/Changelog, Creates Release. Only runs if Build passed AND on Main/Tag.
-  # =================================================================================================
-  release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    needs: build
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || startsWith(github.ref, 'refs/tags/v')
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      
-      # We need artifacts from Build job
-      - name: Download Debug APK
-        uses: actions/download-artifact@v4
-        with:
-          name: App-debug
-          path: release_staging
+    # =================================================================================================
+    # JOB 3: RELEASE
+    # Updates Version/Changelog, Creates Release. Only runs if Build passed AND on Main/Tag.
+    # =================================================================================================
+    release:
+        name: Create Release
+        runs-on: ubuntu-latest
+        needs: build
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || startsWith(github.ref, 'refs/tags/v')
+        permissions:
+            contents: write
+        steps:
+            - name: Checkout Repo
+              uses: actions/checkout@v4
+              with:
+                  token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Download Release APK
-        uses: actions/download-artifact@v4
-        with:
-          name: App-release
-          path: release_staging
+            # We need artifacts from Build job
+            - name: Download Debug APK
+              uses: actions/download-artifact@v4
+              with:
+                  name: App-debug
+                  path: release_staging
 
-      - name: Make executable
-        run: chmod +x ./.scripts/update_version_status.sh
+            - name: Download Release APK
+              uses: actions/download-artifact@v4
+              with:
+                  name: App-release
+                  path: release_staging
 
-      - name: Update Documentation (Version/Changelog)
-        run: ./.scripts/update_version_status.sh
+            - name: Make executable
+              run: chmod +x ./.scripts/update_version_status.sh
 
-      - name: Commit Documentation Updates
-        run: |
-          git config --global user.name 'GitHub Action'
-          git config --global user.email 'action@github.com'
-          if [[ -n $(git status --porcelain) ]]; then
-             git add .
-             git commit -m "chore: Update README Version & Changelog [skip ci]"
-             git pull --rebase
-             git push
-          else
-             echo "No documentation changes to commit"
-          fi
+            - name: Sync with latest code (Prevent conflicts)
+              run: |
+                  git config --global user.name 'GitHub Action'
+                  git config --global user.email 'action@github.com'
+                  git pull origin main --rebase
 
-      - name: Extract App Name from local.properties
-        id: extract-app-name
-        run: |
-            echo "app_name=Snapify" >> $GITHUB_OUTPUT 
-            # Simplified for brevity, assume Snapify or extract properly if needed
+            - name: Update Documentation (Version/Changelog)
+              run: ./.scripts/update_version_status.sh
 
-      - name: Prepare Release Metadata
-        id: release-prep
-        run: |
-          # Parse version from version.properties
-          major=$(grep "version.major" version.properties | cut -d'=' -f2)
-          minor=$(grep "version.minor" version.properties | cut -d'=' -f2)
-          patch=$(grep "version.patch" version.properties | cut -d'=' -f2)
-          version="$major.$minor.$patch"
-          echo "version=$version" >> $GITHUB_OUTPUT
-          
-          # ---------------------------------------------------------
-          # Detailed Release Notes & Metadata Generation
-          # ---------------------------------------------------------
-          
-          build_date=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          echo "Build Date: $build_date"
+            - name: Commit Documentation Updates
+              run: |
+                  git config --global user.name 'GitHub Action'
+                  git config --global user.email 'action@github.com'
+                  if [[ -n $(git status --porcelain) ]]; then
+                     git add .
+                     git commit -m "chore: Update README Version & Changelog [skip ci]"
+                     git pull --rebase
+                     git push
+                  else
+                     echo "No documentation changes to commit"
+                  fi
 
-          # Find APK files dynamically
-          apk_debug=$(find release_staging -name "*debug*\.apk" | head -n 1)
-          apk_release=$(find release_staging -name "*release*\.apk" | head -n 1)
-          
-          if [ -z "$apk_debug" ]; then
-            echo "Error: Debug APK not found in release_staging"
-            find release_staging -ls
-            exit 1
-          fi
-          
-          if [ -z "$apk_release" ]; then
-            echo "Error: Release APK not found in release_staging"
-            find release_staging -ls
-            exit 1
-          fi
-          
-          echo "Found Debug APK: $apk_debug"
-          echo "Found Release APK: $apk_release"
+            - name: Extract App Name from local.properties
+              id: extract-app-name
+              run: |
+                  echo "app_name=Snapify" >> $GITHUB_OUTPUT 
+                  # Simplified for brevity, assume Snapify or extract properly if needed
 
-          sha256_debug=$(sha256sum "$apk_debug" | awk '{print $1}')
-          sha256_release=$(sha256sum "$apk_release" | awk '{print $1}')
-          echo "SHA256 debug: $sha256_debug"
-          echo "SHA256 release: $sha256_release"
+            - name: Prepare Release Metadata
+              id: release-prep
+              run: |
+                  # Parse version from version.properties
+                  major=$(grep "version.major" version.properties | cut -d'=' -f2)
+                  minor=$(grep "version.minor" version.properties | cut -d'=' -f2)
+                  patch=$(grep "version.patch" version.properties | cut -d'=' -f2)
+                  version="$major.$minor.$patch"
+                  echo "version=$version" >> $GITHUB_OUTPUT
 
-          commit_hash_full=$(git rev-parse HEAD)
-          commit_hash_short=$(git rev-parse --short=7 HEAD)
-          commit_message=$(git log -1 --pretty=%B)
-          
-          commit_title=$(echo "$commit_message" | head -n1)
-          commit_body=$(echo "$commit_message" | tail -n +2 | grep -v '^$' || true)
+                  # ---------------------------------------------------------
+                  # Detailed Release Notes & Metadata Generation
+                  # ---------------------------------------------------------
 
-          # Generate App.metadata.txt
-          metadata_path="release_staging/App.metadata.txt"
-          {
-            echo "Build Timestamp: $build_date"
-            echo "Commit: $commit_hash_full"
-            echo "SHA256 debug: $sha256_debug"
-            echo "SHA256 release: $sha256_release"
-            echo "Version: $version"
-            echo "Commit Message:"
-            echo "$commit_message"
-          } > "$metadata_path"
+                  build_date=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+                  echo "Build Date: $build_date"
 
-          # Generate release_notes.md
-          release_notes_path="release_notes.md"
-          {
-            echo "${{ steps.extract-app-name.outputs.app_name }} v$version"
-            echo ""
-            echo "Build Date: $build_date"
-            echo "SHA256 debug: $sha256_debug ($(basename "$apk_debug"))"
-            echo "SHA256 release: $sha256_release ($(basename "$apk_release"))"
-            echo ""
-            echo "### Changes"
-            echo ""
-            echo "Built from commit: [$commit_hash_short](https://github.com/${{ github.repository }}/commit/$commit_hash_full)"
-            echo "Commit message:"
-            echo "## $commit_title"
-            if [ -n "$commit_body" ]; then
-              echo "$commit_body" | sed 's/^/- /'
-            fi
-            echo ""
-            echo "See [.github/CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/.github/CHANGELOG.md) for full history."
-          } > "$release_notes_path"
-          
-          echo "release_notes_path=$release_notes_path" >> $GITHUB_OUTPUT
+                  # Find APK files dynamically
+                  apk_debug=$(find release_staging -name "*debug*\.apk" | head -n 1)
+                  apk_release=$(find release_staging -name "*release*\.apk" | head -n 1)
 
-      - name: Create Release
-        uses: ncipollo/release-action@v1
-        with:
-          tag: v${{ steps.release-prep.outputs.version }}
-          name: v${{ steps.release-prep.outputs.version }}
-          bodyFile: ${{ steps.release-prep.outputs.release_notes_path }}
-          artifacts: "release_staging/*.apk,release_staging/App.metadata.txt"
-          allowUpdates: true
-          removeArtifacts: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+                  if [ -z "$apk_debug" ]; then
+                    echo "Error: Debug APK not found in release_staging"
+                    find release_staging -ls
+                    exit 1
+                  fi
+
+                  if [ -z "$apk_release" ]; then
+                    echo "Error: Release APK not found in release_staging"
+                    find release_staging -ls
+                    exit 1
+                  fi
+
+                  echo "Found Debug APK: $apk_debug"
+                  echo "Found Release APK: $apk_release"
+
+                  sha256_debug=$(sha256sum "$apk_debug" | awk '{print $1}')
+                  sha256_release=$(sha256sum "$apk_release" | awk '{print $1}')
+                  echo "SHA256 debug: $sha256_debug"
+                  echo "SHA256 release: $sha256_release"
+
+                  commit_hash_full=$(git rev-parse HEAD)
+                  commit_hash_short=$(git rev-parse --short=7 HEAD)
+                  commit_message=$(git log -1 --pretty=%B)
+
+                  commit_title=$(echo "$commit_message" | head -n1)
+                  commit_body=$(echo "$commit_message" | tail -n +2 | grep -v '^$' || true)
+
+                  # Generate App.metadata.txt
+                  metadata_path="release_staging/App.metadata.txt"
+                  {
+                    echo "Build Timestamp: $build_date"
+                    echo "Commit: $commit_hash_full"
+                    echo "SHA256 debug: $sha256_debug"
+                    echo "SHA256 release: $sha256_release"
+                    echo "Version: $version"
+                    echo "Commit Message:"
+                    echo "$commit_message"
+                  } > "$metadata_path"
+
+                  # Generate release_notes.md
+                  release_notes_path="release_notes.md"
+                  {
+                    echo "${{ steps.extract-app-name.outputs.app_name }} v$version"
+                    echo ""
+                    echo "Build Date: $build_date"
+                    echo "SHA256 debug: $sha256_debug ($(basename "$apk_debug"))"
+                    echo "SHA256 release: $sha256_release ($(basename "$apk_release"))"
+                    echo ""
+                    echo "### Changes"
+                    echo ""
+                    echo "Built from commit: [$commit_hash_short](https://github.com/${{ github.repository }}/commit/$commit_hash_full)"
+                    echo "Commit message:"
+                    echo "## $commit_title"
+                    if [ -n "$commit_body" ]; then
+                      echo "$commit_body" | sed 's/^/- /'
+                    fi
+                    echo ""
+                    echo "See [.github/CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/.github/CHANGELOG.md) for full history."
+                  } > "$release_notes_path"
+
+                  echo "release_notes_path=$release_notes_path" >> $GITHUB_OUTPUT
+
+            - name: Create Release
+              uses: ncipollo/release-action@v1
+              with:
+                  tag: v${{ steps.release-prep.outputs.version }}
+                  name: v${{ steps.release-prep.outputs.version }}
+                  bodyFile: ${{ steps.release-prep.outputs.release_notes_path }}
+                  artifacts: "release_staging/*.apk,release_staging/App.metadata.txt"
+                  allowUpdates: true
+                  removeArtifacts: true
+                  token: ${{ secrets.GITHUB_TOKEN }}
