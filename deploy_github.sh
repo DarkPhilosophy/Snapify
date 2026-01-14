@@ -20,7 +20,7 @@ if [ "$1" == "--first" ]; then
     IS_FIRST_RELEASE=true
     COMMIT_MSG="$2"
     shift 2
-    ARGS_FLAGS="$@" # Capture remaining flags if any
+    ARGS_FLAGS="$@" # Capture remaining flags
 else
     COMMIT_MSG="$1"
     shift 1
@@ -40,48 +40,64 @@ echo "========================================"
 echo "🚀 Starting Deployment for $BRANCH"
 echo "========================================"
 
-# 2. "First Release" Reset Logic
-if [ "$IS_FIRST_RELEASE" = true ]; then
-    echo "✨ FIRST RELEASE DETECTED! Resetting project details..."
-    
-    # Reset Version to 1.0.0
-    if [ -f "version.properties" ]; then
-        sed -i 's/^version.major=.*/version.major=1/' version.properties
-        sed -i 's/^version.minor=.*/version.minor=0/' version.properties
-        sed -i 's/^version.patch=.*/version.patch=0/' version.properties
-        sed -i 's/^version.code=.*/version.code=1/' version.properties
-        echo "✅ Version reset to 1.0.0 (Code: 1)"
-    fi
-    
-    # Reset/Create Changelog
-    echo "# Changelog" > CHANGELOG.md
-    echo "" >> CHANGELOG.md
-    echo "## v1.0.0 - $(date +%Y-%m-%d)" >> CHANGELOG.md
-    echo "- $COMMIT_MSG" >> CHANGELOG.md
-    echo "✅ CHANGELOG.md initialized."
-fi
-
-# 3. Build
+# 2. Build Check
 echo "🛠️  Running Build..."
 ./gradlew assembleDebug
 
-# 4. Git Operations
-if [[ -n $(git status --porcelain) ]] || [[ "$ARGS_FLAGS" == *"--amend"* ]] || [ "$IS_FIRST_RELEASE" = true ]; then
-    echo "📸 Committing changes..."
-    git add .
+# 3. Deployment Logic
+if [ "$IS_FIRST_RELEASE" = true ]; then
+    echo "☢️  FIRST RELEASE DETECTED: Nuking Git History..."
     
-    if [[ "$ARGS_FLAGS" == *"--amend"* ]]; then
-        echo "⚠️  Amending previous commit..."
-        git commit --amend -m "$COMMIT_MSG"
-        echo "⬆️  Force Pushing to origin/$BRANCH..."
-        git push origin "$BRANCH" --force
-    else
-        git commit -m "$COMMIT_MSG"
-        echo "⬆️  Pushing to origin/$BRANCH..."
-        git push origin "$BRANCH"
-    fi
+    # 3a. Reset Changelog to single entry
+    echo "# Changelog" > CHANGELOG.md
+    echo "" >> CHANGELOG.md
+    echo "## $(date +%Y-%m-%d) - Initial Release" >> CHANGELOG.md
+    echo "- $COMMIT_MSG" >> CHANGELOG.md
+    echo "✅ CHANGELOG.md reset."
+
+    echo "📸 Creating Fresh Root Commit..."
     
-    echo "✅ Deployed successfully!"
+    # 3b. Orphan Branch Strategy to Nuke History
+    # Create new orphan branch (clean history)
+    git checkout --orphan temp_root_branch
+    
+    # Add all files (respecting .gitignore)
+    git add -A
+    
+    # Commit
+    git commit -m "$COMMIT_MSG"
+    
+    # Delete old main
+    git branch -D main
+    
+    # Rename current to main
+    git branch -m main
+    
+    echo "⬆️  Force Pushing Clean History to origin/main..."
+    git push -f origin main
+    
+    echo "✅ HISTORY ERASED. Project successfully reset to single commit."
+    exit 0
+
 else
-    echo "✨ No changes to commit."
+    # 4. Standard Deployment (Append History)
+    if [[ -n $(git status --porcelain) ]] || [[ "$ARGS_FLAGS" == *"--amend"* ]]; then
+        echo "📸 Committing changes..."
+        git add .
+        
+        if [[ "$ARGS_FLAGS" == *"--amend"* ]]; then
+            echo "⚠️  Amending previous commit..."
+            git commit --amend -m "$COMMIT_MSG"
+            echo "⬆️  Force Pushing to origin/$BRANCH..."
+            git push origin "$BRANCH" --force
+        else
+            git commit -m "$COMMIT_MSG"
+            echo "⬆️  Pushing to origin/$BRANCH..."
+            git push origin "$BRANCH"
+        fi
+        
+        echo "✅ Deployed successfully!"
+    else
+        echo "✨ No changes to commit."
+    fi
 fi
