@@ -8,13 +8,28 @@ KEYSTORE_DST="app/keystore.b64"
 GOOGLE_JSON_SRC="app/google-services.json"
 GOOGLE_JSON_DST="app/google-services.json.b64"
 
+# Helper function for cross-platform base64 encoding
+encode_base64() {
+    local src="$1"
+    local dst="$2"
+    
+    # Restrict permissions on output file (CodeRabbit security fix)
+    umask 077
+    
+    # Use -w 0 for no line wrapping (portable for secrets); fallback for macOS
+    if base64 --help 2>&1 | grep -q '\-w'; then
+        base64 -w 0 "$src" > "$dst"
+    else
+        base64 "$src" | tr -d '\n' > "$dst"
+    fi
+}
+
 echo "🔐 Generating Base64 Secrets..."
 echo "================================="
 
 # 1. Handle Keystore
 if [ -f "$KEYSTORE_SRC" ]; then
-    # Use default wrapping (76 chars) to match user preference/Snapify format
-    base64 "$KEYSTORE_SRC" > "$KEYSTORE_DST"
+    encode_base64 "$KEYSTORE_SRC" "$KEYSTORE_DST"
     echo "✅ Generated: $KEYSTORE_DST"
 else
     echo "⚠️  Skipped: $KEYSTORE_SRC not found."
@@ -22,8 +37,7 @@ fi
 
 # 2. Handle Google Services JSON
 if [ -f "$GOOGLE_JSON_SRC" ]; then
-    # Use default wrapping
-    base64 "$GOOGLE_JSON_SRC" > "$GOOGLE_JSON_DST"
+    encode_base64 "$GOOGLE_JSON_SRC" "$GOOGLE_JSON_DST"
     echo "✅ Generated: $GOOGLE_JSON_DST"
 else
     echo "⚠️  Skipped: $GOOGLE_JSON_SRC not found."
