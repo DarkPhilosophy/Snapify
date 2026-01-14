@@ -60,7 +60,7 @@ $SAFE_CONTENT
     # Construct Badges
     
     # 0. Detect Repository (Dynamic)
-    FULL_REPO="DarkPhilosophy/Ko" # Default fallback
+    FULL_REPO="User/Repo" # Default fallback if detection fails
     if command -v git &> /dev/null; then
         REMOTE_URL=$(git config --get remote.origin.url || true)
         if [ -n "$REMOTE_URL" ]; then
