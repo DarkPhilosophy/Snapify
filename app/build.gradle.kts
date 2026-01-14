@@ -36,10 +36,12 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("keystore.jks")
-            storePassword =
-                project.properties["storePassword"] as? String ?: "RElyO1UGZvuGFh48IEuqYw=="
-            keyAlias = project.properties["keyAlias"] as? String ?: "ko_key"
-            keyPassword = project.properties["keyPassword"] as? String ?: "RElyO1UGZvuGFh48IEuqYw=="
+            storePassword = project.properties["storePassword"] as? String
+                ?: localProperties.getProperty("storePassword")
+            keyAlias = project.properties["keyAlias"] as? String
+                ?: localProperties.getProperty("keyAlias")
+            keyPassword = project.properties["keyPassword"] as? String
+                ?: localProperties.getProperty("keyPassword")
         }
     }
 

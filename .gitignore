@@ -92,3 +92,6 @@ lint-results*.html
 
 # AI Agent
 AGENTS.md
+
+# Scripts
+generate_secrets.sh
