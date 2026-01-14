@@ -48,7 +48,7 @@ jobs:
               run: |
                   md5=$(md5sum app/keystore.jks | awk '{print $1}')
                   echo "Keystore MD5: $md5"
-                  if [ "$md5" != "9a8b86ee3370d37b2c8792ede9ff448a" ]; then
+                  if [ "$md5" != "af83fbf570178fe6a688bab6d97d792f" ]; then
                     echo "Keystore MD5 mismatch!"
                     exit 1
                   fi
@@ -129,7 +129,7 @@ jobs:
               run: |
                   md5=$(md5sum app/keystore.jks | awk '{print $1}')
                   echo "Keystore MD5: $md5"
-                  if [ "$md5" != "9a8b86ee3370d37b2c8792ede9ff448a" ]; then
+                  if [ "$md5" != "af83fbf570178fe6a688bab6d97d792f" ]; then
                     echo "Keystore MD5 mismatch!"
                     exit 1
                   fi
