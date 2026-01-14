@@ -63,10 +63,24 @@ if command -v gh &> /dev/null; then
         fi
 
         # Set Template Defaults for Passwords/Alias
-        # These match the generated keystore and build.gradle.kts defaults
-        echo "relyo1ugzvugfh48ieuqyw==" | gh secret set STORE_PASSWORD
-        echo "relyo1ugzvugfh48ieuqyw==" | gh secret set KEY_PASSWORD
-        echo "ko_key" | gh secret set KEY_ALIAS
+        # Extract from app/build.gradle.kts to avoid hardcoding in script
+        # We look for lines like: project.properties["keyAlias"] as? String ?: "ko_key"
+        
+        GRADLE_FILE="app/build.gradle.kts"
+        
+        # Extract default values using grep/sed
+        DEFAULT_STORE_PASS=$(grep 'properties\["storePassword"\]' "$GRADLE_FILE" | sed -n 's/.*?: "\(.*\)"/\1/p')
+        DEFAULT_KEY_PASS=$(grep 'properties\["keyPassword"\]' "$GRADLE_FILE" | sed -n 's/.*?: "\(.*\)"/\1/p')
+        DEFAULT_KEY_ALIAS=$(grep 'properties\["keyAlias"\]' "$GRADLE_FILE" | sed -n 's/.*?: "\(.*\)"/\1/p')
+
+        # Fallback if parsing fails (though it shouldn't with standard template)
+        : "${DEFAULT_STORE_PASS:=RElyO1UGZvuGFh48IEuqYw==}"
+        : "${DEFAULT_KEY_PASS:=RElyO1UGZvuGFh48IEuqYw==}"
+        : "${DEFAULT_KEY_ALIAS:=ko_key}"
+
+        echo "$DEFAULT_STORE_PASS" | gh secret set STORE_PASSWORD
+        echo "$DEFAULT_KEY_PASS" | gh secret set KEY_PASSWORD
+        echo "$DEFAULT_KEY_ALIAS" | gh secret set KEY_ALIAS
         echo "✅ Uploaded STORE_PASSWORD, KEY_PASSWORD, KEY_ALIAS (Template Defaults)."
     else
         echo "⚠️  GitHub CLI is installed but not logged in. Run 'gh auth login' to enable auto-upload."
@@ -80,6 +94,6 @@ echo "================================="
 echo "Instructions (if upload failed):"
 echo "1. Open '$KEYSTORE_DST' -> Copy content -> GitHub Secret 'KEYSTORE_B64'"
 echo "2. Open '$GOOGLE_JSON_DST' -> Copy content -> GitHub Secret 'GOOGLE_SERVICES_JSON_B64'"
-echo "3. Set 'STORE_PASSWORD' = 'RElyO1UGZvuGFh48IEuqYw=='"
-echo "4. Set 'KEY_PASSWORD'   = 'RElyO1UGZvuGFh48IEuqYw=='"
-echo "5. Set 'KEY_ALIAS'      = 'ko_key'"
+echo "3. Set 'STORE_PASSWORD' = Check app/build.gradle.kts"
+echo "4. Set 'KEY_PASSWORD'   = Check app/build.gradle.kts"
+echo "5. Set 'KEY_ALIAS'      = Check app/build.gradle.kts"
