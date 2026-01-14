@@ -61,6 +61,13 @@ if command -v gh &> /dev/null; then
             gh secret set GOOGLE_SERVICES_JSON_B64 < "$GOOGLE_JSON_DST"
             echo "✅ Uploaded GOOGLE_SERVICES_JSON_B64 to GitHub Secrets."
         fi
+
+        # Set Template Defaults for Passwords/Alias
+        # These match the generated keystore and build.gradle.kts defaults
+        echo "relyo1ugzvugfh48ieuqyw==" | gh secret set STORE_PASSWORD
+        echo "relyo1ugzvugfh48ieuqyw==" | gh secret set KEY_PASSWORD
+        echo "ko_key" | gh secret set KEY_ALIAS
+        echo "✅ Uploaded STORE_PASSWORD, KEY_PASSWORD, KEY_ALIAS (Template Defaults)."
     else
         echo "⚠️  GitHub CLI is installed but not logged in. Run 'gh auth login' to enable auto-upload."
     fi
@@ -73,3 +80,6 @@ echo "================================="
 echo "Instructions (if upload failed):"
 echo "1. Open '$KEYSTORE_DST' -> Copy content -> GitHub Secret 'KEYSTORE_B64'"
 echo "2. Open '$GOOGLE_JSON_DST' -> Copy content -> GitHub Secret 'GOOGLE_SERVICES_JSON_B64'"
+echo "3. Set 'STORE_PASSWORD' = 'RElyO1UGZvuGFh48IEuqYw=='"
+echo "4. Set 'KEY_PASSWORD'   = 'RElyO1UGZvuGFh48IEuqYw=='"
+echo "5. Set 'KEY_ALIAS'      = 'ko_key'"
