@@ -23,7 +23,7 @@ A modern, intelligent Android application to automatically manage and organize y
 <!-- LINT-RESULT-START -->
 ### Linting Status
 > **Status**: ✅ **Passing**  
-> **Last Updated**: 2026-01-14 20:01:54 UTC  
+> **Last Updated**: 2026-01-14 20:09:43 UTC  
 > **Summary**: 0 errors, 0 warnings
 
 <details>
@@ -72,30 +72,29 @@ Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configurat
 > Task :core:processDebugNavigationResources
 > Task :app:processDebugNavigationResources
 > Task :core:detekt
-> Task :core:parseDebugLocalResources
-> Task :core:generateDebugRFile
 > Task :app:generateDebugBuildConfig
+> Task :core:parseDebugLocalResources
 > Task :core:writeDebugAarMetadata
 > Task :app:parseDebugLocalResources
+> Task :core:generateDebugRFile
 > Task :app:compileDebugNavigationResources
-> Task :app:checkDebugAarMetadata
 > Task :app:mapDebugSourceSetPaths
 > Task :app:extractDeepLinksDebug
+> Task :app:checkDebugAarMetadata
 > Task :app:createDebugCompatibleScreenManifests
 > Task :core:extractDeepLinksDebug
-> Task :core:compileDebugLibraryResources
 > Task :core:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :core:generateDebugBuildConfig
-> Task :core:processDebugManifest
-> Task :app:processDebugMainManifest
-> Task :app:processDebugManifest
-> Task :app:processDebugManifestForPackage
+> Task :core:compileDebugLibraryResources
 > Task :core:javaPreCompileDebug
+> Task :app:javaPreCompileDebug
 > Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:mergeDebugResources
 > Task :app:javaPreCompileDebugUnitTest
 > Task :app:preReleaseBuild UP-TO-DATE
 > Task :app:buildKotlinToolingMetadata
-> Task :app:javaPreCompileDebug
+> Task :app:dataBindingMergeDependencyArtifactsRelease
+> Task :core:processDebugManifest
 > Task :app:generateReleaseResValues
 > Task :app:generateReleaseResources
 > Task :app:injectCrashlyticsMappingFileIdRelease
@@ -106,24 +105,25 @@ Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configurat
 > Task :core:generateReleaseResValues
 > Task :core:generateReleaseResources
 > Task :core:packageReleaseResources
-> Task :app:dataBindingMergeDependencyArtifactsRelease
+> Task :app:dataBindingGenBaseClassesDebug
 > Task :app:packageReleaseResources
 > Task :core:processReleaseNavigationResources
 > Task :app:processReleaseNavigationResources
+> Task :app:processDebugMainManifest
 > Task :app:parseReleaseLocalResources
 > Task :core:parseReleaseLocalResources
 > Task :core:generateReleaseRFile
 > Task :app:generateReleaseBuildConfig
 > Task :core:writeReleaseAarMetadata
-> Task :app:mergeDebugResources
 > Task :app:checkReleaseAarMetadata
-> Task :app:dataBindingGenBaseClassesDebug
 > Task :app:compileReleaseNavigationResources
 > Task :app:mapReleaseSourceSetPaths
 > Task :app:createReleaseCompatibleScreenManifests
 > Task :app:extractDeepLinksRelease
 > Task :core:extractDeepLinksRelease
+> Task :app:processDebugManifest
 > Task :core:processReleaseManifest
+> Task :app:processDebugManifestForPackage
 > Task :app:processReleaseMainManifest
 > Task :app:processReleaseManifest
 > Task :app:processReleaseManifestForPackage
@@ -143,24 +143,24 @@ Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configurat
 > Task :app:mergeReleaseResources
 > Task :app:dataBindingGenBaseClassesRelease
 > Task :app:processReleaseResources
-> Task :core:compileDebugKotlin
 > Task :core:compileReleaseKotlin
-> Task :core:processReleaseJavaRes
+> Task :core:compileDebugKotlin
 > Task :core:processDebugJavaRes
-> Task :core:compileReleaseJavaWithJavac
+> Task :core:processReleaseJavaRes
 > Task :core:compileDebugJavaWithJavac
+> Task :core:compileReleaseJavaWithJavac
 > Task :core:bundleLibRuntimeToJarRelease
-> Task :core:bundleLibCompileToJarRelease
 > Task :core:bundleLibRuntimeToJarDebug
+> Task :core:bundleLibCompileToJarRelease
 > Task :core:bundleLibCompileToJarDebug
-> Task :core:createFullJarRelease
 > Task :core:createFullJarDebug
-> Task :core:compileReleaseUnitTestKotlin NO-SOURCE
+> Task :core:createFullJarRelease
 > Task :core:compileDebugUnitTestKotlin NO-SOURCE
-> Task :core:processDebugUnitTestJavaRes NO-SOURCE
+> Task :core:compileReleaseUnitTestKotlin NO-SOURCE
 > Task :core:compileDebugUnitTestJavaWithJavac NO-SOURCE
-> Task :core:compileReleaseUnitTestJavaWithJavac NO-SOURCE
+> Task :core:processDebugUnitTestJavaRes NO-SOURCE
 > Task :core:testDebugUnitTest NO-SOURCE
+> Task :core:compileReleaseUnitTestJavaWithJavac NO-SOURCE
 > Task :core:processReleaseUnitTestJavaRes NO-SOURCE
 > Task :core:testReleaseUnitTest NO-SOURCE
 > Task :core:test UP-TO-DATE
@@ -169,7 +169,7 @@ Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configurat
 > Task :app:compileDebugKotlin
 > Task :app:compileReleaseKotlin
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/OverlayService.kt:394:36 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/ScreenshotMonitorService.kt:112:29 'field FOREGROUND_SERVICE_TYPE_NONE: Int' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/ScreenshotMonitorService.kt:112:29 'static field FOREGROUND_SERVICE_TYPE_NONE: Int' is deprecated. Deprecated in Java.
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/MainActivity.kt:1:13 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with '@RequiresOptIn'. '@OptIn' has no effect.
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/MainScreen.kt:1:13 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with '@RequiresOptIn'. '@OptIn' has no effect.
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/ScreenshotComponents.kt:267:36 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
@@ -180,7 +180,7 @@ w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/co
 
 > Task :app:compileDebugKotlin
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/OverlayService.kt:394:36 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
-w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/ScreenshotMonitorService.kt:112:29 'static static field FOREGROUND_SERVICE_TYPE_NONE: Int' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/service/ScreenshotMonitorService.kt:112:29 'static field FOREGROUND_SERVICE_TYPE_NONE: Int' is deprecated. Deprecated in Java.
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/MainActivity.kt:1:13 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with '@RequiresOptIn'. '@OptIn' has no effect.
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/MainScreen.kt:1:13 Annotation 'androidx.media3.common.util.UnstableApi' is not annotated with '@RequiresOptIn'. '@OptIn' has no effect.
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/ScreenshotComponents.kt:267:36 This is a delicate API and its use requires care. Make sure you fully read and understand documentation of the declaration that is marked as a delicate API.
@@ -193,34 +193,34 @@ w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/co
 > Task :app:compileDebugJavaWithJavac
 > Task :app:hiltAggregateDepsDebug
 > Task :app:hiltAggregateDepsRelease
-> Task :app:hiltJavaCompileRelease
 > Task :app:hiltJavaCompileDebug
-> Task :app:processReleaseJavaRes
 > Task :app:processDebugJavaRes
+> Task :app:hiltJavaCompileRelease
+> Task :app:bundleDebugClassesToCompileJar
+> Task :app:kspDebugUnitTestKotlin NO-SOURCE
+> Task :app:compileDebugUnitTestKotlin NO-SOURCE
+> Task :app:processReleaseJavaRes
+> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:hiltAggregateDepsDebugUnitTest
+> Task :app:hiltJavaCompileDebugUnitTest NO-SOURCE
+> Task :app:processDebugUnitTestJavaRes NO-SOURCE
 > Task :app:bundleReleaseClassesToCompileJar
 > Task :app:kspReleaseUnitTestKotlin NO-SOURCE
 > Task :app:compileReleaseUnitTestKotlin NO-SOURCE
-> Task :app:bundleDebugClassesToCompileJar
-> Task :app:kspDebugUnitTestKotlin NO-SOURCE
 > Task :app:compileReleaseUnitTestJavaWithJavac NO-SOURCE
-> Task :app:compileDebugUnitTestKotlin NO-SOURCE
-> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
 > Task :app:hiltAggregateDepsReleaseUnitTest
 > Task :app:hiltJavaCompileReleaseUnitTest NO-SOURCE
-> Task :app:hiltAggregateDepsDebugUnitTest
 > Task :app:processReleaseUnitTestJavaRes NO-SOURCE
-> Task :app:hiltJavaCompileDebugUnitTest NO-SOURCE
-> Task :app:processDebugUnitTestJavaRes NO-SOURCE
 > Task :app:transformDebugClassesWithAsm
 > Task :app:transformReleaseClassesWithAsm
 > Task :app:bundleDebugClassesToRuntimeJar
 > Task :app:bundleReleaseClassesToRuntimeJar
-> Task :app:transformDebugUnitTestClassesWithAsm
-> Task :app:testDebugUnitTest NO-SOURCE
 > Task :app:transformReleaseUnitTestClassesWithAsm
 > Task :app:testReleaseUnitTest NO-SOURCE
+> Task :app:transformDebugUnitTestClassesWithAsm
+> Task :app:testDebugUnitTest NO-SOURCE
 > Task :app:test UP-TO-DATE
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/lint_step-1768420816622.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/lint_step-1768421285661.json
 
 [Incubating] Problems report is available at: file:///home/runner/work/Snapify/Snapify/build/reports/problems/problems-report.html
 
