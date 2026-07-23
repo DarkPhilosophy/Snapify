@@ -53,6 +53,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
@@ -261,6 +262,9 @@ fun MainScreen(
     var showFolderDialog by remember { mutableStateOf(false) }
     val viewMode by preferences?.viewMode?.collectAsState(initial = "grid")
         ?: remember { mutableStateOf("grid") }
+    val permanentSettingMenuEnabled by preferences?.permanentSettingMenuEnabled?.collectAsState(
+        initial = false,
+    ) ?: remember { mutableStateOf(false) }
     val folderPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
     ) { uri ->
@@ -492,276 +496,293 @@ fun MainScreen(
             )
         },
     ) {
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
-            topBar = {
-                MainMasthead(
-                    filteredItemCount = filteredItemCount,
-                    totalItems = mediaItems.size,
-                    folderCount = mediaFolderUris.size,
-                    monitoringStatus = monitoringStatus,
-                    allPermissionsGranted = allPermissionsGranted,
-                    viewMode = viewMode,
-                    onMonitoringToggle = {
-                        if (!allPermissionsGranted) {
-                            actualViewModel.showPermissionsDialog()
-                        } else {
-                            when (monitoringStatus) {
-                                MonitoringStatus.STOPPED -> actualViewModel.startMonitoring()
-                                MonitoringStatus.ACTIVE -> actualViewModel.stopMonitoring()
-                                MonitoringStatus.MISSING_PERMISSIONS -> actualViewModel.startMonitoring()
-                            }
-                        }
-                    },
-                    onRefresh = { actualViewModel.refreshMediaItems() },
-                    onPermissionsClick = { actualViewModel.showPermissionsDialog() },
-                    onViewModeToggle = {
-                        val nextMode = if (viewMode == "grid") "list" else "grid"
-                        scope.launch { preferences?.setViewMode(nextMode) }
-                    },
-                )
-            },
-
-            snackbarHost = { SnackbarHost(snackbarHostState) },
-            bottomBar = {
-                AnimatedVisibility(
-                    visible = chromeVisible,
-                    enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-                    exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
-                ) {
-                    FilterBottomDock(
-                        selectedTags = currentFilterState.selectedTags,
-                        onTagSelectionChanged = { selected ->
-                            val effective = if (selected.isEmpty()) {
-                                setOf(
-                                    ScreenshotTab.MARKED,
-                                    ScreenshotTab.KEPT,
-                                    ScreenshotTab.UNMARKED,
-                                )
+        Box(modifier = Modifier.fillMaxSize()) {
+            Scaffold(
+                modifier = Modifier.fillMaxSize(),
+                contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
+                topBar = {
+                    MainMasthead(
+                        filteredItemCount = filteredItemCount,
+                        totalItems = mediaItems.size,
+                        folderCount = mediaFolderUris.size,
+                        monitoringStatus = monitoringStatus,
+                        allPermissionsGranted = allPermissionsGranted,
+                        viewMode = viewMode,
+                        onMonitoringToggle = {
+                            if (!allPermissionsGranted) {
+                                actualViewModel.showPermissionsDialog()
                             } else {
-                                selected
+                                when (monitoringStatus) {
+                                    MonitoringStatus.STOPPED -> actualViewModel.startMonitoring()
+                                    MonitoringStatus.ACTIVE -> actualViewModel.stopMonitoring()
+                                    MonitoringStatus.MISSING_PERMISSIONS -> actualViewModel.startMonitoring()
+                                }
                             }
-                            actualViewModel.updateTagSelection(effective)
+                        },
+                        onRefresh = { actualViewModel.refreshMediaItems() },
+                        onPermissionsClick = { actualViewModel.showPermissionsDialog() },
+                        onViewModeToggle = {
+                            val nextMode = if (viewMode == "grid") "list" else "grid"
+                            scope.launch { preferences?.setViewMode(nextMode) }
                         },
                     )
-                }
-            },
-            floatingActionButton = {
-                // Right side: page indicator, back to top and settings
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(20.dp),
-                ) {
-                    // Page indicator (appears when scrolled)
-                    AnimatedVisibility(
-                        visible = isScrolled && visiblePageText.isNotEmpty(),
-                        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-                        exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
-                    ) {
-                        Text(
-                            text = visiblePageText,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier
-                                .background(
-                                    SnapifyTheme.colors.accentSoft,
-                                    SnapifyTheme.shapes.pillShape,
-                                )
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
-                            color = SnapifyTheme.colors.accent,
-                        )
-                    }
+                },
 
-                    // Back to top FAB (appears when scrolled)
-                    AnimatedVisibility(
-                        visible = isScrolled,
-                        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-                        exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
+                snackbarHost = { SnackbarHost(snackbarHostState) },
+                floatingActionButton = {
+                    // Right side: page indicator, back to top and settings
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(20.dp),
                     ) {
+                        // Page indicator (appears when scrolled)
+                        AnimatedVisibility(
+                            visible = isScrolled && visiblePageText.isNotEmpty(),
+                            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                            exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
+                        ) {
+                            Text(
+                                text = visiblePageText,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier
+                                    .background(
+                                        SnapifyTheme.colors.accentSoft,
+                                        SnapifyTheme.shapes.pillShape,
+                                    )
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                color = SnapifyTheme.colors.accent,
+                            )
+                        }
+
+                        // Back to top FAB (appears when scrolled)
+                        AnimatedVisibility(
+                            visible = isScrolled,
+                            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                            exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
+                        ) {
+                            FloatingActionButton(
+                                onClick = {
+                                    scope.launch {
+                                        listState.animateScrollToItem(0)
+                                    }
+                                    // Reset scroll tracking when user uses the button
+                                    userHasScrolled = false
+                                },
+                                shape = SnapifyTheme.shapes.buttonShape,
+                                containerColor = SnapifyTheme.colors.accent,
+                                contentColor = SnapifyTheme.colors.onAccent,
+                            ) {
+                                Icon(
+                                    Icons.Filled.KeyboardArrowUp,
+                                    contentDescription = "Back to top",
+                                )
+                            }
+                        }
+
+                        // Permanent drawer FAB (only when enabled in settings)
+                    if (permanentSettingMenuEnabled) {
                         FloatingActionButton(
-                            onClick = {
-                                scope.launch {
-                                    listState.animateScrollToItem(0)
-                                }
-                                // Reset scroll tracking when user uses the button
-                                userHasScrolled = false
-                            },
+                            onClick = { drawerState.open() },
                             shape = SnapifyTheme.shapes.buttonShape,
                             containerColor = SnapifyTheme.colors.accent,
                             contentColor = SnapifyTheme.colors.onAccent,
                         ) {
                             Icon(
-                                Icons.Filled.KeyboardArrowUp,
-                                contentDescription = "Back to top",
+                                Icons.Default.Menu,
+                                contentDescription = stringResource(R.string.settings_button),
                             )
                         }
                     }
 
                     // Folder management FAB (floating, follows chrome visibility)
-                    AnimatedVisibility(
-                        visible = chromeVisible,
-                        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-                        exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
-                    ) {
-                        FloatingActionButton(
-                            onClick = { showFolderDialog = true },
-                            shape = SnapifyTheme.shapes.pillShape,
-                            containerColor = SnapifyTheme.colors.surfaceRaised,
-                            contentColor = if (currentFilterState.selectedFolders.isNotEmpty()) {
-                                SnapifyTheme.colors.accent
-                            } else {
-                                SnapifyTheme.colors.inkSoft
-                            },
-                            modifier = Modifier.size(48.dp),
+                        AnimatedVisibility(
+                            visible = chromeVisible,
+                            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                            exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
                         ) {
-                            Icon(
-                                Icons.Default.Folder,
-                                contentDescription = stringResource(R.string.manage_folders),
-                            )
-                        }
-                    }
-                }
-            },
-        ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .nestedScroll(chromeScrollConnection)
-                    .padding(paddingValues),
-            ) {
-                FolderFilterBar(
-                    availableUris = availableUris,
-                    availablePaths = availablePaths,
-                    selectedPaths = currentFilterState.selectedFolders,
-                    onFolderSelectionChanged = { actualViewModel.updateFolderSelection(it) },
-                )
-
-                // Content
-                when {
-                    uiState.isLoading && filteredItemCount == 0 -> {
-                        LoadingScreen()
-                    }
-
-                    filteredItemCount == 0 -> {
-                        // Selected folders are already file paths from the filter logic
-                        val selectedFolderDisplayPaths = remember(currentFilterState.selectedFolders) {
-                            currentFilterState.selectedFolders.toList()
-                        }
-                        EmptyStateScreen(
-                            tab = ScreenshotTab.ALL,
-                            filterState = currentFilterState,
-                            selectedFolderPaths = selectedFolderDisplayPaths,
-                        )
-                    }
-
-                    else -> {
-                        var localLoading by remember { mutableStateOf(false) }
-                        LaunchedEffect(uiState.isLoading) {
-                            if (uiState.isLoading) {
-                                localLoading = true
-                            } else {
-                                delay(
-                                    (200..1200).random().toLong(),
-                                ) // Show for 1.5 seconds after loading stops
-                                localLoading = false
+                            FloatingActionButton(
+                                onClick = { showFolderDialog = true },
+                                shape = SnapifyTheme.shapes.pillShape,
+                                containerColor = SnapifyTheme.colors.surfaceRaised,
+                                contentColor = if (currentFilterState.selectedFolders.isNotEmpty()) {
+                                    SnapifyTheme.colors.accent
+                                } else {
+                                    SnapifyTheme.colors.inkSoft
+                                },
+                                modifier = Modifier.size(48.dp),
+                            ) {
+                                Icon(
+                                    Icons.Default.Folder,
+                                    contentDescription = stringResource(R.string.manage_folders),
+                                )
                             }
                         }
-                        // NewScreenshotDetector with no loading to avoid UI shift
-                        NewScreenshotDetector(
-                            newScreenshotFlow = actualViewModel.newScreenshotDetected,
-                            onLoadingChange = { }, // No-op to prevent loading bar
-                            onNewScreenshot = {
-                                scope.launch {
-                                    if (listState.firstVisibleItemIndex <= 1) { // At top or near top
-                                        listState.animateScrollToItem(0)
-                                    }
-                                }
-                            },
-                        )
-                        val refreshState = rememberPullToRefreshState()
-                        PullToRefreshBox(
-                            isRefreshing = uiState.isLoading,
-                            onRefresh = { actualViewModel.refreshMediaItems() },
-                            state = refreshState,
-                        ) {
-                            Column {
-                                if (localLoading) {
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    LoadingBar()
-                                }
+                    }
+                },
+            ) { paddingValues ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .nestedScroll(chromeScrollConnection)
+                        .padding(paddingValues),
+                ) {
+                    FolderFilterBar(
+                        availableUris = availableUris,
+                        availablePaths = availablePaths,
+                        selectedPaths = currentFilterState.selectedFolders,
+                        onFolderSelectionChanged = { actualViewModel.updateFolderSelection(it) },
+                    )
 
-                                // Remember callback functions to prevent unnecessary recompositions
-                                val onScreenshotClickCallback =
-                                    remember {
-                                        { item: MediaItem, position: androidx.compose.ui.geometry.Offset ->
-                                            actualViewModel.openMediaItem(
-                                                item,
-                                                position,
-                                            )
+                    // Content
+                    when {
+                        uiState.isLoading && filteredItemCount == 0 -> {
+                            LoadingScreen()
+                        }
+
+                        filteredItemCount == 0 -> {
+                            // Selected folders are already file paths from the filter logic
+                            val selectedFolderDisplayPaths = remember(currentFilterState.selectedFolders) {
+                                currentFilterState.selectedFolders.toList()
+                            }
+                            EmptyStateScreen(
+                                tab = ScreenshotTab.ALL,
+                                filterState = currentFilterState,
+                                selectedFolderPaths = selectedFolderDisplayPaths,
+                            )
+                        }
+
+                        else -> {
+                            var localLoading by remember { mutableStateOf(false) }
+                            LaunchedEffect(uiState.isLoading) {
+                                if (uiState.isLoading) {
+                                    localLoading = true
+                                } else {
+                                    delay(
+                                        (200..1200).random().toLong(),
+                                    ) // Show for 1.5 seconds after loading stops
+                                    localLoading = false
+                                }
+                            }
+                            // NewScreenshotDetector with no loading to avoid UI shift
+                            NewScreenshotDetector(
+                                newScreenshotFlow = actualViewModel.newScreenshotDetected,
+                                onLoadingChange = { }, // No-op to prevent loading bar
+                                onNewScreenshot = {
+                                    scope.launch {
+                                        if (listState.firstVisibleItemIndex <= 1) { // At top or near top
+                                            listState.animateScrollToItem(0)
                                         }
                                     }
-                                val onKeepClickCallback =
-                                    remember { { item: MediaItem -> actualViewModel.keepMediaItem(item) } }
-                                val onUnkeepClickCallback =
-                                    remember { { item: MediaItem -> actualViewModel.unkeepMediaItem(item) } }
-                                val onDeleteClickCallback =
-                                    remember { { item: MediaItem -> actualViewModel.deleteMediaItem(item) } }
-                                val onLoadMoreCallback = remember { { actualViewModel.loadMoreMediaItems() } }
+                                },
+                            )
+                            val refreshState = rememberPullToRefreshState()
+                            PullToRefreshBox(
+                                isRefreshing = uiState.isLoading,
+                                onRefresh = { actualViewModel.refreshMediaItems() },
+                                state = refreshState,
+                            ) {
+                                Column {
+                                    if (localLoading) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        LoadingBar()
+                                    }
 
-                                if (viewMode == "grid") {
-                                    ScreenshotGridComposable(
-                                        mediaItems = mediaItems,
-                                        currentFilterState = currentFilterState,
-                                        currentTime = currentTime,
-                                        isLoading = uiState.isLoading,
-                                        liveVideoPreviewEnabled = liveVideoPreviewEnabled,
-                                        mediaFolderUris = mediaFolderUris,
-                                        onScreenshotClick = onScreenshotClickCallback,
-                                        onKeepClick = onKeepClickCallback,
-                                        onUnkeepClick = onUnkeepClickCallback,
-                                        onDeleteClick = onDeleteClickCallback,
-                                        onShowInfoDialog = { item ->
-                                            selectedMediaItem = item
-                                            showInfoDialog = true
-                                        },
-                                    )
-                                } else {
-                                    ScreenshotListComposable(
-                                        mediaItems = mediaItems,
-                                        currentFilterState = currentFilterState,
-                                        currentTime = currentTime,
-                                        listState = listState,
-                                        isLoading = uiState.isLoading,
-                                        liveVideoPreviewEnabled = liveVideoPreviewEnabled,
-                                        deletingIds = deletingIds,
-                                        mediaFolderUris = mediaFolderUris,
-                                        onScreenshotClick = onScreenshotClickCallback,
-                                        onKeepClick = onKeepClickCallback,
-                                        onUnkeepClick = onUnkeepClickCallback,
-                                        onDeleteClick = onDeleteClickCallback,
-                                        onLoadMore = onLoadMoreCallback,
-                                        showInfoDialog = showInfoDialog,
-                                        selectedMediaItem = selectedMediaItem,
-                                        onShowInfoDialog = { item ->
-                                            selectedMediaItem = item
-                                            showInfoDialog = true
-                                        },
-                                        onDismissInfoDialog = {
-                                            showInfoDialog = false
-                                        },
-                                    )
+                                    // Remember callback functions to prevent unnecessary recompositions
+                                    val onScreenshotClickCallback =
+                                        remember {
+                                            { item: MediaItem, position: androidx.compose.ui.geometry.Offset ->
+                                                actualViewModel.openMediaItem(
+                                                    item,
+                                                    position,
+                                                )
+                                            }
+                                        }
+                                    val onKeepClickCallback =
+                                        remember { { item: MediaItem -> actualViewModel.keepMediaItem(item) } }
+                                    val onUnkeepClickCallback =
+                                        remember { { item: MediaItem -> actualViewModel.unkeepMediaItem(item) } }
+                                    val onDeleteClickCallback =
+                                        remember { { item: MediaItem -> actualViewModel.deleteMediaItem(item) } }
+                                    val onLoadMoreCallback = remember { { actualViewModel.loadMoreMediaItems() } }
+
+                                    if (viewMode == "grid") {
+                                        ScreenshotGridComposable(
+                                            mediaItems = mediaItems,
+                                            currentFilterState = currentFilterState,
+                                            currentTime = currentTime,
+                                            isLoading = uiState.isLoading,
+                                            liveVideoPreviewEnabled = liveVideoPreviewEnabled,
+                                            mediaFolderUris = mediaFolderUris,
+                                            onScreenshotClick = onScreenshotClickCallback,
+                                            onKeepClick = onKeepClickCallback,
+                                            onUnkeepClick = onUnkeepClickCallback,
+                                            onDeleteClick = onDeleteClickCallback,
+                                            onShowInfoDialog = { item ->
+                                                selectedMediaItem = item
+                                                showInfoDialog = true
+                                            },
+                                        )
+                                    } else {
+                                        ScreenshotListComposable(
+                                            mediaItems = mediaItems,
+                                            currentFilterState = currentFilterState,
+                                            currentTime = currentTime,
+                                            listState = listState,
+                                            isLoading = uiState.isLoading,
+                                            liveVideoPreviewEnabled = liveVideoPreviewEnabled,
+                                            deletingIds = deletingIds,
+                                            mediaFolderUris = mediaFolderUris,
+                                            onScreenshotClick = onScreenshotClickCallback,
+                                            onKeepClick = onKeepClickCallback,
+                                            onUnkeepClick = onUnkeepClickCallback,
+                                            onDeleteClick = onDeleteClickCallback,
+                                            onLoadMore = onLoadMoreCallback,
+                                            showInfoDialog = showInfoDialog,
+                                            selectedMediaItem = selectedMediaItem,
+                                            onShowInfoDialog = { item ->
+                                                selectedMediaItem = item
+                                                showInfoDialog = true
+                                            },
+                                            onDismissInfoDialog = {
+                                                showInfoDialog = false
+                                            },
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
 
+            // Floating filter pill: hovers above the gallery, never reserves a bar.
+            AnimatedVisibility(
+                visible = chromeVisible,
+                modifier = Modifier.align(Alignment.BottomCenter),
+                enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
+            ) {
+                FilterBottomDock(
+                    selectedTags = currentFilterState.selectedTags,
+                    onTagSelectionChanged = { selected ->
+                        val effective = if (selected.isEmpty()) {
+                            setOf(
+                                ScreenshotTab.MARKED,
+                                ScreenshotTab.KEPT,
+                                ScreenshotTab.UNMARKED,
+                            )
+                        } else {
+                            selected
+                        }
+                        actualViewModel.updateTagSelection(effective)
+                    },
+                )
+            }
+        }
     }
 
-    // Video preview dialog
+// Video preview dialog
     uiState.videoPreviewItem?.let { mediaItem ->
         VideoPreviewDialog(
             mediaItem = mediaItem,
@@ -770,7 +791,7 @@ fun MainScreen(
         )
     }
 
-    // Image preview dialog
+// Image preview dialog
     uiState.imagePreviewItem?.let { mediaItem ->
         PicturePreviewDialog(
             mediaItem = mediaItem,
@@ -816,7 +837,6 @@ private fun FilterBottomDock(
         }
     }
 }
-
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1442,7 +1462,12 @@ fun ScreenshotGridComposable(
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 180.dp),
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(SnapifyTheme.spacing.md),
+        contentPadding = PaddingValues(
+            start = SnapifyTheme.spacing.md,
+            end = SnapifyTheme.spacing.md,
+            top = SnapifyTheme.spacing.md,
+            bottom = 96.dp,
+        ),
         horizontalArrangement = Arrangement.spacedBy(SnapifyTheme.spacing.md),
         verticalArrangement = Arrangement.spacedBy(SnapifyTheme.spacing.md),
     ) {
@@ -1558,7 +1583,7 @@ fun ScreenshotListComposable(
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(8.dp),
+            contentPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             items(

@@ -16,8 +16,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.animation.Crossfade
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -37,11 +38,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import ro.snapify.ui.theme.SnapifyTheme
 
-private const val DRAG_HANDLE_WIDTH_DP = 30
-private const val DRAG_HANDLE_HEIGHT_DP = 92
 private const val PANEL_MAX_WIDTH_DP = 380
 private const val PANEL_WIDTH_FRACTION = 0.82f
-private const val CONTENT_PARALLAX = 0.55f
+private const val CONTENT_PARALLAX = 1f
 private const val CONTENT_SCALE_DROP = 0.06f
 private const val VELOCITY_THRESHOLD_PX = 700f
 
@@ -102,7 +101,6 @@ fun StageDrawer(
                 PANEL_MAX_WIDTH_DP.dp.toPx(),
             )
         }
-        val handleWidthPx = with(density) { DRAG_HANDLE_WIDTH_DP.dp.toPx() }
 
         fun settleTarget(velocityX: Float): Float = when {
             velocityX > VELOCITY_THRESHOLD_PX -> 1f
@@ -183,7 +181,7 @@ fun StageDrawer(
                 modifier = Modifier
                     .fillMaxSize()
                     .graphicsLayer { alpha = state.progress.value.coerceIn(0f, 1f) }
-                    .background(tokens.scrim.copy(alpha = 0.45f))
+                    .background(tokens.scrim.copy(alpha = 0.12f))
                     .then(
                         if (scrimActive) {
                             Modifier.pointerInput(Unit) {
@@ -236,43 +234,49 @@ fun StageDrawer(
                 menuContent()
             }
         }
-
-        // Traveling handle: glued to the panel's trailing edge, anchored top-left
-        // where the original floating menu button lived.
+        // Traveling menu button: its own entity, NOT part of the panel. The
+        // panel slides OVER its parked spot, so the button emerges from behind
+        // the drawer and lands at the panel's inner trailing edge.
         Surface(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .offset {
+                    val closedX = with(density) { 16.dp.toPx() }
+                    val openX = panelWidthPx - with(density) { (44 + 16).dp.toPx() }
                     IntOffset(
-                        (panelWidthPx * state.progress.value - handleWidthPx * 0.35f).toInt(),
-                        with(density) { 40.dp.toPx() }.toInt(),
+                        (closedX + (openX - closedX) * state.progress.value).toInt(),
+                        with(density) { 36.dp.toPx() }.toInt(),
                     )
                 }
-                .width(DRAG_HANDLE_WIDTH_DP.dp)
-                .height(DRAG_HANDLE_HEIGHT_DP.dp)
-                .stageDrag()
+                .width(44.dp)
+                .height(44.dp)
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                 ) { state.toggle() },
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(
-                topEnd = SnapifyTheme.shapes.button,
-                bottomEnd = SnapifyTheme.shapes.button,
-            ),
+            shape = SnapifyTheme.shapes.buttonShape,
             color = tokens.surfaceRaised,
-            border = androidx.compose.foundation.BorderStroke(1.dp, tokens.hairline),
+            border = androidx.compose.foundation.BorderStroke(1.dp, tokens.accent),
+            shadowElevation = 4.dp,
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = if (state.isOpen) {
-                        Icons.AutoMirrored.Filled.ArrowBack
+                Crossfade(targetState = state.isOpen, label = "menuButtonIcon") { open ->
+                    if (open) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Close menu",
+                            tint = tokens.accent,
+                        )
                     } else {
-                        Icons.AutoMirrored.Filled.KeyboardArrowRight
-                    },
-                    contentDescription = if (state.isOpen) "Close menu" else "Open menu",
-                    tint = tokens.accent,
-                )
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Open menu",
+                            tint = tokens.accent,
+                        )
+                    }
+                }
             }
         }
+
     }
 }

@@ -194,6 +194,17 @@ fun DrawerMenuPanel(
         }
 
         item {
+            PermanentSettingMenuToggle(
+                enabled = settingsViewModel.permanentSettingMenuEnabled.collectAsStateWithLifecycle(
+                    initialValue = false,
+                ).value,
+                onToggle = { enabled ->
+                    scope.launch { settingsViewModel.setPermanentSettingMenuEnabled(enabled) }
+                },
+            )
+        }
+
+        item {
             PermissionsSection(onOpenPermissions = { showPermissionDialog = true })
         }
 
