@@ -6,6 +6,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -21,15 +22,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -112,14 +112,19 @@ fun StageDrawer(
         }
 
         fun Modifier.stageDrag(): Modifier = this.pointerInput(panelWidthPx) {
-            val velocityTracker = VelocityTracker()
+            // Manual velocity estimation: VelocityTracker throws on non-monotonic
+            // event times, which happens on some devices during fast close-drags.
+            val samples = ArrayDeque<Pair<Long, Float>>(8)
             detectHorizontalDragGestures(
                 onDragStart = {
-                    velocityTracker.resetTracking()
+                    samples.clear()
                 },
                 onHorizontalDrag = { change, dragAmount ->
                     change.consume()
-                    velocityTracker.addPosition(change.uptimeMillis, Offset(change.position.x, 0f))
+                    if (samples.lastOrNull()?.first != change.uptimeMillis) {
+                        samples.addLast(change.uptimeMillis to change.position.x)
+                        while (samples.size > 8) samples.removeFirst()
+                    }
                     scope.launch {
                         state.progress.snapTo(
                             (state.progress.value + dragAmount / panelWidthPx).coerceIn(0f, 1f),
@@ -127,7 +132,13 @@ fun StageDrawer(
                     }
                 },
                 onDragEnd = {
-                    val velocity = velocityTracker.calculateVelocity().x
+                    val velocity = if (samples.size >= 2) {
+                        val (t0, x0) = samples.first()
+                        val (t1, x1) = samples.last()
+                        if (t1 > t0) (x1 - x0) / (t1 - t0) * 1000f else 0f
+                    } else {
+                        0f
+                    }
                     scope.launch {
                         state.progress.animateTo(settleTarget(velocity), settleSpring())
                     }
@@ -141,11 +152,14 @@ fun StageDrawer(
         }
 
         // Main content: recedes and scales down as the panel takes the stage.
+        // It never intercepts horizontal drags - the grid/list owns those gestures.
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer {
-                    val p = state.progress.value
+                    // Spring overshoot can push progress slightly below 0 or above 1;
+                    // corner radii and alpha must stay within range.
+                    val p = state.progress.value.coerceIn(0f, 1f)
                     translationX = panelWidthPx * p * CONTENT_PARALLAX
                     val scale = 1f - CONTENT_SCALE_DROP * p
                     scaleX = scale
@@ -155,24 +169,46 @@ fun StageDrawer(
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(
                         cardRadius * p,
                     )
-                }
-                .stageDrag(),
+                },
         ) {
             content()
 
-            if (state.progress.value > 0.01f) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(tokens.scrim.copy(alpha = 0.45f * state.progress.value))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = { state.close() },
-                        ),
-                )
+            // Always composed; alpha is applied in the graphics layer so progress
+            // changes never trigger recomposition. Hit-testing activates only when
+            // the panel is (nearly) open, so taps fall through when closed.
+            val scrimActive by remember {
+                androidx.compose.runtime.derivedStateOf { state.progress.value > 0.01f }
             }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer { alpha = state.progress.value.coerceIn(0f, 1f) }
+                    .background(tokens.scrim.copy(alpha = 0.45f))
+                    .then(
+                        if (scrimActive) {
+                            Modifier.pointerInput(Unit) {
+                                detectTapGestures(
+                                    onTap = {
+                                        if (state.progress.value > 0.5f) state.close()
+                                    },
+                                )
+                            }
+                        } else {
+                            Modifier
+                        },
+                    ),
+            )
         }
+
+        // Dedicated left-edge strip for drag-to-open; invisible and narrow so it
+        // does not fight the content's own gestures.
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .fillMaxHeight()
+                .width(20.dp)
+                .stageDrag(),
+        )
 
         // The panel itself: measured offset, never a hardcoded off-screen guess.
         Surface(
@@ -201,14 +237,15 @@ fun StageDrawer(
             }
         }
 
-        // Traveling handle: glued to the panel's trailing edge.
+        // Traveling handle: glued to the panel's trailing edge, anchored top-left
+        // where the original floating menu button lived.
         Surface(
             modifier = Modifier
-                .align(Alignment.CenterStart)
+                .align(Alignment.TopStart)
                 .offset {
                     IntOffset(
                         (panelWidthPx * state.progress.value - handleWidthPx * 0.35f).toInt(),
-                        0,
+                        with(density) { 40.dp.toPx() }.toInt(),
                     )
                 }
                 .width(DRAG_HANDLE_WIDTH_DP.dp)

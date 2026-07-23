@@ -1,22 +1,11 @@
 package ro.snapify.ui.components
 
 import android.graphics.Bitmap
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -78,7 +67,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.zIndex
 import androidx.core.net.toUri
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
@@ -89,7 +77,6 @@ import kotlinx.coroutines.launch
 import ro.snapify.R
 import ro.snapify.data.entity.MediaItem
 import ro.snapify.data.model.ScreenshotTab
-import ro.snapify.ui.MonitoringStatus
 import ro.snapify.ui.theme.SnapifyTheme
 import ro.snapify.util.DebugLogger
 import ro.snapify.util.TimeUtils
@@ -502,80 +489,6 @@ fun rememberVideoLifecycleManager(): androidx.lifecycle.LifecycleObserver {
 }
 
 /**
- * Service status indicator showing monitoring status with animated visibility
- */
-@Composable
-fun ServiceStatusIndicator(
-    monitoringStatus: MonitoringStatus,
-    allPermissionsGranted: Boolean,
-    onStatusClick: () -> Unit,
-    onPermissionsClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    AnimatedVisibility(
-        visible = true,
-        enter = fadeIn() + slideInVertically(),
-        exit = fadeOut() + slideOutVertically(),
-        modifier = modifier.zIndex(1f),
-    ) {
-        val tokens = SnapifyTheme.colors
-        val spacing = SnapifyTheme.spacing
-        val (statusColor, statusText) = when (monitoringStatus) {
-            MonitoringStatus.STOPPED -> tokens.danger to stringResource(R.string.monitoring_stopped)
-            MonitoringStatus.ACTIVE -> tokens.success to stringResource(R.string.monitoring_active)
-            MonitoringStatus.MISSING_PERMISSIONS -> tokens.warning to stringResource(R.string.missing_permissions)
-        }
-        Surface(
-            color = tokens.surface,
-            shape = SnapifyTheme.shapes.pillShape,
-            border = BorderStroke(1.dp, tokens.hairline),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = spacing.lg, vertical = spacing.xs)
-                .clip(SnapifyTheme.shapes.pillShape)
-                .clickable {
-                    if (!allPermissionsGranted) {
-                        onPermissionsClick()
-                    } else {
-                        onStatusClick()
-                    }
-                },
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = spacing.lg, vertical = spacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(spacing.sm),
-            ) {
-                val dotAlpha by if (monitoringStatus == MonitoringStatus.ACTIVE) {
-                    rememberInfiniteTransition(label = "statusDotPulse").animateFloat(
-                        initialValue = 0.55f,
-                        targetValue = 1f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(900, easing = FastOutSlowInEasing),
-                            repeatMode = RepeatMode.Reverse,
-                        ),
-                        label = "statusDotPulseAlpha",
-                    )
-                } else {
-                    remember { mutableStateOf(1f) }
-                }
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(SnapifyTheme.shapes.pillShape)
-                        .background(statusColor.copy(alpha = dotAlpha)),
-                )
-                Text(
-                    text = statusText.uppercase(),
-                    color = tokens.inkSoft,
-                    style = MaterialTheme.typography.labelMedium,
-                )
-            }
-        }
-    }
-}
-
-/**
  * Empty state screen for when no screenshots match the current filter
  */
 @Composable
@@ -800,15 +713,15 @@ private fun ActionButtons(
     onDeleteClick: () -> Unit,
 ) {
     val tokens = SnapifyTheme.colors
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(SnapifyTheme.spacing.xs),
-        verticalAlignment = Alignment.CenterVertically,
+    Column(
+        verticalArrangement = Arrangement.spacedBy(SnapifyTheme.spacing.xs),
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(end = SnapifyTheme.spacing.sm),
     ) {
         if (screenshot.isKept) {
             FilledIconButton(
                 onClick = onUnkeepClick,
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(36.dp),
                 shape = SnapifyTheme.shapes.pillShape,
                 colors = IconButtonDefaults.filledIconButtonColors(
                     containerColor = tokens.accent,
@@ -823,7 +736,7 @@ private fun ActionButtons(
         } else {
             OutlinedIconButton(
                 onClick = onKeepClick,
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(36.dp),
                 shape = SnapifyTheme.shapes.pillShape,
                 border = BorderStroke(1.dp, tokens.hairline),
             ) {
@@ -837,7 +750,7 @@ private fun ActionButtons(
 
         OutlinedIconButton(
             onClick = onDeleteClick,
-            modifier = Modifier.size(40.dp),
+            modifier = Modifier.size(36.dp),
             shape = SnapifyTheme.shapes.pillShape,
             border = BorderStroke(1.dp, tokens.danger.copy(alpha = 0.5f)),
         ) {
@@ -867,7 +780,7 @@ private fun ThumbnailSection(
     Box(
         modifier = Modifier
             .padding(start = SnapifyTheme.spacing.lg)
-            .size(56.dp)
+            .size(88.dp)
             .clip(SnapifyTheme.shapes.thumbnailShape)
             .onGloballyPositioned { coordinates ->
                 globalPosition = coordinates.boundsInWindow().topLeft
@@ -1096,7 +1009,7 @@ fun ScreenshotCard(
         HorizontalDivider(
             color = SnapifyTheme.colors.hairline,
             thickness = 1.dp,
-            modifier = Modifier.padding(start = 88.dp),
+            modifier = Modifier.padding(start = 116.dp),
         )
     }
 }

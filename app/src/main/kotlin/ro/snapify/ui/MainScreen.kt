@@ -25,8 +25,12 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.animateTo
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleOut
@@ -34,6 +38,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -65,6 +70,7 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -86,6 +92,8 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -125,7 +133,6 @@ import ro.snapify.ui.components.PicturePreviewDialog
 import ro.snapify.ui.components.ScreenshotCard
 import ro.snapify.ui.components.StageDrawer
 import ro.snapify.ui.components.rememberStageDrawerState
-import ro.snapify.ui.components.ServiceStatusIndicator
 import ro.snapify.ui.components.TagFilterBar
 import ro.snapify.ui.components.VideoPreviewDialog
 import ro.snapify.ui.components.rememberVideoLifecycleManager
@@ -192,6 +199,9 @@ fun MainScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     val uiState by actualViewModel.uiState.collectAsStateWithLifecycle(initialValue = MainUiState())
+
+    // Chrome (bottom dock + folder FAB) hides while scrolling down, returns on scroll up
+    var chromeVisible by remember { mutableStateOf(true) }
     val themeMode by preferences?.themeMode?.collectAsState(initial = "system")
         ?: remember { mutableStateOf("system") }
     val language by preferences?.language?.collectAsState(initial = "en")
@@ -424,6 +434,24 @@ fun MainScreen(
         }.toList()
     }
 
+    // Hides chrome on scroll down, shows on scroll up - works for both list and
+    // grid because it observes scroll deltas at the container level.
+    val chromeScrollConnection = remember {
+        object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
+            override fun onPreScroll(
+                available: androidx.compose.ui.geometry.Offset,
+                source: androidx.compose.ui.input.nestedscroll.NestedScrollSource,
+            ): androidx.compose.ui.geometry.Offset {
+                if (available.y < -4f) {
+                    chromeVisible = false
+                } else if (available.y > 4f) {
+                    chromeVisible = true
+                }
+                return androidx.compose.ui.geometry.Offset.Zero
+            }
+        }
+    }
+
     // Auto-scroll to top when filter changes
     LaunchedEffect(currentFilterState) {
         scope.launch {
@@ -468,146 +496,56 @@ fun MainScreen(
             modifier = Modifier.fillMaxSize(),
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
             topBar = {
-                val tokens = SnapifyTheme.colors
-                val spacing = SnapifyTheme.spacing
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(tokens.surface),
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 72.dp, end = spacing.sm, top = spacing.sm),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = BuildConfig.APP_DISPLAY_NAME,
-                                style = MaterialTheme.typography.headlineMedium,
-                                color = tokens.ink,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                text = stringResource(
-                                    R.string.top_bar_counter,
-                                    filteredItemCount,
-                                    mediaItems.size,
-                                ).uppercase(),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = tokens.inkFaint,
-                            )
-                        }
-                        val (statusIcon, statusColor) = when (monitoringStatus) {
-                            MonitoringStatus.STOPPED -> Icons.Default.PlayArrow to tokens.danger
-                            MonitoringStatus.ACTIVE -> Icons.Default.Pause to tokens.success
-                            MonitoringStatus.MISSING_PERMISSIONS -> Icons.Default.Pause to tokens.warning
-                        }
-                        IconButton(onClick = {
+                MainMasthead(
+                    filteredItemCount = filteredItemCount,
+                    totalItems = mediaItems.size,
+                    folderCount = mediaFolderUris.size,
+                    monitoringStatus = monitoringStatus,
+                    allPermissionsGranted = allPermissionsGranted,
+                    viewMode = viewMode,
+                    onMonitoringToggle = {
+                        if (!allPermissionsGranted) {
+                            actualViewModel.showPermissionsDialog()
+                        } else {
                             when (monitoringStatus) {
                                 MonitoringStatus.STOPPED -> actualViewModel.startMonitoring()
                                 MonitoringStatus.ACTIVE -> actualViewModel.stopMonitoring()
-                                MonitoringStatus.MISSING_PERMISSIONS -> actualViewModel.startMonitoring() // Will check permissions and start or show dialog
-                            }
-                        }) {
-                            Icon(
-                                imageVector = statusIcon,
-                                contentDescription = when (monitoringStatus) {
-                                    MonitoringStatus.STOPPED -> stringResource(R.string.start_service)
-                                    MonitoringStatus.ACTIVE -> stringResource(R.string.stop_service)
-                                    MonitoringStatus.MISSING_PERMISSIONS -> stringResource(R.string.grant_permissions)
-                                },
-                                tint = statusColor,
-                            )
-                        }
-                        IconButton(onClick = { actualViewModel.refreshMediaItems() }) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = stringResource(R.string.refresh),
-                                tint = tokens.inkSoft,
-                            )
-                        }
-                        if (!allPermissionsGranted) {
-                            IconButton(onClick = { actualViewModel.showPermissionsDialog() }) {
-                                Icon(
-                                    imageVector = Icons.Default.Lock,
-                                    contentDescription = stringResource(R.string.permissions),
-                                    tint = tokens.warning,
-                                )
+                                MonitoringStatus.MISSING_PERMISSIONS -> actualViewModel.startMonitoring()
                             }
                         }
-                        IconButton(onClick = {
-                            val nextMode = if (viewMode == "grid") "list" else "grid"
-                            scope.launch { preferences?.setViewMode(nextMode) }
-                        }) {
-                            Icon(
-                                imageVector = if (viewMode == "grid") {
-                                    Icons.AutoMirrored.Filled.List
-                                } else {
-                                    Icons.Default.Apps
-                                },
-                                contentDescription = "Toggle grid or list",
-                                tint = tokens.inkSoft,
-                            )
-                        }
-                        IconButton(onClick = { navigator?.navigate(SettingsScreenDestination) }) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = stringResource(R.string.settings_button),
-                                tint = tokens.inkSoft,
-                            )
-                        }
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 72.dp, end = spacing.lg, bottom = spacing.sm),
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.spacedBy(spacing.lg),
-                    ) {
-                        Text(
-                            text = filteredItemCount.toString(),
-                            style = MaterialTheme.typography.displayMedium,
-                            color = tokens.accent,
-                        )
-                        Text(
-                            text = stringResource(R.string.hero_visible_label).uppercase(),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = tokens.inkSoft,
-                            modifier = Modifier.padding(bottom = spacing.sm),
-                        )
-                        Text(
-                            text = "${mediaFolderUris.size} " +
-                                    stringResource(R.string.hero_folders_label).uppercase(),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = tokens.inkFaint,
-                            modifier = Modifier.padding(bottom = spacing.sm),
-                        )
-                    }
-                    HorizontalDivider(color = tokens.hairline, thickness = 1.dp)
-                }
+                    },
+                    onRefresh = { actualViewModel.refreshMediaItems() },
+                    onPermissionsClick = { actualViewModel.showPermissionsDialog() },
+                    onViewModeToggle = {
+                        val nextMode = if (viewMode == "grid") "list" else "grid"
+                        scope.launch { preferences?.setViewMode(nextMode) }
+                    },
+                )
             },
 
             snackbarHost = { SnackbarHost(snackbarHostState) },
             bottomBar = {
-                FilterBottomDock(
-                    selectedTags = currentFilterState.selectedTags,
-                    hasFolderFilter = currentFilterState.selectedFolders.isNotEmpty(),
-                    onTagSelectionChanged = { selected ->
-                        val effective = if (selected.isEmpty()) {
-                            setOf(
-                                ScreenshotTab.MARKED,
-                                ScreenshotTab.KEPT,
-                                ScreenshotTab.UNMARKED,
-                            )
-                        } else {
-                            selected
-                        }
-                        actualViewModel.updateTagSelection(effective)
-                    },
-                    onFoldersClick = { showFolderDialog = true },
-                )
+                AnimatedVisibility(
+                    visible = chromeVisible,
+                    enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                    exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
+                ) {
+                    FilterBottomDock(
+                        selectedTags = currentFilterState.selectedTags,
+                        onTagSelectionChanged = { selected ->
+                            val effective = if (selected.isEmpty()) {
+                                setOf(
+                                    ScreenshotTab.MARKED,
+                                    ScreenshotTab.KEPT,
+                                    ScreenshotTab.UNMARKED,
+                                )
+                            } else {
+                                selected
+                            }
+                            actualViewModel.updateTagSelection(effective)
+                        },
+                    )
+                }
             },
             floatingActionButton = {
                 // Right side: page indicator, back to top and settings
@@ -660,29 +598,38 @@ fun MainScreen(
                         }
                     }
 
-                    // Settings FAB (only visible when permanent setting menu is enabled)
+                    // Folder management FAB (floating, follows chrome visibility)
+                    AnimatedVisibility(
+                        visible = chromeVisible,
+                        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                        exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
+                    ) {
+                        FloatingActionButton(
+                            onClick = { showFolderDialog = true },
+                            shape = SnapifyTheme.shapes.pillShape,
+                            containerColor = SnapifyTheme.colors.surfaceRaised,
+                            contentColor = if (currentFilterState.selectedFolders.isNotEmpty()) {
+                                SnapifyTheme.colors.accent
+                            } else {
+                                SnapifyTheme.colors.inkSoft
+                            },
+                            modifier = Modifier.size(48.dp),
+                        ) {
+                            Icon(
+                                Icons.Default.Folder,
+                                contentDescription = stringResource(R.string.manage_folders),
+                            )
+                        }
+                    }
                 }
             },
         ) { paddingValues ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .nestedScroll(chromeScrollConnection)
                     .padding(paddingValues),
             ) {
-                // Service status indicator
-                ServiceStatusIndicator(
-                    monitoringStatus = monitoringStatus,
-                    allPermissionsGranted = allPermissionsGranted,
-                    onStatusClick = {
-                        when (monitoringStatus) {
-                            MonitoringStatus.STOPPED -> actualViewModel.startMonitoring()
-                            MonitoringStatus.ACTIVE -> actualViewModel.stopMonitoring()
-                            MonitoringStatus.MISSING_PERMISSIONS -> {} // Should not happen if permissions granted
-                        }
-                    },
-                    onPermissionsClick = { actualViewModel.showPermissionsDialog() },
-                )
-
                 FolderFilterBar(
                     availableUris = availableUris,
                     availablePaths = availablePaths,
@@ -846,49 +793,178 @@ fun MainScreen(
 @Composable
 private fun FilterBottomDock(
     selectedTags: Set<ScreenshotTab>,
-    hasFolderFilter: Boolean,
     onTagSelectionChanged: (Set<ScreenshotTab>) -> Unit,
-    onFoldersClick: () -> Unit,
 ) {
-    Column(
+    // Centered, floating, borderless: the filter pill hovers above the content.
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(SnapifyTheme.colors.surface),
+            .navigationBarsPadding()
+            .padding(bottom = SnapifyTheme.spacing.sm),
+        contentAlignment = Alignment.Center,
     ) {
-        HorizontalDivider(color = SnapifyTheme.colors.hairline, thickness = 1.dp)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding(),
-            verticalAlignment = Alignment.CenterVertically,
+        Surface(
+            shape = SnapifyTheme.shapes.pillShape,
+            color = SnapifyTheme.colors.surfaceRaised,
+            shadowElevation = 8.dp,
+            tonalElevation = 2.dp,
         ) {
             TagFilterBar(
                 selectedTags = selectedTags,
                 onTagSelectionChanged = onTagSelectionChanged,
-                modifier = Modifier.weight(1f),
             )
-            Box {
-                IconButton(onClick = onFoldersClick) {
-                    Icon(
-                        imageVector = Icons.Default.Folder,
-                        contentDescription = stringResource(R.string.manage_folders),
-                        tint = SnapifyTheme.colors.inkSoft,
-                    )
-                }
-                if (hasFolderFilter) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(top = 8.dp, end = 8.dp)
-                            .size(8.dp)
-                            .background(SnapifyTheme.colors.accent, SnapifyTheme.shapes.pillShape),
-                    )
-                }
-            }
         }
     }
 }
 
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MainMasthead(
+    filteredItemCount: Int,
+    totalItems: Int,
+    folderCount: Int,
+    monitoringStatus: MonitoringStatus,
+    allPermissionsGranted: Boolean,
+    viewMode: String,
+    onMonitoringToggle: () -> Unit,
+    onRefresh: () -> Unit,
+    onPermissionsClick: () -> Unit,
+    onViewModeToggle: () -> Unit,
+) {
+    val tokens = SnapifyTheme.colors
+    val spacing = SnapifyTheme.spacing
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(tokens.surface),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 72.dp, end = spacing.sm, top = spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = BuildConfig.APP_DISPLAY_NAME,
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = tokens.ink,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = stringResource(R.string.top_bar_counter, filteredItemCount, totalItems).uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = tokens.inkFaint,
+                )
+            }
+            val (statusIcon, statusColor) = when (monitoringStatus) {
+                MonitoringStatus.STOPPED -> Icons.Default.PlayArrow to tokens.danger
+                MonitoringStatus.ACTIVE -> Icons.Default.Pause to tokens.success
+                MonitoringStatus.MISSING_PERMISSIONS -> Icons.Default.Pause to tokens.warning
+            }
+            IconButton(onClick = onMonitoringToggle) {
+                Icon(
+                    imageVector = statusIcon,
+                    contentDescription = when (monitoringStatus) {
+                        MonitoringStatus.STOPPED -> stringResource(R.string.start_service)
+                        MonitoringStatus.ACTIVE -> stringResource(R.string.stop_service)
+                        MonitoringStatus.MISSING_PERMISSIONS -> stringResource(R.string.grant_permissions)
+                    },
+                    tint = statusColor,
+                )
+            }
+            IconButton(onClick = onRefresh) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = stringResource(R.string.refresh),
+                    tint = tokens.inkSoft,
+                )
+            }
+            if (!allPermissionsGranted) {
+                IconButton(onClick = onPermissionsClick) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = stringResource(R.string.permissions),
+                        tint = tokens.warning,
+                    )
+                }
+            }
+            IconButton(onClick = onViewModeToggle) {
+                Icon(
+                    imageVector = if (viewMode == "grid") {
+                        Icons.AutoMirrored.Filled.List
+                    } else {
+                        Icons.Default.Apps
+                    },
+                    contentDescription = "Toggle grid or list",
+                    tint = tokens.inkSoft,
+                )
+            }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(SnapifyTheme.shapes.fieldShape)
+                .clickable(onClick = onMonitoringToggle)
+                .padding(start = 72.dp, end = spacing.lg, bottom = spacing.sm),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(spacing.lg),
+        ) {
+            Text(
+                text = filteredItemCount.toString(),
+                style = MaterialTheme.typography.displayMedium,
+                color = tokens.accent,
+            )
+            Text(
+                text = stringResource(R.string.hero_visible_label).uppercase(),
+                style = MaterialTheme.typography.labelMedium,
+                color = tokens.inkSoft,
+                modifier = Modifier.padding(bottom = spacing.sm),
+            )
+            Text(
+                text = "$folderCount " + stringResource(R.string.hero_folders_label).uppercase(),
+                style = MaterialTheme.typography.labelMedium,
+                color = tokens.inkFaint,
+                modifier = Modifier.padding(bottom = spacing.sm),
+            )
+            val statusDotColor = when (monitoringStatus) {
+                MonitoringStatus.STOPPED -> tokens.danger
+                MonitoringStatus.ACTIVE -> tokens.success
+                MonitoringStatus.MISSING_PERMISSIONS -> tokens.warning
+            }
+            val statusDotAlpha by if (monitoringStatus == MonitoringStatus.ACTIVE) {
+                rememberInfiniteTransition(label = "mastheadStatusPulse").animateFloat(
+                    initialValue = 0.55f,
+                    targetValue = 1f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(900),
+                        repeatMode = RepeatMode.Reverse,
+                    ),
+                    label = "mastheadStatusPulseAlpha",
+                )
+            } else {
+                remember { mutableStateOf(1f) }
+            }
+            Box(
+                modifier = Modifier
+                    .padding(bottom = spacing.md)
+                    .size(10.dp)
+                    .clip(SnapifyTheme.shapes.pillShape)
+                    .background(statusDotColor.copy(alpha = statusDotAlpha)),
+            )
+            Text(
+                text = if (monitoringStatus == MonitoringStatus.ACTIVE) "ON" else "OFF",
+                style = MaterialTheme.typography.labelMedium,
+                color = statusDotColor,
+                modifier = Modifier.padding(bottom = spacing.sm),
+            )
+        }
+        HorizontalDivider(color = tokens.hairline, thickness = 1.dp)
+    }
+}
 
 fun updatePermissionStatuses(
     context: Context,

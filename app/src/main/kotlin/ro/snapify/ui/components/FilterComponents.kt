@@ -1,6 +1,5 @@
 package ro.snapify.ui.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -51,8 +50,7 @@ fun TagFilterBar(
         modifier = modifier
             .padding(horizontal = spacing.lg, vertical = spacing.xs),
         shape = SnapifyTheme.shapes.pillShape,
-        color = tokens.surfaceRaised,
-        border = BorderStroke(1.dp, tokens.hairline),
+        color = Color.Transparent,
     ) {
         Row(
             modifier = Modifier.padding(spacing.xs),
