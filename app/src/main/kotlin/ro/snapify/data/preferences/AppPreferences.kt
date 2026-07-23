@@ -49,6 +49,7 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
         private val KEY_HAS_INITIALIZED_FOLDERS = booleanPreferencesKey("has_initialized_folders")
         private val KEY_THEME_ACCENT = longPreferencesKey("theme_accent_argb")
         private val KEY_THEME_CORNER_SCALE = floatPreferencesKey("theme_corner_scale")
+        private val KEY_VIEW_MODE = stringPreferencesKey("view_mode")
 
         const val DEFAULT_THEME_CORNER_SCALE = 1f
 
@@ -139,6 +140,17 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
 
     val hasInitializedFolders: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[KEY_HAS_INITIALIZED_FOLDERS] ?: false
+    }
+
+    /** "grid" or "list"; defaults to grid. */
+    val viewMode: Flow<String> = context.dataStore.data.map { preferences ->
+        preferences[KEY_VIEW_MODE] ?: "grid"
+    }
+
+    suspend fun setViewMode(mode: String) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_VIEW_MODE] = mode
+        }
     }
 
     /** null means the preset default accent. */

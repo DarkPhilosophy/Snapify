@@ -161,7 +161,12 @@ class MainViewModel @Inject constructor(
                             "MainViewModel",
                             "ItemAdded: Adding new item ${event.mediaItem.fileName} (ID: ${event.mediaItem.id})",
                         )
-                        _mediaItems.add(0, event.mediaItem)
+                        // Guard: the same event can be emitted more than once per file
+                        // (service rescan + content observer), and a duplicate id crashes
+                        // the LazyColumn key contract.
+                        if (_mediaItems.none { it.id == event.mediaItem.id }) {
+                            _mediaItems.add(0, event.mediaItem)
+                        }
                         // Trigger new screenshot detected for UI feedback
                         _newScreenshotDetected.emit(Unit)
                         DebugLogger.info(
@@ -169,6 +174,7 @@ class MainViewModel @Inject constructor(
                             "ItemAdded: Added item, mediaItems now has ${_mediaItems.size} items",
                         )
                     }
+
                     is MediaEvent.ItemDeleted -> {
                         _deletingIds.value += event.mediaId
                         // Delay for animation
@@ -177,18 +183,29 @@ class MainViewModel @Inject constructor(
                         _deletingIds.value -= event.mediaId
                         DebugLogger.info("MainViewModel", "ItemDeleted: Removed item ${event.mediaId}")
                     }
+
                     is MediaEvent.ItemUpdated -> {
                         val index = _mediaItems.indexOfFirst { it.id == event.mediaItem.id }
                         if (index != -1) {
                             _mediaItems[index] = event.mediaItem
-                            DebugLogger.info("MainViewModel", "ItemUpdated: Updated item ${event.mediaItem.id} at index $index")
+                            DebugLogger.info(
+                                "MainViewModel",
+                                "ItemUpdated: Updated item ${event.mediaItem.id} at index $index"
+                            )
                         } else {
-                            DebugLogger.warning("MainViewModel", "ItemUpdated: Item ${event.mediaItem.id} not found in list")
+                            DebugLogger.warning(
+                                "MainViewModel",
+                                "ItemUpdated: Item ${event.mediaItem.id} not found in list"
+                            )
                         }
                     }
+
                     is MediaEvent.ItemDetected -> {
                         // Optional: Handle detection event if needed for UI feedback
-                        DebugLogger.info("MainViewModel", "ItemDetected: Media ${event.mediaId} detected at ${event.filePath}")
+                        DebugLogger.info(
+                            "MainViewModel",
+                            "ItemDetected: Media ${event.mediaId} detected at ${event.filePath}"
+                        )
                     }
                 }
             }
@@ -295,7 +312,10 @@ class MainViewModel @Inject constructor(
             }.toSet()
 
             if (deduplicated != selectedFolders) {
-                DebugLogger.debug("MainViewModel.updateFolderSelection", "Removed duplicates: $selectedFolders -> $deduplicated")
+                DebugLogger.debug(
+                    "MainViewModel.updateFolderSelection",
+                    "Removed duplicates: $selectedFolders -> $deduplicated"
+                )
             }
             preferences.setSelectedFolders(deduplicated)
         }
@@ -524,12 +544,12 @@ class MainViewModel @Inject constructor(
     fun openMediaItem(mediaItem: MediaItem, position: androidx.compose.ui.geometry.Offset) {
         val isVideo = mediaItem.filePath.lowercase().let {
             it.endsWith(".mp4") ||
-                it.endsWith(".avi") ||
-                it.endsWith(".mov") ||
-                it.endsWith(".mkv") ||
-                it.endsWith(
-                    ".webm",
-                )
+                    it.endsWith(".avi") ||
+                    it.endsWith(".mov") ||
+                    it.endsWith(".mkv") ||
+                    it.endsWith(
+                        ".webm",
+                    )
         }
 
         if (isVideo) {

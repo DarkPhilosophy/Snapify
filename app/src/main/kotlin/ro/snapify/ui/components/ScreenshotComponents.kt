@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -52,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -835,8 +837,6 @@ private fun ThumbnailSection(
     videoThumbnail: Bitmap?,
     onClick: (androidx.compose.ui.geometry.Offset) -> Unit,
 ) {
-    val context = LocalContext.current
-
     // Track the global position of this thumbnail
     var globalPosition by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
 
@@ -858,6 +858,26 @@ private fun ThumbnailSection(
                 )
             },
     ) {
+        MediaThumbnail(
+            screenshot = screenshot,
+            liveVideoPreviewEnabled = liveVideoPreviewEnabled,
+            isVideo = isVideo,
+            videoThumbnail = videoThumbnail,
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
+}
+
+@Composable
+private fun MediaThumbnail(
+    screenshot: MediaItem,
+    liveVideoPreviewEnabled: Boolean,
+    isVideo: Boolean,
+    videoThumbnail: Bitmap?,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    Box(modifier = modifier) {
         if (isVideo) {
             DebugLogger.debug(
                 "ThumbnailSection",
@@ -1054,5 +1074,138 @@ fun ScreenshotCard(
             thickness = 1.dp,
             modifier = Modifier.padding(start = 88.dp),
         )
+    }
+}
+
+/**
+ * Image-first screenshot card for the grid (Darkroom) view mode.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GridScreenshotCard(
+    screenshot: MediaItem,
+    currentTime: Long,
+    isRefreshing: Boolean = false,
+    liveVideoPreviewEnabled: Boolean = false,
+    onClick: (androidx.compose.ui.geometry.Offset) -> Unit,
+    onLongPress: () -> Unit,
+    onKeepClick: () -> Unit,
+    onUnkeepClick: () -> Unit,
+    onDeleteClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val alpha = animateFloatAsState(if (isRefreshing) 0.7f else 1f, label = "gridCardAlpha").value
+    val isVideo = isVideoFile(screenshot.filePath)
+    var videoThumbnail by remember { mutableStateOf<Bitmap?>(null) }
+    LaunchedEffect(isVideo, screenshot.filePath) {
+        if (isVideo) {
+            videoThumbnail = loadVideoThumbnail(context, screenshot)
+        }
+    }
+    val tokens = SnapifyTheme.colors
+    val spacing = SnapifyTheme.spacing
+    var globalPosition by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+
+    Box(
+        modifier = modifier
+            .aspectRatio(0.8f)
+            .clip(SnapifyTheme.shapes.cardShape)
+            .background(tokens.surfaceRaised)
+            .alpha(alpha)
+            .onGloballyPositioned { coordinates ->
+                globalPosition = coordinates.boundsInWindow().topLeft
+            }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = { offset -> onClick(globalPosition + offset) },
+                    onLongPress = { onLongPress() },
+                )
+            },
+    ) {
+        MediaThumbnail(
+            screenshot = screenshot,
+            liveVideoPreviewEnabled = liveVideoPreviewEnabled,
+            isVideo = isVideo,
+            videoThumbnail = videoThumbnail,
+            modifier = Modifier.fillMaxSize(),
+        )
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(spacing.xs),
+        ) {
+            StatusSection(screenshot, currentTime)
+        }
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(spacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(spacing.xs),
+        ) {
+            Surface(
+                shape = SnapifyTheme.shapes.pillShape,
+                color = tokens.scrim.copy(alpha = 0.5f),
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(SnapifyTheme.shapes.pillShape)
+                    .clickable { if (screenshot.isKept) onUnkeepClick() else onKeepClick() },
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = stringResource(
+                            if (screenshot.isKept) R.string.unkeep_screenshot else R.string.keep_screenshot,
+                        ),
+                        tint = if (screenshot.isKept) tokens.accent else tokens.onScrim,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
+            Surface(
+                shape = SnapifyTheme.shapes.pillShape,
+                color = tokens.scrim.copy(alpha = 0.5f),
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(SnapifyTheme.shapes.pillShape)
+                    .clickable { onDeleteClick() },
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = stringResource(R.string.delete_screenshot),
+                        tint = tokens.danger,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.Transparent, tokens.scrim.copy(alpha = 0.85f)),
+                    ),
+                )
+                .padding(horizontal = spacing.sm, vertical = spacing.sm),
+        ) {
+            Text(
+                text = screenshot.fileName,
+                style = MaterialTheme.typography.titleSmall,
+                color = tokens.onScrim,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = getFileSizeText(screenshot.filePath).uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                color = tokens.onScrim.copy(alpha = 0.8f),
+            )
+        }
     }
 }

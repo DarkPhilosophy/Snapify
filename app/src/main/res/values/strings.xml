@@ -204,4 +204,5 @@ To get started, enable the monitoring service and grant the required permissions
     <string name="accent_color_label">Accent color</string>
     <string name="roundness_label">Corner roundness</string>
     <string name="manage_folders">Manage folders</string>
+    <string name="quick_settings">Quick settings</string>
 </resources>
