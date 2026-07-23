@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
@@ -46,6 +47,10 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
         private val KEY_FOLDER_FILTER_STATES =
             stringPreferencesKey("folder_filter_states") // JSON string of folder -> FilterState map
         private val KEY_HAS_INITIALIZED_FOLDERS = booleanPreferencesKey("has_initialized_folders")
+        private val KEY_THEME_ACCENT = longPreferencesKey("theme_accent_argb")
+        private val KEY_THEME_CORNER_SCALE = floatPreferencesKey("theme_corner_scale")
+
+        const val DEFAULT_THEME_CORNER_SCALE = 1f
 
         const val DEFAULT_DELETION_TIME_MILLIS = 1 * 60 * 1000L
         val DEFAULT_MEDIA_FOLDER_URIS = emptySet<String>() // No default folders
@@ -134,6 +139,31 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
 
     val hasInitializedFolders: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[KEY_HAS_INITIALIZED_FOLDERS] ?: false
+    }
+
+    /** null means the preset default accent. */
+    val themeAccent: Flow<Long?> = context.dataStore.data.map { preferences ->
+        preferences[KEY_THEME_ACCENT]
+    }
+
+    val themeCornerScale: Flow<Float> = context.dataStore.data.map { preferences ->
+        preferences[KEY_THEME_CORNER_SCALE] ?: DEFAULT_THEME_CORNER_SCALE
+    }
+
+    suspend fun setThemeAccent(argb: Long?) {
+        context.dataStore.edit { preferences ->
+            if (argb == null) {
+                preferences.remove(KEY_THEME_ACCENT)
+            } else {
+                preferences[KEY_THEME_ACCENT] = argb
+            }
+        }
+    }
+
+    suspend fun setThemeCornerScale(scale: Float) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_THEME_CORNER_SCALE] = scale.coerceIn(0.5f, 1.5f)
+        }
     }
 
     suspend fun setDeletionTimeMillis(timeMillis: Long) {

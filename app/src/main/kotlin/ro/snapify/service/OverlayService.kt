@@ -2,6 +2,7 @@ package ro.snapify.service
 
 import android.annotation.SuppressLint
 import android.app.Service
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.PixelFormat
 import android.media.MediaMetadataRetriever
@@ -35,11 +36,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import ro.snapify.ScreenshotApp
 import ro.snapify.data.preferences.AppPreferences
 import ro.snapify.data.repository.MediaRepository
@@ -56,6 +57,17 @@ import ro.snapify.util.PermissionUtils
 private const val FIFTEEN_MINUTES = 15L
 private const val THREE_DAYS = 3L
 private const val ONE_WEEK = 7L
+
+internal data class OverlayRequest(
+    val mediaId: Long,
+    val filePath: String,
+)
+
+internal fun overlayPreviewCandidates(contentUri: String?, filePath: String): List<String> =
+    listOfNotNull(
+        contentUri?.takeIf { it.isNotBlank() },
+        filePath.takeIf { it.isNotBlank() },
+    ).distinct()
 
 private fun formatTime(minutes: Int): String {
     val parts = mutableListOf<String>()
@@ -100,11 +112,10 @@ class OverlayService :
     private lateinit var windowManager: WindowManager
     private var overlayView: ComposeView? = null
     private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
+    private val overlayCreationMutex = Mutex()
     private lateinit var repository: MediaRepository
     private lateinit var recomposeFlow: kotlinx.coroutines.flow.MutableSharedFlow<RecomposeReason>
     private lateinit var preferences: AppPreferences
-    private var mediaId: Long = -1L
-    private var filePath: String = ""
 
     private fun handleOverlayException(e: Exception, tag: String = "OverlayService") {
         DebugLogger.error(tag, "Exception: ${e.javaClass.simpleName} - ${e.message}", e)
@@ -132,7 +143,8 @@ class OverlayService :
             cacheDir?.listFiles { file -> file.name.startsWith("share_") }?.forEach {
                 try {
                     it.delete()
-                } catch (_: Exception) {}
+                } catch (_: Exception) {
+                }
             }
         }
     }
@@ -140,12 +152,14 @@ class OverlayService :
     override fun onBind(intent: android.content.Intent?): IBinder? = null
 
     override fun onStartCommand(intent: android.content.Intent?, flags: Int, startId: Int): Int {
-        mediaId = intent?.getLongExtra("media_id", -1L) ?: -1L
-        filePath = intent?.getStringExtra("file_path") ?: ""
+        val request = OverlayRequest(
+            mediaId = intent?.getLongExtra("media_id", -1L) ?: -1L,
+            filePath = intent?.getStringExtra("file_path") ?: "",
+        )
 
         DebugLogger.info(
             "OverlayService",
-            "onStartCommand called with screenshot ID: $mediaId, path: $filePath",
+            "onStartCommand called with screenshot ID: ${request.mediaId}, path: ${request.filePath}",
         )
 
         // Initialize dependencies from application
@@ -154,10 +168,12 @@ class OverlayService :
         preferences = app.preferences
         recomposeFlow = app.recomposeFlow
 
-        if (mediaId > 0L) {
+        if (request.mediaId > 0L) {
             try {
                 if (PermissionUtils.hasOverlayPermission(this)) {
-                    showOverlay()
+                    serviceScope.launch {
+                        overlayCreationMutex.withLock { showOverlay(request) }
+                    }
                 } else {
                     DebugLogger.error(
                         "OverlayService",
@@ -168,7 +184,7 @@ class OverlayService :
                         "Manual Mode Error",
                         "Overlay permission required. Grant in app settings.",
                     )
-                    showFallbackNotification()
+                    showFallbackNotification(request)
                     stopSelf()
                 }
             } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
@@ -182,11 +198,11 @@ class OverlayService :
                     "Manual Mode Crashed",
                     "Error: ${e.javaClass.simpleName} - ${e.message}",
                 )
-                showFallbackNotification()
+                showFallbackNotification(request)
                 stopSelf()
             }
         } else {
-            DebugLogger.error("OverlayService", "Invalid screenshot ID: $mediaId")
+            DebugLogger.error("OverlayService", "Invalid screenshot ID: ${request.mediaId}")
             stopSelf()
         }
 
@@ -194,7 +210,7 @@ class OverlayService :
     }
 
     @SuppressLint("InflateParams")
-    private fun showOverlay() {
+    private suspend fun showOverlay(request: OverlayRequest) {
         try {
             DebugLogger.info("OverlayService", "Attempting to show overlay")
 
@@ -204,81 +220,46 @@ class OverlayService :
             }
 
             windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-
             val layoutType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
             } else {
                 @Suppress("DEPRECATION")
                 WindowManager.LayoutParams.TYPE_PHONE
             }
-
             val params = WindowManager.LayoutParams(
                 WindowManager.LayoutParams.MATCH_PARENT,
                 WindowManager.LayoutParams.MATCH_PARENT,
                 layoutType,
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                    WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+                        WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                        WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
                 PixelFormat.TRANSLUCENT,
             ).apply {
                 gravity = Gravity.CENTER
             }
 
-            val mediaItem = runBlocking { repository.getById(mediaId) }
-            val bitmap = mediaItem?.contentUri?.let { contentUriStr ->
-                val uri = android.net.Uri.parse(contentUriStr)
-                try {
-                    if (mediaItem.filePath.lowercase().endsWith(".mp4") || mediaItem.filePath.lowercase().endsWith(".avi") || mediaItem.filePath.lowercase().endsWith(".mkv")) {
-                        // Video thumbnail
-                        val retriever = MediaMetadataRetriever()
-                        retriever.setDataSource(this@OverlayService, uri)
-                        val bmp = retriever.frameAtTime
-                        retriever.release()
-                        bmp
-                    } else {
-                        // Image
-                        this@OverlayService.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
-                    }
-                } catch (e: Exception) {
-                    DebugLogger.error("OverlayService", "Error loading bitmap from URI", e)
-                    null
-                }
-            } ?: run {
-                // Fallback to file path
-                if (filePath.endsWith(".mp4", ignoreCase = true) || filePath.endsWith(".avi", ignoreCase = true) || filePath.endsWith(".mkv", ignoreCase = true)) {
-                    try {
-                        val retriever = MediaMetadataRetriever()
-                        retriever.setDataSource(filePath)
-                        val bmp = retriever.frameAtTime
-                        retriever.release()
-                        bmp
-                    } catch (e: Exception) {
-                        null
-                    }
-                } else {
-                    BitmapFactory.decodeFile(filePath)
-                }
+            val mediaItem = repository.getById(request.mediaId)
+            val thumbnailBitmap = loadOverlayPreview(
+                sources = overlayPreviewCandidates(mediaItem?.contentUri, request.filePath),
+                isVideo = isVideoPath(mediaItem?.filePath ?: request.filePath),
+            )
+            val imageBitmap = thumbnailBitmap?.asImageBitmap()
+            val themeMode = when (preferences.themeMode.first()) {
+                "light" -> ThemeMode.LIGHT
+                "dark" -> ThemeMode.DARK
+                "dynamic" -> ThemeMode.DYNAMIC
+                "oled" -> ThemeMode.OLED
+                else -> ThemeMode.SYSTEM
             }
-            val imageBitmap = bitmap?.asImageBitmap()
 
-            // Create ComposeView for the overlay
             overlayView = ComposeView(this).apply {
                 setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
                 setViewTreeLifecycleOwner(this@OverlayService)
                 setViewTreeSavedStateRegistryOwner(this@OverlayService)
                 setContent {
-                    val themeModeString = runBlocking { preferences.themeMode.first() }
-                    val themeMode = when (themeModeString) {
-                        "light" -> ThemeMode.LIGHT
-                        "dark" -> ThemeMode.DARK
-                        "dynamic" -> ThemeMode.DYNAMIC
-                        "oled" -> ThemeMode.OLED
-                        else -> ThemeMode.SYSTEM
-                    }
-
                     AppTheme(themeMode = themeMode, skipWindowSetup = true) {
                         val dismissWithNotification =
-                            { dismissOverlay(showFallbackNotification = true) }
+                            { dismissOverlay(request, showFallbackNotification = true) }
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -291,6 +272,7 @@ class OverlayService :
                                 detectedImage = imageBitmap,
                                 on15Minutes = {
                                     handleDeletionTime(
+                                        request,
                                         java.util.concurrent.TimeUnit.MINUTES.toMillis(
                                             FIFTEEN_MINUTES,
                                         ),
@@ -298,34 +280,30 @@ class OverlayService :
                                 },
                                 on2Hours = {
                                     handleDeletionTime(
-                                        java.util.concurrent.TimeUnit.HOURS.toMillis(
-                                            2,
-                                        ),
+                                        request,
+                                        java.util.concurrent.TimeUnit.HOURS.toMillis(2),
                                     )
                                 },
                                 on3Days = {
                                     handleDeletionTime(
-                                        java.util.concurrent.TimeUnit.DAYS.toMillis(
-                                            THREE_DAYS,
-                                        ),
+                                        request,
+                                        java.util.concurrent.TimeUnit.DAYS.toMillis(THREE_DAYS),
                                     )
                                 },
                                 on1Week = {
                                     handleDeletionTime(
-                                        java.util.concurrent.TimeUnit.DAYS.toMillis(
-                                            ONE_WEEK,
-                                        ),
+                                        request,
+                                        java.util.concurrent.TimeUnit.DAYS.toMillis(ONE_WEEK),
                                     )
                                 },
-                                onKeep = { handleKeep() },
-                                onShare = { handleShare() },
-                                onClose = { handleClose() },
+                                onKeep = { handleKeep(request) },
+                                onShare = { handleShare(request) },
+                                onClose = { handleClose(request) },
                                 onDismiss = dismissWithNotification,
                                 onCustomTime = { minutes ->
                                     handleDeletionTime(
-                                        java.util.concurrent.TimeUnit.MINUTES.toMillis(
-                                            minutes.toLong(),
-                                        ),
+                                        request,
+                                        java.util.concurrent.TimeUnit.MINUTES.toMillis(minutes.toLong()),
                                     )
                                 },
                             )
@@ -334,10 +312,7 @@ class OverlayService :
                 }
             }
 
-            val wm = windowManager
-            wm.addView(overlayView, params)
-
-            // CRITICAL: Set lifecycle to RESUMED so Compose can render
+            windowManager.addView(overlayView, params)
             lifecycleRegistry.currentState = Lifecycle.State.RESUMED
 
             DebugLogger.info("OverlayService", "Overlay view added successfully")
@@ -361,23 +336,62 @@ class OverlayService :
         }
     }
 
-    private fun handleDeletionTime(timeMillis: Long) {
+    private suspend fun loadOverlayPreview(
+        sources: List<String>,
+        isVideo: Boolean,
+    ): Bitmap? = withContext(Dispatchers.IO) {
+        sources.firstNotNullOfOrNull { source ->
+            runCatching {
+                if (isVideo) {
+                    if (source.startsWith("content://")) {
+                        val uri = android.net.Uri.parse(source)
+                        contentResolver.openFileDescriptor(uri, "r")?.use { descriptor ->
+                            extractVideoFrame { setDataSource(descriptor.fileDescriptor) }
+                        }
+                    } else {
+                        extractVideoFrame { setDataSource(source) }
+                    }
+                } else if (source.startsWith("content://")) {
+                    val uri = android.net.Uri.parse(source)
+                    contentResolver.openInputStream(uri)?.use(BitmapFactory::decodeStream)
+                } else {
+                    BitmapFactory.decodeFile(source)
+                }
+            }.getOrNull()
+        }
+    }
+
+    private fun isVideoPath(path: String): Boolean =
+        path.endsWith(".mp4", ignoreCase = true) ||
+                path.endsWith(".avi", ignoreCase = true) ||
+                path.endsWith(".mkv", ignoreCase = true)
+
+    private fun extractVideoFrame(configure: MediaMetadataRetriever.() -> Unit): Bitmap? {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.configure()
+            retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+        } finally {
+            retriever.release()
+        }
+    }
+
+
+    private fun handleDeletionTime(request: OverlayRequest, timeMillis: Long) {
         serviceScope.launch(Dispatchers.IO) {
             val deletionTimestamp = System.currentTimeMillis() + timeMillis
 
             // Update DB synchronously
-            runBlocking {
-                repository.markForDeletion(mediaId, deletionTimestamp)
-            }
+            repository.markForDeletion(request.mediaId, deletionTimestamp)
 
             // The service's deletion check timer will handle the deletion
 
             // Show notification to confirm the scheduled deletion
-            val screenshot = repository.getById(mediaId)
+            val screenshot = repository.getById(request.mediaId)
             screenshot?.let {
                 NotificationHelper.showScreenshotNotification(
                     this@OverlayService,
-                    mediaId,
+                    request.mediaId,
                     it.fileName,
                     it.filePath,
                     deletionTimestamp,
@@ -390,30 +404,6 @@ class OverlayService :
                     "Notification shown after time selection in manual mode",
                 )
 
-                // Launch notification update job for live countdown updates
-                kotlinx.coroutines.GlobalScope.launch {
-                    while (System.currentTimeMillis() < deletionTimestamp) {
-                        kotlinx.coroutines.delay(1000L) // Update every 1 second
-                        try {
-                            NotificationHelper.showScreenshotNotification(
-                                this@OverlayService,
-                                mediaId,
-                                it.fileName,
-                                it.filePath,
-                                deletionTimestamp,
-                                timeMillis,
-                                isManualMode = false,
-                                preferences = preferences,
-                            )
-                        } catch (e: Exception) {
-                            DebugLogger.error(
-                                "OverlayService",
-                                "Error updating notification for $mediaId",
-                                e,
-                            )
-                        }
-                    }
-                }
 
                 withContext(Dispatchers.Main) {
                     // Notify UI to update the specific item
@@ -422,58 +412,57 @@ class OverlayService :
                         "Emitting ItemUpdated event after marking for deletion",
                     )
                     MainViewModel.mediaEventFlow.tryEmit(MediaEvent.ItemUpdated(it))
-                    dismissOverlay(showFallbackNotification = false)
+                    dismissOverlay(request, showFallbackNotification = false)
                 }
             }
         }
     }
 
-    private fun handleKeep() {
+    private fun handleKeep(request: OverlayRequest) {
         serviceScope.launch(Dispatchers.IO) {
-            repository.markAsKept(mediaId)
-            val updatedItem = repository.getById(mediaId)
+            repository.markAsKept(request.mediaId)
+            val updatedItem = repository.getById(request.mediaId)
 
             withContext(Dispatchers.Main) {
                 // Notify UI to update the specific item
                 DebugLogger.info("OverlayService", "Emitting ItemUpdated event after keeping media")
                 updatedItem?.let { MainViewModel.mediaEventFlow.tryEmit(MediaEvent.ItemUpdated(it)) }
-                dismissOverlay(showFallbackNotification = false)
+                dismissOverlay(request, showFallbackNotification = false)
             }
         }
     }
 
-    private fun handleShare() {
-        // Clean up previous share files before creating a new one
-        try {
-            cacheDir?.listFiles { file -> file.name.startsWith("share_") }?.forEach {
-                try {
-                    it.delete()
-                } catch (_: Exception) {}
-            }
-        } catch (_: Exception) {}
-
-        val file = java.io.File(filePath)
-        if (file.exists()) {
-            // Get the media item for deletion
-            val mediaItem = runBlocking { repository.getById(mediaId) }
-            // Copy to cache for sharing
-            val cacheDir = cacheDir
-            val extension = file.extension.ifEmpty { "png" }
-            val shareFile = java.io.File(cacheDir, "share_${System.currentTimeMillis()}.$extension")
-            
-            // Determine MIME type
-            val mimeType = when (extension.lowercase()) {
-                "mp4", "avi", "mkv", "mov" -> "video/*"
-                else -> "image/*"
-            }
-
+    private fun handleShare(request: OverlayRequest) {
+        serviceScope.launch(Dispatchers.IO) {
             try {
-                file.inputStream().use { input ->
+                cacheDir.listFiles { file -> file.name.startsWith("share_") }?.forEach { it.delete() }
+
+                val sourceFile = java.io.File(request.filePath)
+                if (!sourceFile.exists()) {
+                    DebugLogger.error("OverlayService", "Cannot share missing media: ${request.filePath}")
+                    return@launch
+                }
+
+                val mediaItem = repository.getById(request.mediaId)
+                val extension = sourceFile.extension.ifEmpty { "png" }
+                val shareFile = java.io.File(cacheDir, "share_${System.currentTimeMillis()}.$extension")
+                val mimeType = when (extension.lowercase()) {
+                    "mp4", "avi", "mkv", "mov" -> "video/*"
+                    else -> "image/*"
+                }
+
+                sourceFile.inputStream().use { input ->
                     shareFile.outputStream().use { output ->
                         input.copyTo(output)
                     }
                 }
-                val shareUri = androidx.core.content.FileProvider.getUriForFile(this, "$packageName.fileprovider", shareFile)
+
+                val shareUri =
+                    androidx.core.content.FileProvider.getUriForFile(
+                        this@OverlayService,
+                        "$packageName.fileprovider",
+                        shareFile
+                    )
                 val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                     type = mimeType
                     putExtra(android.content.Intent.EXTRA_STREAM, shareUri)
@@ -483,30 +472,32 @@ class OverlayService :
                 val chooserIntent = android.content.Intent.createChooser(intent, "Share Screenshot").apply {
                     addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
-                startActivity(chooserIntent)
-                // Delete the original file immediately
-                file.delete()
-                // Delete from database and notify UI to remove item
-                runBlocking {
-                    mediaItem?.let { repository.delete(it) }
-                    DebugLogger.info("OverlayService", "Emitting ItemDeleted event after sharing and deleting media")
-                    MainViewModel.mediaEventFlow.tryEmit(MediaEvent.ItemDeleted(mediaId))
+
+                withContext(Dispatchers.Main) {
+                    startActivity(chooserIntent)
                 }
-                // NOTE: Do NOT delete shareFile here. It must persist for the receiving app.
-                // Cleanup is handled in onCreate of the next service start.
-                dismissOverlay(showFallbackNotification = false)
+
+                sourceFile.delete()
+                mediaItem?.let { repository.delete(it) }
+                DebugLogger.info("OverlayService", "Emitting ItemDeleted event after sharing and deleting media")
+                MainViewModel.mediaEventFlow.tryEmit(MediaEvent.ItemDeleted(request.mediaId))
+
+                withContext(Dispatchers.Main) {
+                    dismissOverlay(request, showFallbackNotification = false)
+                }
+                // The cached share file must persist until the receiving app has read it.
             } catch (e: Exception) {
                 DebugLogger.error("OverlayService", "Error sharing screenshot", e)
             }
         }
     }
 
-    private fun handleClose() {
+    private fun handleClose(request: OverlayRequest) {
         serviceScope.launch(Dispatchers.IO) {
-            repository.markAsKept(mediaId)
+            repository.markAsKept(request.mediaId)
 
             withContext(Dispatchers.Main) {
-                dismissOverlay(showFallbackNotification = false)
+                dismissOverlay(request, showFallbackNotification = false)
             }
         }
     }
@@ -516,7 +507,7 @@ class OverlayService :
         DebugLogger.info("OverlayService", "Overlay animation in (handled by Compose)")
     }
 
-    private fun dismissOverlay(showFallbackNotification: Boolean = true) {
+    private fun dismissOverlay(request: OverlayRequest, showFallbackNotification: Boolean = true) {
         overlayView?.let { view ->
             try {
                 if (::windowManager.isInitialized) {
@@ -535,7 +526,7 @@ class OverlayService :
 
             // If overlay was dismissed without user interaction, show notification as fallback
             if (showFallbackNotification) {
-                showFallbackNotification()
+                showFallbackNotification(request)
             } else {
                 stopSelf()
             }
@@ -544,15 +535,15 @@ class OverlayService :
         }
     }
 
-    private fun showFallbackNotification() {
+    private fun showFallbackNotification(request: OverlayRequest) {
         serviceScope.launch(Dispatchers.IO) {
-            val screenshot = repository.getById(mediaId)
+            val screenshot = repository.getById(request.mediaId)
             screenshot?.let {
                 val deletionTime = preferences.deletionTimeMillis.first()
                 val deletionTimestamp = System.currentTimeMillis() + deletionTime
                 NotificationHelper.showScreenshotNotification(
                     this@OverlayService,
-                    mediaId,
+                    request.mediaId,
                     it.fileName,
                     it.filePath,
                     deletionTimestamp,

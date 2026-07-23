@@ -108,6 +108,12 @@ class MainActivity : ComponentActivity() {
                 "oled" -> ThemeMode.OLED
                 else -> ThemeMode.SYSTEM
             }
+            val themeAccent by preferences.themeAccent.collectAsState(initial = null)
+            val themeCornerScale by preferences.themeCornerScale.collectAsState(initial = 1f)
+            val themeCustomization = ro.snapify.ui.theme.ThemeCustomization(
+                accentArgb = themeAccent,
+                cornerScale = themeCornerScale,
+            )
 
             var uiState by remember { mutableStateOf(MainUiState()) }
             LaunchedEffect(Unit) {
@@ -147,7 +153,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            AppTheme(themeMode = themeMode) {
+            AppTheme(themeMode = themeMode, customization = themeCustomization) {
                 val navController = rememberNavController()
 
                 DestinationsNavHost(

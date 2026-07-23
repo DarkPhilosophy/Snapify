@@ -62,6 +62,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -137,10 +138,8 @@ import ro.snapify.ui.components.TagFilterBar
 import ro.snapify.ui.components.VideoPreviewDialog
 import ro.snapify.ui.components.rememberVideoLifecycleManager
 import ro.snapify.ui.theme.AppTheme
-import ro.snapify.ui.theme.ErrorRed
-import ro.snapify.ui.theme.SuccessGreen
+import ro.snapify.ui.theme.SnapifyTheme
 import ro.snapify.ui.theme.ThemeMode
-import ro.snapify.ui.theme.WarningOrange
 import ro.snapify.util.DebugLogger
 import ro.snapify.util.UriPathConverter
 import kotlin.math.pow
@@ -164,7 +163,9 @@ suspend fun animatedBounce(
             val nextDist = startDistance * 0.6.pow(i + 1).toFloat()
             animatable.animateTo(
                 targetValue = nextDist,
-                animationSpec = tween(durationMillis = (baseDuration * 0.85.pow(i)).toLong().coerceAtLeast(150L).toInt()),
+                animationSpec = tween(
+                    durationMillis = (baseDuration * 0.85.pow(i)).toLong().coerceAtLeast(150L).toInt()
+                ),
             )
         }
     }
@@ -444,29 +445,42 @@ fun MainScreen(
         modifier = Modifier.fillMaxSize(),
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
-            TopAppBar(
-                title = {
-                    var isVisible by remember { mutableStateOf(false) }
-                    LaunchedEffect(Unit) {
-                        isVisible = true
+            val tokens = SnapifyTheme.colors
+            val spacing = SnapifyTheme.spacing
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(tokens.surface),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 72.dp, end = spacing.sm, top = spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = BuildConfig.APP_DISPLAY_NAME,
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = tokens.ink,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = stringResource(
+                                R.string.top_bar_counter,
+                                filteredItemCount,
+                                mediaItems.size,
+                            ).uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = tokens.inkFaint,
+                        )
                     }
-                    val alpha by animateFloatAsState(
-                        targetValue = if (isVisible) 1f else 0f,
-                        label = "titleAlpha",
-                    )
-                    Text(
-                        text = BuildConfig.APP_DISPLAY_NAME,
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Serif,
-                        ),
-                        modifier = Modifier
-                            .alpha(alpha)
-                            .padding(start = 72.dp),
-                    )
-                },
-
-                actions = {
+                    val (statusIcon, statusColor) = when (monitoringStatus) {
+                        MonitoringStatus.STOPPED -> Icons.Default.PlayArrow to tokens.danger
+                        MonitoringStatus.ACTIVE -> Icons.Default.Pause to tokens.success
+                        MonitoringStatus.MISSING_PERMISSIONS -> Icons.Default.Pause to tokens.warning
+                    }
                     IconButton(onClick = {
                         when (monitoringStatus) {
                             MonitoringStatus.STOPPED -> actualViewModel.startMonitoring()
@@ -474,45 +488,61 @@ fun MainScreen(
                             MonitoringStatus.MISSING_PERMISSIONS -> actualViewModel.startMonitoring() // Will check permissions and start or show dialog
                         }
                     }) {
-                        val (icon, color) = when (monitoringStatus) {
-                            MonitoringStatus.STOPPED -> Icons.Default.PlayArrow to ErrorRed
-                            MonitoringStatus.ACTIVE -> Icons.Default.Pause to SuccessGreen
-                            MonitoringStatus.MISSING_PERMISSIONS -> Icons.Default.Pause to WarningOrange
-                        }
                         Icon(
-                            imageVector = icon,
+                            imageVector = statusIcon,
                             contentDescription = when (monitoringStatus) {
                                 MonitoringStatus.STOPPED -> stringResource(R.string.start_service)
                                 MonitoringStatus.ACTIVE -> stringResource(R.string.stop_service)
                                 MonitoringStatus.MISSING_PERMISSIONS -> stringResource(R.string.grant_permissions)
                             },
-                            tint = color,
+                            tint = statusColor,
                         )
                     }
-                    IconButton(
-                        onClick = { actualViewModel.refreshMediaItems() },
-                        enabled = true,
-                    ) {
+                    IconButton(onClick = { actualViewModel.refreshMediaItems() }) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = stringResource(R.string.refresh),
+                            tint = tokens.inkSoft,
                         )
                     }
-
                     if (!allPermissionsGranted) {
                         IconButton(onClick = { actualViewModel.showPermissionsDialog() }) {
                             Icon(
                                 imageVector = Icons.Default.Lock,
                                 contentDescription = stringResource(R.string.permissions),
+                                tint = tokens.warning,
                             )
                         }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-            )
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 72.dp, end = spacing.lg, bottom = spacing.sm),
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(spacing.lg),
+                ) {
+                    Text(
+                        text = filteredItemCount.toString(),
+                        style = MaterialTheme.typography.displayMedium,
+                        color = tokens.accent,
+                    )
+                    Text(
+                        text = stringResource(R.string.hero_visible_label).uppercase(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = tokens.inkSoft,
+                        modifier = Modifier.padding(bottom = spacing.sm),
+                    )
+                    Text(
+                        text = "${mediaFolderUris.size} " +
+                                stringResource(R.string.hero_folders_label).uppercase(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = tokens.inkFaint,
+                        modifier = Modifier.padding(bottom = spacing.sm),
+                    )
+                }
+                HorizontalDivider(color = tokens.hairline, thickness = 1.dp)
+            }
         },
 
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -556,8 +586,9 @@ fun MainScreen(
                             // Reset scroll tracking when user uses the button
                             userHasScrolled = false
                         },
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        shape = SnapifyTheme.shapes.buttonShape,
+                        containerColor = SnapifyTheme.colors.accent,
+                        contentColor = SnapifyTheme.colors.onAccent,
                     ) {
                         Icon(
                             Icons.Filled.KeyboardArrowUp,
@@ -577,8 +608,9 @@ fun MainScreen(
                             )
                         },
                         text = { Text(stringResource(R.string.settings_button)) },
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        shape = SnapifyTheme.shapes.buttonShape,
+                        containerColor = SnapifyTheme.colors.accent,
+                        contentColor = SnapifyTheme.colors.onAccent,
                     )
                 }
             }
@@ -774,6 +806,7 @@ fun updatePermissionStatuses(
             } else {
                 true // Assume granted for older versions
             }
+
             "manage" -> {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     Environment.isExternalStorageManager()
@@ -1174,14 +1207,19 @@ fun MenuContent(
                             // Bounce to left (0)
                             animatable.animateTo(
                                 targetValue = 0f,
-                                animationSpec = tween(durationMillis = (baseDuration * 0.8.pow(i)).toLong().coerceAtLeast(150L).toInt()),
+                                animationSpec = tween(
+                                    durationMillis = (baseDuration * 0.8.pow(i)).toLong().coerceAtLeast(150L).toInt()
+                                ),
                             )
                             if (i < numBounces - 1) {
                                 // Bounce back to right with decreasing amplitude
                                 val nextDist = startDistance * 0.6.pow(i + 1).toFloat()
                                 animatable.animateTo(
                                     targetValue = nextDist,
-                                    animationSpec = tween(durationMillis = (baseDuration * 0.85.pow(i)).toLong().coerceAtLeast(150L).toInt()),
+                                    animationSpec = tween(
+                                        durationMillis = (baseDuration * 0.85.pow(i)).toLong().coerceAtLeast(150L)
+                                            .toInt()
+                                    ),
                                 )
                             }
                         }

@@ -1,4 +1,4 @@
-<!-- res/drawable/ic_screenshot_generator_background.xml -->
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
@@ -6,33 +6,32 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Smooth squircle background with vibrant gradient -->
-    <path android:fillType="nonZero"
-        android:pathData="M20,8 h68 a12,12 0 0 1 12,12 v68 a12,12 0 0 1 -12,12 h-68 a12,12 0 0 1 -12,-12 v-68 a12,12 0 0 1 12,-12 z">
+    <!-- Warm noir base -->
+    <path android:pathData="M0,0H108V108H0Z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:type="linear"
-                android:startX="8" android:startY="8"
-                android:endX="100" android:endY="100">
-                <item android:offset="0.0" android:color="#FF7C3AED"/>  <!-- violet -->
-                <item android:offset="0.45" android:color="#FF2563EB"/> <!-- blue -->
-                <item android:offset="1.0" android:color="#FF06B6D4"/>  <!-- cyan -->
+                android:startX="20"
+                android:startY="0"
+                android:endX="88"
+                android:endY="108">
+                <item android:offset="0.0" android:color="#FF211C15" />
+                <item android:offset="0.55" android:color="#FF17140F" />
+                <item android:offset="1.0" android:color="#FF0F0D0B" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- Soft inner glow -->
-    <path android:fillType="evenOdd"
-        android:pathData="M18,6 h72 a14,14 0 0 1 14,14 v72 a14,14 0 0 1 -14,14 h-72 a14,14 0 0 1 -14,-14 v-72 a14,14 0 0 1 14,-14 z
-                          M22,10 h64 a10,10 0 0 1 10,10 v64 a10,10 0 0 1 -10,10 h-64 a10,10 0 0 1 -10,-10 v-64 a10,10 0 0 1 10,-10 z">
+    <!-- Soft accent bloom, bottom right -->
+    <path android:pathData="M0,0H108V108H0Z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:type="radial"
-                android:centerX="54"
-                android:centerY="54"
+                android:centerX="86"
+                android:centerY="90"
                 android:gradientRadius="52">
-                <item android:offset="0.0" android:color="#2AFFFFFF"/>
-                <item android:offset="1.0" android:color="#00FFFFFF"/>
+                <item android:offset="0.0" android:color="#2EE8B54A" />
+                <item android:offset="1.0" android:color="#00E8B54A" />
             </gradient>
         </aapt:attr>
     </path>

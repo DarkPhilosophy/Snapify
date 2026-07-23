@@ -11,17 +11,15 @@
         android:translateX="8.1"
         android:translateY="8.1">
 
-        <!-- Editorial serif S, drawn as a single flowing stroke -->
         <path
             android:pathData="M66,38 C62,31 50,29 45,36 C40,43 46,47 54,49 C64,51 70,56 67,64 C64,73 50,76 43,69"
-            android:strokeColor="#F3EDE0"
+            android:strokeColor="#FFFFFFFF"
             android:strokeWidth="6.5"
             android:strokeLineCap="round"
             android:strokeLineJoin="round" />
 
-        <!-- Accent dot -->
         <path
-            android:fillColor="#E8B54A"
+            android:fillColor="#FFFFFFFF"
             android:pathData="M70,74 m-4.5,0 a4.5,4.5 0 1,1 9,0 a4.5,4.5 0 1,1 -9,0" />
     </group>
 </vector>

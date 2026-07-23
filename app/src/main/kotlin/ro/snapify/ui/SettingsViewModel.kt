@@ -51,6 +51,8 @@ class SettingsViewModel @Inject constructor(
     val notificationsEnabled = preferences.notificationsEnabled
     val liveVideoPreviewEnabled = preferences.liveVideoPreviewEnabled
     val permanentSettingMenuEnabled = preferences.permanentSettingMenuEnabled
+    val themeAccent = preferences.themeAccent
+    val themeCornerScale = preferences.themeCornerScale
 
     fun setThemeMode(themeMode: ThemeMode) {
         viewModelScope.launch {
@@ -62,6 +64,18 @@ class SettingsViewModel @Inject constructor(
                 ThemeMode.OLED -> "oled"
             }
             preferences.setThemeMode(themeString)
+        }
+    }
+
+    fun setThemeAccent(argb: Long?) {
+        viewModelScope.launch {
+            preferences.setThemeAccent(argb)
+        }
+    }
+
+    fun setThemeCornerScale(scale: Float) {
+        viewModelScope.launch {
+            preferences.setThemeCornerScale(scale)
         }
     }
 
@@ -182,10 +196,10 @@ class SettingsViewModel @Inject constructor(
                 val itemsToDelete = allItems.filter { item ->
                     val normalizedItemPath = item.filePath.removeSuffix("/").lowercase()
                     normalizedItemPath.startsWith(normalizedFolderPath) &&
-                        (
-                            normalizedItemPath.length == normalizedFolderPath.length ||
-                                normalizedItemPath[normalizedFolderPath.length] == '/'
-                            )
+                            (
+                                    normalizedItemPath.length == normalizedFolderPath.length ||
+                                            normalizedItemPath[normalizedFolderPath.length] == '/'
+                                    )
                 }
                 itemsToDelete.forEach {
                     mediaRepository.deleteById(it.id)

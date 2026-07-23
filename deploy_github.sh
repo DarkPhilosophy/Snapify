@@ -40,9 +40,14 @@ echo "========================================"
 echo "🚀 Starting Deployment for $BRANCH"
 echo "========================================"
 
-# 2. Build Check
-echo "🛠️  Running Build..."
-./gradlew assembleDebug
+# 2. Build & Quality Check
+# Set JAVA_HOME to Android Studio's bundled JDK if not set
+if [ -z "$JAVA_HOME" ]; then
+    export JAVA_HOME="/home/alexa/.local/share/JetBrains/Toolbox/apps/android-studio/rjbr"
+fi
+
+echo "🛠️  Running QA (Detekt, Spotless) & Build..."
+./gradlew detekt spotlessCheck assembleDebug
 
 # 3. Deployment Logic
 if [ "$IS_FIRST_RELEASE" = true ]; then

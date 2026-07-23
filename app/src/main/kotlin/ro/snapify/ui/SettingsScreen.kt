@@ -49,6 +49,7 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
@@ -84,7 +85,13 @@ import kotlinx.coroutines.launch
 import ro.snapify.R
 import ro.snapify.ui.components.PermissionDialog
 import ro.snapify.ui.theme.AppTheme
+import ro.snapify.ui.theme.MAX_CORNER_SCALE
+import ro.snapify.ui.theme.MIN_CORNER_SCALE
+import ro.snapify.ui.theme.SnapifyAccentCatalog
+import ro.snapify.ui.theme.SnapifyTheme
 import ro.snapify.ui.theme.ThemeMode
+import ro.snapify.ui.theme.snapifyAccentFor
+import ro.snapify.ui.theme.snapifyShapes
 import ro.snapify.util.TimeUtils
 import ro.snapify.util.UriPathConverter
 
@@ -137,6 +144,8 @@ fun SettingsScreen(
         initialValue = false,
     )
     var showPermissionDialog by remember { mutableStateOf(false) }
+    val themeAccentArgb by viewModel.themeAccent.collectAsStateWithLifecycle(initialValue = null)
+    val themeCornerScale by viewModel.themeCornerScale.collectAsStateWithLifecycle(initialValue = 1f)
 
     val formattedFolderPaths = if (mediaFolderUris.isEmpty()) {
         listOf("Default (Pictures/Screenshots)")
@@ -190,6 +199,15 @@ fun SettingsScreen(
                         }
                     },
                     onThemeChange = onThemeChangeCallback,
+                )
+            }
+
+            item {
+                ThemeCustomizationControls(
+                    selectedAccentArgb = themeAccentArgb,
+                    cornerScale = themeCornerScale,
+                    onAccentSelected = { viewModel.setThemeAccent(it) },
+                    onCornerScaleChange = { viewModel.setThemeCornerScale(it) },
                 )
             }
 
@@ -376,6 +394,103 @@ fun SettingsScreen(
             },
             autoCloseWhenGranted = false,
         )
+    }
+}
+
+@Composable
+internal fun ThemeCustomizationControls(
+    selectedAccentArgb: Long?,
+    cornerScale: Float,
+    onAccentSelected: (Long?) -> Unit,
+    onCornerScaleChange: (Float) -> Unit,
+) {
+    val tokens = SnapifyTheme.colors
+    val shapes = SnapifyTheme.shapes
+    val spacing = SnapifyTheme.spacing
+    val selectedAccent = snapifyAccentFor(selectedAccentArgb)
+    var localCornerScale by remember(cornerScale) { mutableStateOf(cornerScale) }
+    val previewShapes = snapifyShapes(localCornerScale)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = shapes.cardShape,
+        colors = CardDefaults.cardColors(containerColor = tokens.surface),
+    ) {
+        Column(
+            modifier = Modifier.padding(spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(spacing.lg),
+        ) {
+            Text(
+                text = stringResource(R.string.accent_color_label).uppercase(),
+                style = MaterialTheme.typography.labelMedium,
+                color = tokens.inkFaint,
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(spacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SnapifyAccentCatalog.forEach { accent ->
+                    val isSelected = accent.key == selectedAccent.key
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(shapes.pillShape)
+                            .background(accent.accent)
+                            .border(
+                                width = if (isSelected) 3.dp else 1.dp,
+                                color = if (isSelected) tokens.ink else tokens.hairline,
+                                shape = shapes.pillShape,
+                            )
+                            .clickable { onAccentSelected(accent.accent.value.toLong()) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = accent.onAccent,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                    }
+                }
+            }
+            Text(
+                text = stringResource(R.string.roundness_label).uppercase(),
+                style = MaterialTheme.typography.labelMedium,
+                color = tokens.inkFaint,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(spacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(previewShapes.fieldShape)
+                        .background(tokens.accentSoft),
+                )
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(previewShapes.cardShape)
+                        .background(tokens.accentSoft),
+                )
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(previewShapes.pillShape)
+                        .background(tokens.accentSoft),
+                )
+            }
+            Slider(
+                value = localCornerScale,
+                onValueChange = { localCornerScale = it },
+                onValueChangeFinished = { onCornerScaleChange(localCornerScale) },
+                valueRange = MIN_CORNER_SCALE..MAX_CORNER_SCALE,
+            )
+        }
     }
 }
 
