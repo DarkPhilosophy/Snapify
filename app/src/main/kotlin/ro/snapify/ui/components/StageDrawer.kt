@@ -17,12 +17,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -233,23 +227,6 @@ fun StageDrawer(
             ) {
                 menuContent()
             }
-            // Accent glow along the panel's trailing edge, fading in with progress
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .fillMaxHeight()
-                    .width(2.dp)
-                    .graphicsLayer { alpha = state.progress.value.coerceIn(0f, 1f) }
-                    .background(
-                        androidx.compose.ui.graphics.Brush.verticalGradient(
-                            listOf(
-                                tokens.accent.copy(alpha = 0f),
-                                tokens.accent.copy(alpha = 0.7f),
-                                tokens.accent.copy(alpha = 0f),
-                            ),
-                        ),
-                    ),
-            )
         }
         // Traveling menu button: its own entity, NOT part of the panel. The
         // panel slides OVER its parked spot, so the button emerges from behind
@@ -276,21 +253,9 @@ fun StageDrawer(
             border = androidx.compose.foundation.BorderStroke(1.dp, tokens.accent),
             shadowElevation = 4.dp,
         ) {
-            val glowElevation by rememberInfiniteTransition(label = "menuButtonGlow").animateFloat(
-                initialValue = 14f,
-                targetValue = 26f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(1400, easing = FastOutSlowInEasing),
-                    repeatMode = RepeatMode.Reverse,
-                ),
-                label = "menuButtonGlowElevation",
-            )
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.glow(
-                    color = tokens.accent,
-                    elevation = glowElevation.dp,
-                ),
+                modifier = Modifier.glow(color = tokens.accent, elevation = 10.dp),
             ) {
                 Crossfade(targetState = state.isOpen, label = "menuButtonIcon") { open ->
                     if (open) {
