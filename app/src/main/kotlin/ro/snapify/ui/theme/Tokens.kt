@@ -40,6 +40,7 @@ data class SnapifyColors(
     val warning: Color,
     val danger: Color,
     val scrim: Color,
+    val onScrim: Color,
     val isDark: Boolean,
 )
 
@@ -133,6 +134,7 @@ private fun baseColors(dark: Boolean, oled: Boolean): SnapifyColors = if (dark) 
         warning = Color(0xFFE0B45C),
         danger = Color(0xFFE07A68),
         scrim = Color(0xFF000000),
+        onScrim = Color(0xFFF3EDE0),
         isDark = true,
     )
 } else {
@@ -152,6 +154,7 @@ private fun baseColors(dark: Boolean, oled: Boolean): SnapifyColors = if (dark) 
         warning = Color(0xFF9A6E14),
         danger = Color(0xFFB44436),
         scrim = Color(0xFF000000),
+        onScrim = Color(0xFFF3EDE0),
         isDark = false,
     )
 }

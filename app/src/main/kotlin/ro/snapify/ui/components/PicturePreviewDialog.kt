@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
@@ -37,7 +36,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -53,6 +51,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.exifinterface.media.ExifInterface
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import ro.snapify.ui.theme.SnapifyTheme
 import ro.snapify.data.entity.MediaItem
 import kotlin.math.max
 
@@ -277,7 +276,7 @@ fun PicturePreviewDialog(
                         alpha = dialogAlpha,
                     ),
                 colors = androidx.compose.material3.CardDefaults.cardColors(
-                    containerColor = Color.Black,
+                    containerColor = SnapifyTheme.colors.scrim,
                 ),
                 elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 8.dp),
             ) {
@@ -287,7 +286,7 @@ fun PicturePreviewDialog(
                         .border(
                             width = 2.dp,
                             color = MaterialTheme.colorScheme.outline,
-                            shape = RoundedCornerShape(8.dp),
+                            shape = SnapifyTheme.shapes.thumbnailShape,
                         ),
                 ) {
                     AsyncImage(

@@ -41,11 +41,11 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
@@ -323,7 +323,7 @@ fun SettingsScreen(
             }
 
             // item {
-            //     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+            //     SettingsCard(modifier = Modifier.fillMaxWidth()) {
             //         ListItem(
             //             headlineContent = { Text("Restart Tutorial") },
             //             supportingContent = {
@@ -350,7 +350,7 @@ fun SettingsScreen(
                 }
 
                 item {
-                    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                    SettingsCard(modifier = Modifier.fillMaxWidth()) {
                         ListItem(
                             headlineContent = { Text("Turn off developer mode") },
                             supportingContent = {
@@ -496,6 +496,22 @@ internal fun ThemeCustomizationControls(
 
 @Composable
 internal fun SettingsSectionHeader(title: String) {
+    Column(modifier = Modifier.padding(top = 12.dp, bottom = 2.dp)) {
+        Text(
+            text = title.uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            color = SnapifyTheme.colors.inkFaint,
+        )
+        HorizontalDivider(
+            color = SnapifyTheme.colors.hairline,
+            thickness = 1.dp,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+    }
+}
+
+@Composable
+private fun SettingsSectionHeaderLegacy(title: String) {
     Text(
         text = title,
         style = MaterialTheme.typography.titleMedium,
@@ -514,7 +530,7 @@ internal fun ThemeSelector(
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
-    OutlinedCard(
+    SettingsCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = { showDialog = true },
     ) {
@@ -538,20 +554,11 @@ internal fun ThemeSelector(
     }
 
     if (showDialog) {
-        val isOLED = MaterialTheme.colorScheme.surface == Color.Black
         AlertDialog(
             onDismissRequest = { showDialog = false },
             title = { Text(stringResource(R.string.choose_theme)) },
             containerColor = MaterialTheme.colorScheme.surface,
-            modifier = if (isOLED) {
-                Modifier.border(
-                    1.dp,
-                    Color.White,
-                    RoundedCornerShape(28.dp),
-                )
-            } else {
-                Modifier
-            },
+            shape = SnapifyTheme.shapes.dialogShape,
             text = {
                 MaterialTheme(colorScheme = MaterialTheme.colorScheme) {
                     Column {
@@ -699,7 +706,7 @@ internal fun LanguageSelector(
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
-    OutlinedCard(
+    SettingsCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = { showDialog = true },
     ) {
@@ -721,20 +728,11 @@ internal fun LanguageSelector(
     }
 
     if (showDialog) {
-        val isOLED = MaterialTheme.colorScheme.surface == Color.Black
         AlertDialog(
             onDismissRequest = { showDialog = false },
             title = { Text(stringResource(R.string.choose_language)) },
             containerColor = MaterialTheme.colorScheme.surface,
-            modifier = if (isOLED) {
-                Modifier.border(
-                    1.dp,
-                    Color.White,
-                    RoundedCornerShape(28.dp),
-                )
-            } else {
-                Modifier
-            },
+            shape = SnapifyTheme.shapes.dialogShape,
             text = {
                 MaterialTheme(colorScheme = MaterialTheme.colorScheme) {
                     Column {
@@ -808,7 +806,7 @@ internal fun ModeSelector(
     currentTime: Long,
     onTimeSelected: (Long) -> Unit,
 ) {
-    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+    SettingsCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = stringResource(R.string.operation_mode),
@@ -889,7 +887,7 @@ private fun DeletionTimeSelector(
         }
     }
 
-    OutlinedCard(
+    SettingsCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = { showDialog = true },
     ) {
@@ -905,20 +903,11 @@ private fun DeletionTimeSelector(
     }
 
     if (showDialog) {
-        val isOLED = MaterialTheme.colorScheme.surface == Color.Black
         AlertDialog(
             onDismissRequest = { showDialog = false },
             title = { Text(stringResource(R.string.choose_deletion_time_title)) },
             containerColor = MaterialTheme.colorScheme.surface,
-            modifier = if (isOLED) {
-                Modifier.border(
-                    1.dp,
-                    Color.White,
-                    RoundedCornerShape(28.dp),
-                )
-            } else {
-                Modifier
-            },
+            shape = SnapifyTheme.shapes.dialogShape,
             text = {
                 MaterialTheme(colorScheme = MaterialTheme.colorScheme) {
                     Column(modifier = Modifier.fillMaxWidth()) {
@@ -1084,7 +1073,7 @@ private fun ScreenshotFolderSelector(
     currentPath: String,
     onSelectFolder: () -> Unit,
 ) {
-    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+    SettingsCard(modifier = Modifier.fillMaxWidth()) {
         ListItem(
             headlineContent = { Text(stringResource(R.string.screenshot_folder)) },
             supportingContent = {
@@ -1123,7 +1112,7 @@ internal fun AutoCleanupToggle(
     enabled: Boolean,
     onToggle: (Boolean) -> Unit,
 ) {
-    OutlinedCard(
+    SettingsCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         ListItem(
@@ -1182,7 +1171,7 @@ internal fun NotificationToggle(
         }
     }
 
-    OutlinedCard(
+    SettingsCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
@@ -1200,13 +1189,11 @@ internal fun NotificationToggle(
                     }
                 }
             },
-        colors = CardDefaults.outlinedCardColors(
-            containerColor = when {
-                hasNotificationPermission -> MaterialTheme.colorScheme.surface
-                permanentlyDenied -> Color(0xFF9C27B0) // Purple for permanently denied
-                else -> Color(0xFFFF9800) // Orange for not granted
-            },
-        ),
+        containerColor = when {
+            hasNotificationPermission -> SnapifyTheme.colors.surface
+            permanentlyDenied -> SnapifyTheme.colors.danger
+            else -> SnapifyTheme.colors.warning
+        },
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             ListItem(
@@ -1272,6 +1259,34 @@ internal fun NotificationToggle(
     }
 }
 
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsCard(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    containerColor: Color? = null,
+    content: @Composable () -> Unit,
+) {
+    val colors = CardDefaults.cardColors(
+        containerColor = containerColor ?: SnapifyTheme.colors.surface,
+    )
+    if (onClick != null) {
+        Card(
+            onClick = onClick,
+            modifier = modifier,
+            shape = SnapifyTheme.shapes.cardShape,
+            colors = colors,
+        ) { content() }
+    } else {
+        Card(
+            modifier = modifier,
+            shape = SnapifyTheme.shapes.cardShape,
+            colors = colors,
+        ) { content() }
+    }
+}
+
 @Preview(showBackground = true, device = Devices.PIXEL_4, name = "Auto Cleanup Toggle")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1313,7 +1328,7 @@ fun NotificationToggleDeniedPreview() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun LiveVideoPreviewToggle(enabled: Boolean, onToggle: (Boolean) -> Unit) {
-    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+    SettingsCard(modifier = Modifier.fillMaxWidth()) {
         ListItem(
             headlineContent = { Text("Live Video Preview") },
             supportingContent = {
@@ -1336,7 +1351,7 @@ internal fun LiveVideoPreviewToggle(enabled: Boolean, onToggle: (Boolean) -> Uni
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun CrashTestButton() {
-    OutlinedCard(
+    SettingsCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = {
             throw RuntimeException("Test Crash") // Force a crash for Crashlytics testing
@@ -1367,7 +1382,7 @@ internal fun CrashTestButton() {
 internal fun ConsoleButton(
     onNavigateToConsole: () -> Unit,
 ) {
-    OutlinedCard(
+    SettingsCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = onNavigateToConsole,
     ) {
@@ -1395,14 +1410,14 @@ internal fun VersionInfo(
     val scope = rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
 
-    OutlinedCard(
+    SettingsCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = {
             if (isDeveloperMode) {
                 scope.launch {
                     snackbarHostState.showSnackbar("Developer mode is already active")
                 }
-                return@OutlinedCard
+                return@SettingsCard
             }
             resetJob?.cancel()
             tapCount++
@@ -1460,7 +1475,7 @@ fun SettingsScreenPreview() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun PermanentSettingMenuToggle(enabled: Boolean, onToggle: (Boolean) -> Unit) {
-    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+    SettingsCard(modifier = Modifier.fillMaxWidth()) {
         ListItem(
             headlineContent = { Text("Permanent Setting Menu") },
             supportingContent = {
@@ -1530,7 +1545,7 @@ fun DeletionTimeSelectorPreview() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun PermissionsSection(onOpenPermissions: () -> Unit) {
-    OutlinedCard(
+    SettingsCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onOpenPermissions),

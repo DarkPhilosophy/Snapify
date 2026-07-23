@@ -13,21 +13,16 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.os.PowerManager
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateTo
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -36,18 +31,12 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.automirrored.filled.Shortcut
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Folder
@@ -60,12 +49,10 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
@@ -76,7 +63,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
@@ -93,13 +79,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -114,7 +96,6 @@ import androidx.media3.common.util.UnstableApi
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import my.nanihadesuka.compose.LazyColumnScrollbar
@@ -123,7 +104,7 @@ import ro.snapify.R
 import ro.snapify.data.entity.MediaItem
 import ro.snapify.data.model.FilterState
 import ro.snapify.data.model.ScreenshotTab
-import ro.snapify.ui.components.DuoDrawer
+import ro.snapify.ui.destinations.SettingsScreenDestination
 import ro.snapify.ui.components.EmptyStateScreen
 import ro.snapify.ui.components.FolderFilterBar
 import ro.snapify.ui.components.LoadingBar
@@ -139,7 +120,6 @@ import ro.snapify.ui.components.VideoPreviewDialog
 import ro.snapify.ui.components.rememberVideoLifecycleManager
 import ro.snapify.ui.theme.AppTheme
 import ro.snapify.ui.theme.SnapifyTheme
-import ro.snapify.ui.theme.ThemeMode
 import ro.snapify.util.DebugLogger
 import ro.snapify.util.UriPathConverter
 import kotlin.math.pow
@@ -190,9 +170,7 @@ suspend fun animateTypewriter(
 @Composable
 fun MainScreen(
     viewModel: MainViewModel? = null,
-    onOpenDrawer: () -> Unit = {},
     preferences: ro.snapify.data.preferences.AppPreferences? = null,
-    isDrawerOpen: Boolean = false,
     navigator: DestinationsNavigator? = null,
 ) {
     DebugLogger.info("MainScreen", "RECOMPOSING")
@@ -258,6 +236,19 @@ fun MainScreen(
     )
     val deletingIds by actualViewModel.deletingIds.collectAsStateWithLifecycle(initialValue = emptySet())
 
+    val settingsViewModel: SettingsViewModel = hiltViewModel()
+    var showFolderDialog by remember { mutableStateOf(false) }
+    val folderPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree(),
+    ) { uri ->
+        uri?.let {
+            context.contentResolver.takePersistableUriPermission(
+                it,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+            )
+            scope.launch { settingsViewModel.addMediaFolder(it.toString()) }
+        }
+    }
     // Dialog states
     var showInfoDialog by remember { mutableStateOf(false) }
     var selectedMediaItem by remember { mutableStateOf<MediaItem?>(null) }
@@ -282,9 +273,6 @@ fun MainScreen(
             }
         }
     }
-    val permanentSettingMenuEnabled by preferences?.permanentSettingMenuEnabled?.collectAsState(
-        initial = false,
-    ) ?: remember { mutableStateOf(false) }
 
     // Calculate filtered item count for UI logic
     val filteredItemCount by remember(mediaItems.size, currentFilterState, mediaFolderUris) {
@@ -514,6 +502,13 @@ fun MainScreen(
                             )
                         }
                     }
+                    IconButton(onClick = { navigator?.navigate(SettingsScreenDestination) }) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = stringResource(R.string.settings_button),
+                            tint = tokens.inkSoft,
+                        )
+                    }
                 }
                 Row(
                     modifier = Modifier
@@ -564,11 +559,11 @@ fun MainScreen(
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier
                             .background(
-                                MaterialTheme.colorScheme.primaryContainer,
-                                RoundedCornerShape(16.dp),
+                                SnapifyTheme.colors.accentSoft,
+                                SnapifyTheme.shapes.pillShape,
                             )
                             .padding(horizontal = 12.dp, vertical = 6.dp),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        color = SnapifyTheme.colors.accent,
                     )
                 }
 
@@ -598,21 +593,6 @@ fun MainScreen(
                 }
 
                 // Settings FAB (only visible when permanent setting menu is enabled)
-                if (permanentSettingMenuEnabled) {
-                    ExtendedFloatingActionButton(
-                        onClick = { onOpenDrawer() },
-                        icon = {
-                            Icon(
-                                Icons.Default.Settings,
-                                stringResource(R.string.settings_button),
-                            )
-                        },
-                        text = { Text(stringResource(R.string.settings_button)) },
-                        shape = SnapifyTheme.shapes.buttonShape,
-                        containerColor = SnapifyTheme.colors.accent,
-                        contentColor = SnapifyTheme.colors.onAccent,
-                    )
-                }
             }
         },
     ) { paddingValues ->
@@ -652,12 +632,22 @@ fun MainScreen(
                 },
             )
 
-            FolderFilterBar(
-                availableUris = availableUris,
-                availablePaths = availablePaths,
-                selectedPaths = currentFilterState.selectedFolders,
-                onFolderSelectionChanged = { actualViewModel.updateFolderSelection(it) },
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                FolderFilterBar(
+                    modifier = Modifier.weight(1f),
+                    availableUris = availableUris,
+                    availablePaths = availablePaths,
+                    selectedPaths = currentFilterState.selectedFolders,
+                    onFolderSelectionChanged = { actualViewModel.updateFolderSelection(it) },
+                )
+                IconButton(onClick = { showFolderDialog = true }) {
+                    Icon(
+                        imageVector = Icons.Default.Folder,
+                        contentDescription = stringResource(R.string.manage_folders),
+                        tint = SnapifyTheme.colors.inkSoft,
+                    )
+                }
+            }
 
             // Content
             when {
@@ -777,6 +767,16 @@ fun MainScreen(
             mediaItem = mediaItem,
             position = uiState.imagePreviewPosition,
             onDismiss = { actualViewModel.closeImagePreview() },
+        )
+    }
+
+    if (showFolderDialog) {
+        FolderManagementDialog(
+            mediaFolderUris = mediaFolderUris,
+            onAddFolder = { folderPicker.launch(null) },
+            onAddUri = { scope.launch { settingsViewModel.addMediaFolder(it) } },
+            onRemoveFolder = { scope.launch { settingsViewModel.removeMediaFolder(it) } },
+            onDismiss = { showFolderDialog = false },
         )
     }
 }
@@ -899,456 +899,6 @@ fun ScreenshotCardPreview() {
     }
 }
 
-internal fun LazyListScope.SettingsContent(
-    settingsViewModel: SettingsViewModel,
-    scope: CoroutineScope,
-    snackbarHostState: SnackbarHostState,
-    folderPicker: ManagedActivityResultLauncher<Uri?, Uri?>,
-    permissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
-    developerUnlocked: Boolean,
-    navigator: DestinationsNavigator? = null,
-    onDeveloperUnlocked: () -> Unit,
-    onDeveloperLocked: () -> Unit,
-    onOpenPermissions: () -> Unit = {},
-    onShowFolderDialog: () -> Unit = {},
-    onNavigateToConsole: () -> Unit = {},
-    onThemeChangeCallback: (String) -> Unit = {},
-) {
-    // Interface & Appearance
-    item {
-        SettingsSectionHeader("Interface & Appearance")
-    }
-
-    item {
-        ThemeSelector(
-            currentTheme = settingsViewModel.currentTheme.collectAsState(initial = ThemeMode.SYSTEM).value,
-            onThemeSelected = { theme ->
-                scope.launch {
-                    settingsViewModel.setThemeMode(theme)
-                }
-            },
-            onThemeChange = { /* callback if needed */ },
-        )
-    }
-
-    item {
-        LanguageSelector(
-            currentLanguage = settingsViewModel.language.collectAsState(initial = "en").value,
-            onLanguageSelected = { lang ->
-                scope.launch {
-                    settingsViewModel.setLanguage(lang)
-                }
-            },
-        )
-    }
-
-    // Permissions
-    item {
-        SettingsSectionHeader("Permissions")
-    }
-
-    item {
-        PermissionsSection(onOpenPermissions = onOpenPermissions)
-    }
-
-    // Screenshot Management
-    item {
-        SettingsSectionHeader("Screenshot Management")
-    }
-
-    item {
-        ModeSelector(
-            isManualMode = settingsViewModel.isManualMode.collectAsState(initial = false).value,
-            onModeChanged = { manual ->
-                scope.launch {
-                    settingsViewModel.setManualMode(manual)
-                }
-            },
-            currentTime = settingsViewModel.deletionTime.collectAsState(initial = 15 * 60 * 1000L).value,
-            onTimeSelected = { time ->
-                scope.launch {
-                    settingsViewModel.setDeletionTime(time)
-                }
-            },
-        )
-    }
-
-    item {
-        NotificationToggle(
-            enabled = settingsViewModel.notificationsEnabled.collectAsState(initial = true).value,
-            onToggle = { enabled ->
-                scope.launch {
-                    settingsViewModel.setNotificationsEnabled(enabled)
-                }
-            },
-            onRequestPermission = { permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
-        )
-    }
-
-    // Storage
-    item {
-        SettingsSectionHeader("Storage")
-    }
-
-    item {
-        val folderUris =
-            settingsViewModel.mediaFolderUris.collectAsState(initial = emptySet()).value
-        val folderCount = folderUris.size
-        val context = androidx.compose.ui.platform.LocalContext.current
-        val summaryText = when {
-            folderCount == 0 -> "No folders configured"
-            folderCount == 1 -> {
-                val uri = folderUris.first()
-                UriPathConverter.uriToDisplayName(uri, context)
-            }
-
-            else -> "$folderCount folders selected"
-        }
-
-        OutlinedCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onShowFolderDialog),
-        ) {
-            ListItem(
-                headlineContent = { Text("Media Folders") },
-                supportingContent = { Text(summaryText) },
-                trailingContent = {
-                    Icon(Icons.Default.Folder, contentDescription = "Manage folders")
-                },
-            )
-        }
-    }
-
-    // Experimental Features
-    item {
-        SettingsSectionHeader("Experimental Features")
-    }
-
-    item {
-        AutoCleanupToggle(
-            enabled = settingsViewModel.autoCleanupEnabled.collectAsState(initial = false).value,
-            onToggle = { enabled ->
-                scope.launch {
-                    settingsViewModel.setAutoCleanupEnabled(enabled)
-                }
-            },
-        )
-    }
-
-    item {
-        LiveVideoPreviewToggle(
-            enabled = settingsViewModel.liveVideoPreviewEnabled.collectAsState(initial = false).value,
-            onToggle = { enabled ->
-                scope.launch {
-                    settingsViewModel.setLiveVideoPreviewEnabled(enabled)
-                }
-            },
-        )
-    }
-
-    item {
-        PermanentSettingMenuToggle(
-            enabled = settingsViewModel.permanentSettingMenuEnabled.collectAsState(initial = false).value,
-            onToggle = { enabled ->
-                scope.launch {
-                    settingsViewModel.setPermanentSettingMenuEnabled(enabled)
-                }
-            },
-        )
-    }
-
-    // Developer options
-    if (developerUnlocked) {
-        item {
-            CrashTestButton()
-        }
-
-        item {
-            ConsoleButton(onNavigateToConsole = onNavigateToConsole)
-        }
-
-        item {
-            OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-                ListItem(
-                    headlineContent = { Text("Turn off developer mode") },
-                    supportingContent = {
-                        Text(
-                            "Disable developer options and features.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    },
-                    trailingContent = {
-                        OutlinedButton(onClick = onDeveloperLocked) {
-                            Text("Turn Off")
-                        }
-                    },
-                )
-            }
-        }
-    }
-
-    item {
-        var recomposeTrigger by remember { mutableStateOf(0) }
-        OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-            ListItem(
-                headlineContent = { Text("Recompose Layout") },
-                supportingContent = {
-                    Text(
-                        "Force a layout recomposition for testing purposes. Triggered: $recomposeTrigger",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                trailingContent = {
-                    OutlinedButton(onClick = {
-                        recomposeTrigger++
-                        scope.launch {
-                            snackbarHostState.showSnackbar("Layout recomposition triggered: $recomposeTrigger")
-                        }
-                    }) {
-                        Text("Recompose")
-                    }
-                },
-            )
-        }
-    }
-
-    // Information Section
-    item {
-        SettingsSectionHeader(stringResource(R.string.information_section))
-    }
-
-    item {
-        VersionInfo(
-            isDeveloperMode = developerUnlocked,
-            snackbarHostState = snackbarHostState,
-            onActivateDeveloperMode = onDeveloperUnlocked,
-        )
-    }
-
-    item {
-        Spacer(modifier = Modifier.height(32.dp))
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun MenuContent(
-    isOpen: Boolean,
-    onHomeClick: () -> Unit = {},
-    onCloseDrawer: () -> Unit = {},
-    isDrawerOpen: Boolean = false,
-    preferences: ro.snapify.data.preferences.AppPreferences? = null,
-    mainViewModel: MainViewModel? = null,
-    settingsViewModel: SettingsViewModel? = null,
-    navigator: DestinationsNavigator? = null,
-    dialogContent: @Composable () -> Unit = {},
-) {
-    val actualMainViewModel = mainViewModel ?: hiltViewModel()
-    val actualSettingsViewModel = settingsViewModel ?: hiltViewModel()
-    var showPermissionDialog by remember { mutableStateOf(false) }
-    var showFolderDialog by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val context = LocalContext.current
-    val developerUnlocked by actualSettingsViewModel.developerModeEnabled.collectAsState(initial = false)
-
-    // Handle back button to close drawer
-    BackHandler {
-        onCloseDrawer()
-    }
-
-    // Folder picker launcher
-    val folderPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocumentTree(),
-    ) { uri ->
-        uri?.let {
-            val contentResolver = context.contentResolver
-            // Take persistable permission
-            contentResolver.takePersistableUriPermission(
-                it,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-            )
-            // Save the URI
-            scope.launch {
-                actualSettingsViewModel.addMediaFolder(it.toString())
-            }
-        }
-    }
-
-    // Permission launcher for notifications
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-    ) { _ ->
-        // Update permission status for UI
-        // The NotificationToggle will check the actual permission
-    }
-
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
-        topBar = {
-            TopAppBar(
-                title = {
-                    // Add padding to avoid FAB overlap when drawer closed
-                    val titlePadding = if (isOpen) 0.dp else 80.dp
-
-                    // Reusable bounce animation function
-                    suspend fun animatedBounce(
-                        animatable: Animatable<Float, AnimationVector1D>,
-                        startDistance: Float,
-                        numBounces: Int,
-                        baseDuration: Long,
-                    ) {
-                        animatable.snapTo(startDistance)
-                        for (i in 0 until numBounces) {
-                            // Bounce to left (0)
-                            animatable.animateTo(
-                                targetValue = 0f,
-                                animationSpec = tween(
-                                    durationMillis = (baseDuration * 0.8.pow(i)).toLong().coerceAtLeast(150L).toInt()
-                                ),
-                            )
-                            if (i < numBounces - 1) {
-                                // Bounce back to right with decreasing amplitude
-                                val nextDist = startDistance * 0.6.pow(i + 1).toFloat()
-                                animatable.animateTo(
-                                    targetValue = nextDist,
-                                    animationSpec = tween(
-                                        durationMillis = (baseDuration * 0.85.pow(i)).toLong().coerceAtLeast(150L)
-                                            .toInt()
-                                    ),
-                                )
-                            }
-                        }
-                    }
-
-                    // Reusable typewriter animation function
-                    suspend fun animateTypewriter(
-                        alphas: List<Animatable<Float, AnimationVector1D>>,
-                        delays: List<Long>,
-                    ) {
-                        alphas.forEach { it.snapTo(0f) }
-                        alphas.forEachIndexed { index, animatable ->
-                            kotlinx.coroutines.delay(delays.getOrElse(index) { 0L })
-                            animatable.animateTo(
-                                targetValue = 1f,
-                                animationSpec = tween(durationMillis = 100),
-                            )
-                        }
-                    }
-
-                    val textXAnimatable = remember { Animatable(0f) }
-                    // Animated Settings title
-                    LaunchedEffect(isOpen) {
-                        if (isOpen) {
-                            animatedBounce(textXAnimatable, 150.dp.value, 4, 500L)
-                        }
-                    }
-
-                    val text = "Settings"
-                    val letterAlphas = remember { List(text.length) { Animatable(0f) } }
-                    val typewriterDelays = text.indices.map { 200 - it * 20L }
-                    LaunchedEffect(isOpen) {
-                        if (isOpen) {
-                            animateTypewriter(letterAlphas, typewriterDelays)
-                        }
-                    }
-                    Box(modifier = Modifier.padding(start = titlePadding)) {
-                        Row(
-                            modifier = Modifier.offset(x = textXAnimatable.value.dp),
-                        ) {
-                            text.forEachIndexed { index, char ->
-                                Text(
-                                    text = char.toString(),
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.alpha(letterAlphas[index].value),
-                                    maxLines = 1,
-                                )
-                            }
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-            )
-        },
-    ) { padding ->
-        val listState = rememberLazyListState()
-        LazyColumnScrollbar(
-            state = listState,
-            settings = my.nanihadesuka.compose.ScrollbarSettings(alwaysShowScrollbar = true),
-        ) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(horizontal = 16.dp, vertical = 16.dp)
-                    .padding(padding),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                // Settings Content
-                SettingsContent(
-                    settingsViewModel = actualSettingsViewModel,
-                    scope = scope,
-                    snackbarHostState = snackbarHostState,
-                    folderPicker = folderPicker,
-                    permissionLauncher = permissionLauncher,
-                    developerUnlocked = developerUnlocked,
-                    navigator = navigator,
-                    onDeveloperUnlocked = { actualSettingsViewModel.setDeveloperModeEnabled(true) },
-                    onDeveloperLocked = { actualSettingsViewModel.setDeveloperModeEnabled(false) },
-                    onOpenPermissions = { showPermissionDialog = true },
-                    onShowFolderDialog = { showFolderDialog = true },
-                    onNavigateToConsole = {
-                        context.startActivity(Intent(context, DebugConsoleActivity::class.java))
-                    },
-                )
-
-                item {
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-            }
-        }
-    }
-
-    if (showFolderDialog) {
-        FolderManagementDialog(
-            mediaFolderUris = actualSettingsViewModel.mediaFolderUris.collectAsState(initial = emptySet()).value,
-            onAddFolder = { folderPicker.launch(null) },
-            onAddUri = { uri -> actualSettingsViewModel.addMediaFolder(uri) },
-            onRemoveFolder = { actualSettingsViewModel.removeMediaFolder(it) },
-            onDismiss = { showFolderDialog = false },
-        )
-    }
-
-    if (showPermissionDialog) {
-        PermissionDialog(
-            onDismiss = { showPermissionDialog = false },
-            onPermissionsUpdated = {
-                // Start the service when permissions are granted
-                val intent = android.content.Intent(
-                    context,
-                    ro.snapify.service.ScreenshotMonitorService::class.java,
-                )
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                    context.startForegroundService(intent)
-                } else {
-                    context.startService(intent)
-                }
-            },
-            autoCloseWhenGranted = false,
-        )
-    }
-
-    dialogContent()
-}
 
 @Composable
 private fun FolderManagementDialog(
@@ -1383,19 +933,10 @@ private fun FolderManagementDialog(
         deduplicated.sortedBy { it }
     }
 
-    val isOLED = MaterialTheme.colorScheme.surface == Color.Black
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
-        modifier = if (isOLED) {
-            Modifier.border(
-                1.dp,
-                Color.White,
-                RoundedCornerShape(28.dp),
-            )
-        } else {
-            Modifier
-        },
+        containerColor = SnapifyTheme.colors.surface,
+        shape = SnapifyTheme.shapes.dialogShape,
         title = {
             Text(
                 "Manage Media Folders",
@@ -1498,7 +1039,10 @@ private fun MediaFolderItem(
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(4.dp))
+                            .background(
+                                SnapifyTheme.colors.surfaceRaised,
+                                shape = SnapifyTheme.shapes.fieldShape,
+                            )
                             .padding(8.dp),
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
@@ -1530,7 +1074,10 @@ private fun MediaFolderItem(
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(4.dp))
+                            .background(
+                                SnapifyTheme.colors.surfaceRaised,
+                                shape = SnapifyTheme.shapes.fieldShape,
+                            )
                             .padding(8.dp),
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
@@ -1832,70 +1379,21 @@ fun MainScreenDestination(
     val localContext = LocalContext.current
     val preferences = ro.snapify.data.preferences.AppPreferences(localContext)
 
-    var isDrawerOpen by remember { mutableStateOf(false) }
+    Box(modifier = Modifier.fillMaxSize()) {
+        MainScreen(
+            viewModel = viewModel,
+            preferences = preferences,
+            navigator = navigator,
+        )
 
-    val fabX by animateDpAsState(
-        targetValue = if (isDrawerOpen) (LocalConfiguration.current.screenWidthDp.dp - 72.dp) else 16.dp,
-        animationSpec = tween(durationMillis = 600),
-    )
-
-    BackHandler(enabled = isDrawerOpen) {
-        isDrawerOpen = false
-    }
-
-    DuoDrawer(
-        isOpen = isDrawerOpen,
-        onOpenDrawer = { isDrawerOpen = true },
-        onCloseDrawer = { isDrawerOpen = false },
-        showDialog = uiState.showPermissionDialog,
-        menuContent = { drawerOpen ->
-            MenuContent(
-                isOpen = drawerOpen,
-                onHomeClick = { isDrawerOpen = false },
-                onCloseDrawer = { isDrawerOpen = false },
-                isDrawerOpen = isDrawerOpen,
-                preferences = preferences,
-                mainViewModel = viewModel,
-                navigator = navigator,
-                dialogContent = {},
-            )
-        },
-        content = {
-            MainScreen(
-                viewModel = viewModel,
-                onOpenDrawer = { isDrawerOpen = true },
-                preferences = preferences,
-                isDrawerOpen = isDrawerOpen,
-            )
-        },
-        dialogContent = {
-            if (uiState.showPermissionDialog) {
-                PermissionDialog(
-                    onDismiss = { viewModel.hidePermissionsDialog() },
-                    onPermissionsUpdated = {
-                        // Permissions were just granted, start the service
-                        viewModel.startMonitoring()
-                    },
-                    autoCloseWhenGranted = true,
-                )
-            }
-        },
-    )
-
-    // FAB for drawer toggle
-    FloatingActionButton(
-        onClick = { isDrawerOpen = !isDrawerOpen },
-        modifier = Modifier.offset(
-            x = fabX,
-            y = 40.dp,
-        ),
-        containerColor = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-    ) {
-        Crossfade(targetState = isDrawerOpen) { open ->
-            Icon(
-                imageVector = if (open) Icons.AutoMirrored.Filled.Shortcut else Icons.AutoMirrored.Filled.List,
-                contentDescription = if (open) "Close drawer" else "Open drawer",
+        if (uiState.showPermissionDialog) {
+            PermissionDialog(
+                onDismiss = { viewModel.hidePermissionsDialog() },
+                onPermissionsUpdated = {
+                    // Permissions were just granted, start the service
+                    viewModel.startMonitoring()
+                },
+                autoCloseWhenGranted = true,
             )
         }
     }

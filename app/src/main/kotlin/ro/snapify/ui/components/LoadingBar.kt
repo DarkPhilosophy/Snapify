@@ -15,13 +15,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import ro.snapify.ui.theme.SnapifyTheme
 
 @Composable
 fun LoadingBar(modifier: Modifier = Modifier) {
@@ -41,8 +40,8 @@ fun LoadingBar(modifier: Modifier = Modifier) {
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
-            .height(12.dp)
-            .padding(horizontal = 16.dp),
+            .height(6.dp)
+            .padding(horizontal = SnapifyTheme.spacing.lg),
     ) {
         val barWidth = 60.dp
 
@@ -53,13 +52,18 @@ fun LoadingBar(modifier: Modifier = Modifier) {
 
         Box(
             modifier = Modifier
-                .fillMaxHeight()
-                .width(barWidth)
-                .offset(x = maxOffset * position) // Use the offset modifier here!
-                .clip(RoundedCornerShape(6.dp))
-                .background(
-                    if (position > 0.5f) Color.Red else Color.Blue,
-                ),
-        )
+                .fillMaxWidth()
+                .height(2.dp)
+                .align(androidx.compose.ui.Alignment.CenterStart),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(barWidth)
+                    .offset(x = maxOffset * position) // Use the offset modifier here!
+                    .clip(SnapifyTheme.shapes.pillShape)
+                    .background(SnapifyTheme.colors.accent),
+            )
+        }
     }
 }

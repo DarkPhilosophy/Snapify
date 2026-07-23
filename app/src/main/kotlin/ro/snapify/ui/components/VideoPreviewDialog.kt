@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
@@ -37,7 +36,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
@@ -51,6 +49,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import ro.snapify.ui.theme.SnapifyTheme
 import ro.snapify.data.entity.MediaItem
 import ro.snapify.util.DebugLogger
 import kotlin.math.max
@@ -378,7 +377,7 @@ fun VideoPreviewDialog(
                     alpha = dialogAlpha,
                 ),
             colors = androidx.compose.material3.CardDefaults.cardColors(
-                containerColor = Color.Black,
+                containerColor = SnapifyTheme.colors.scrim,
             ),
             elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 8.dp),
         ) {
@@ -390,22 +389,22 @@ fun VideoPreviewDialog(
             Box(
                 modifier = displayModifier
                     .graphicsLayer(clip = false)
-                    .background(Color.Black)
+                    .background(SnapifyTheme.colors.scrim)
                     .border(
                         width = 2.dp,
                         color = MaterialTheme3.colorScheme.outline,
-                        shape = RoundedCornerShape(8.dp),
+                        shape = SnapifyTheme.shapes.thumbnailShape,
                     ),
             ) {
                 // Video player
                 Box(
                     modifier = displayModifier
                         .graphicsLayer(clip = false)
-                        .background(Color.Black)
+                        .background(SnapifyTheme.colors.scrim)
                         .border(
                             width = 2.dp,
                             color = MaterialTheme3.colorScheme.outline,
-                            shape = RoundedCornerShape(8.dp),
+                            shape = SnapifyTheme.shapes.thumbnailShape,
                         ),
                 ) {
                     val (state, videoSize) = videoPlayer(

@@ -10,7 +10,6 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,7 +22,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -45,13 +43,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.google.accompanist.permissions.*
 import ro.snapify.R
+import ro.snapify.ui.theme.SnapifyTheme
 import androidx.compose.material3.MaterialTheme as MaterialTheme3
 
 // Constants for dialog components
@@ -117,9 +115,9 @@ fun PermissionItem(
                         "✗"
                     },
                     color = when {
-                        isGranted -> Color.Green
-                        isOptional -> Color.Gray
-                        else -> Color.Red
+                        isGranted -> SnapifyTheme.colors.success
+                        isOptional -> SnapifyTheme.colors.inkFaint
+                        else -> SnapifyTheme.colors.danger
                     },
                 )
             }
@@ -128,7 +126,7 @@ fun PermissionItem(
             Text(
                 text = "Permission permanently denied. Please grant in app settings.",
                 style = MaterialTheme3.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.8f),
+                color = SnapifyTheme.colors.inkSoft,
                 modifier = Modifier.padding(
                     horizontal = PERMISSION_ITEM_PADDING_HORIZONTAL.dp,
                     vertical = PERMISSION_ITEM_PADDING_VERTICAL.dp,
@@ -190,11 +188,13 @@ fun PermissionDialog(
                     } else {
                         true
                     }
+
                     "overlay" -> android.provider.Settings.canDrawOverlays(context)
                     "battery" -> {
                         val powerManager = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
                         powerManager.isIgnoringBatteryOptimizations(context.packageName)
                     }
+
                     else -> false
                 }
             }
@@ -203,8 +203,11 @@ fun PermissionDialog(
     }
 
     // Permission statuses from Accompanist
-    val permissionStatuses = multiplePermissionsState.permissions.associate { it.permission to (it.status == PermissionStatus.Granted) }
-    val permanentlyDeniedPermissions = multiplePermissionsState.permissions.filter { it.status is PermissionStatus.Denied && !(it.status as PermissionStatus.Denied).shouldShowRationale }.map { it.permission }.toSet()
+    val permissionStatuses =
+        multiplePermissionsState.permissions.associate { it.permission to (it.status == PermissionStatus.Granted) }
+    val permanentlyDeniedPermissions =
+        multiplePermissionsState.permissions.filter { it.status is PermissionStatus.Denied && !(it.status as PermissionStatus.Denied).shouldShowRationale }
+            .map { it.permission }.toSet()
 
     // Combine standard and special permission statuses
     val allPermissionStatuses = permissionStatuses + specialPermissionStatuses.value
@@ -224,11 +227,13 @@ fun PermissionDialog(
                     } else {
                         true
                     }
+
                     "overlay" -> android.provider.Settings.canDrawOverlays(context)
                     "battery" -> {
                         val powerManager = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
                         powerManager.isIgnoringBatteryOptimizations(context.packageName)
                     }
+
                     else -> false
                 }
             }
@@ -257,18 +262,12 @@ fun PermissionDialog(
                 .padding(DIALOG_PADDING.dp),
             contentAlignment = Alignment.Center,
         ) {
-            val isOLED = MaterialTheme3.colorScheme.surface == Color.Black
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .wrapContentHeight()
-                    .border(
-                        width = if (isOLED) BORDER_WIDTH.dp else 0.dp,
-                        color = if (isOLED) Color.White else Color.Transparent,
-                        shape = RoundedCornerShape(CARD_CORNER_RADIUS.dp),
-                    ),
-                shape = RoundedCornerShape(CARD_CORNER_RADIUS.dp),
-                colors = CardDefaults.cardColors(containerColor = if (isOLED) Color.Black else MaterialTheme3.colorScheme.surface),
+                    .wrapContentHeight(),
+                shape = SnapifyTheme.shapes.dialogShape,
+                colors = CardDefaults.cardColors(containerColor = SnapifyTheme.colors.surface),
             ) {
                 androidx.compose.material3.MaterialTheme(colorScheme = MaterialTheme3.colorScheme) {
                     Column(
@@ -338,7 +337,7 @@ fun PermissionDialog(
                                             Manifest.permission.READ_MEDIA_IMAGES,
                                             Manifest.permission.WRITE_EXTERNAL_STORAGE,
                                             Manifest.permission.POST_NOTIFICATIONS,
-                                            -> {
+                                                -> {
                                                 multiplePermissionsState.launchMultiplePermissionRequest()
                                             }
 
@@ -407,20 +406,11 @@ fun DebugFilterDialog(
     onUseRegexChange: (Boolean) -> Unit,
 ) {
     if (showFilterDialog) {
-        val isOLED = MaterialTheme3.colorScheme.surface == Color.Black
         AlertDialog(
             onDismissRequest = onDismiss,
             title = { Text("Log Filters") },
-            containerColor = MaterialTheme3.colorScheme.surface,
-            modifier = if (isOLED) {
-                Modifier.border(
-                    BORDER_WIDTH.dp,
-                    Color.White,
-                    RoundedCornerShape(CARD_CORNER_RADIUS.dp),
-                )
-            } else {
-                Modifier
-            },
+            containerColor = SnapifyTheme.colors.surface,
+            shape = SnapifyTheme.shapes.dialogShape,
             text = {
                 androidx.compose.material3.MaterialTheme(colorScheme = MaterialTheme3.colorScheme) {
                     Column {

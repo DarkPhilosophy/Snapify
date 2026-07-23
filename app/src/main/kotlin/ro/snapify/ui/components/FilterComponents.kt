@@ -1,19 +1,21 @@
 package ro.snapify.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -21,11 +23,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ro.snapify.R
+import ro.snapify.ui.theme.SnapifyTheme
 import ro.snapify.data.model.ScreenshotTab
 import ro.snapify.util.UriPathConverter
 
@@ -38,34 +44,51 @@ fun TagFilterBar(
     onTagSelectionChanged: (Set<ScreenshotTab>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    val tokens = SnapifyTheme.colors
+    val spacing = SnapifyTheme.spacing
+
+    Surface(
         modifier = modifier
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(horizontal = spacing.lg, vertical = spacing.xs),
+        shape = SnapifyTheme.shapes.pillShape,
+        color = tokens.surfaceRaised,
+        border = BorderStroke(1.dp, tokens.hairline),
     ) {
-        listOf(
-            ScreenshotTab.MARKED to stringResource(R.string.tab_marked),
-            ScreenshotTab.KEPT to stringResource(R.string.kept),
-            ScreenshotTab.UNMARKED to stringResource(R.string.unmarked),
-        ).forEach { (tag, label) ->
-            FilterChip(
-                selected = tag in selectedTags,
-                onClick = {
-                    val newSelection = if (tag in selectedTags) {
-                        selectedTags - tag
-                    } else {
-                        selectedTags + tag
-                    }
-                    onTagSelectionChanged(newSelection)
-                },
-                label = { Text(label) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                ),
-            )
+        Row(
+            modifier = Modifier.padding(spacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            listOf(
+                ScreenshotTab.MARKED to stringResource(R.string.tab_marked),
+                ScreenshotTab.KEPT to stringResource(R.string.kept),
+                ScreenshotTab.UNMARKED to stringResource(R.string.unmarked),
+            ).forEach { (tag, label) ->
+                val isSelected = tag in selectedTags
+                Box(
+                    modifier = Modifier
+                        .clip(SnapifyTheme.shapes.pillShape)
+                        .background(
+                            if (isSelected) tokens.accentSoft else Color.Transparent,
+                        )
+                        .clickable {
+                            val newSelection = if (isSelected) {
+                                selectedTags - tag
+                            } else {
+                                selectedTags + tag
+                            }
+                            onTagSelectionChanged(newSelection)
+                        }
+                        .padding(horizontal = spacing.md, vertical = spacing.sm),
+                ) {
+                    Text(
+                        text = label.uppercase(),
+                        color = if (isSelected) tokens.accent else tokens.inkSoft,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    )
+                }
+            }
         }
     }
 }
@@ -91,6 +114,7 @@ fun FolderFilterBar(
 
         AlertDialog(
             onDismissRequest = { setSelectedUri(null) },
+            shape = SnapifyTheme.shapes.dialogShape,
             title = {
                 Text(
                     "Folder Information",
@@ -113,7 +137,10 @@ fun FolderFilterBar(
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(4.dp))
+                            .background(
+                                SnapifyTheme.colors.surfaceRaised,
+                                shape = SnapifyTheme.shapes.fieldShape,
+                            )
                             .padding(8.dp),
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
@@ -145,7 +172,10 @@ fun FolderFilterBar(
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(4.dp))
+                            .background(
+                                SnapifyTheme.colors.surfaceRaised,
+                                shape = SnapifyTheme.shapes.fieldShape,
+                            )
                             .padding(8.dp),
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
@@ -180,11 +210,17 @@ fun FolderFilterBar(
             val folderName = UriPathConverter.uriToDisplayName(uri, context)
             val isSelected = path in selectedPaths
 
+            val tokens = SnapifyTheme.colors
             Row(
                 modifier = Modifier
+                    .clip(SnapifyTheme.shapes.pillShape)
                     .background(
-                        color = if (isSelected) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(8.dp),
+                        color = if (isSelected) tokens.accentSoft else tokens.surfaceRaised,
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = if (isSelected) tokens.accent else tokens.hairline,
+                        shape = SnapifyTheme.shapes.pillShape,
                     )
                     .combinedClickable(
                         onClick = {
@@ -204,7 +240,7 @@ fun FolderFilterBar(
             ) {
                 Text(
                     text = folderName,
-                    color = if (isSelected) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isSelected) tokens.accent else tokens.inkSoft,
                     style = MaterialTheme.typography.labelSmall,
                 )
             }

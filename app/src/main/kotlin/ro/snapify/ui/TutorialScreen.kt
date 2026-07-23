@@ -24,12 +24,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import ro.snapify.ui.theme.AppTheme
+import ro.snapify.ui.theme.SnapifyTheme
 
 data class TutorialStep(
     val title: String,
@@ -68,7 +68,7 @@ fun TutorialScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.8f)),
+            .background(SnapifyTheme.colors.scrim.copy(alpha = 0.85f)),
     ) {
         Column(
             modifier = Modifier
@@ -137,7 +137,7 @@ private fun TutorialStepContent(step: TutorialStep) {
             text = step.title,
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
-            color = Color.White,
+            color = SnapifyTheme.colors.onScrim,
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -146,7 +146,7 @@ private fun TutorialStepContent(step: TutorialStep) {
             text = step.description,
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
-            color = Color.White,
+            color = SnapifyTheme.colors.onScrim,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
 
@@ -157,12 +157,12 @@ private fun TutorialStepContent(step: TutorialStep) {
                 modifier = Modifier
                     .width(200.dp)
                     .height(200.dp)
-                    .background(Color.Gray.copy(alpha = 0.5f)),
+                    .background(SnapifyTheme.colors.onScrim.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = step.imageDescription,
-                    color = Color.White,
+                    color = SnapifyTheme.colors.onScrim,
                     textAlign = TextAlign.Center,
                 )
             }

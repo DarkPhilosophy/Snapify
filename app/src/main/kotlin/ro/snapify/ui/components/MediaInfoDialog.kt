@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import ro.snapify.ui.theme.SnapifyTheme
 import ro.snapify.data.entity.MediaItem
 import java.io.File
 import java.text.SimpleDateFormat
@@ -78,8 +79,8 @@ fun MediaInfoDialog(
     Dialog(onDismissRequest = onDismiss) {
         androidx.compose.material3.Surface(
             modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.surface,
-            shape = MaterialTheme.shapes.medium,
+            color = SnapifyTheme.colors.surface,
+            shape = SnapifyTheme.shapes.dialogShape,
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Title

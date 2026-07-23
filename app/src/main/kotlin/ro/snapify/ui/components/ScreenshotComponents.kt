@@ -2,7 +2,6 @@ package ro.snapify.ui.components
 
 import android.graphics.Bitmap
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -24,7 +23,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.CheckCircle
@@ -37,9 +35,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -53,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -78,9 +77,7 @@ import ro.snapify.R
 import ro.snapify.data.entity.MediaItem
 import ro.snapify.data.model.ScreenshotTab
 import ro.snapify.ui.MonitoringStatus
-import ro.snapify.ui.theme.ErrorRed
-import ro.snapify.ui.theme.SuccessGreen
-import ro.snapify.ui.theme.WarningOrange
+import ro.snapify.ui.theme.SnapifyTheme
 import ro.snapify.util.DebugLogger
 import ro.snapify.util.TimeUtils
 import java.io.File
@@ -227,12 +224,12 @@ private var updateJob: kotlinx.coroutines.Job? = null
 // Helper functions for video and file utilities
 private fun isVideoFile(filePath: String): Boolean = filePath.lowercase().let {
     it.endsWith(".mp4") ||
-        it.endsWith(".avi") ||
-        it.endsWith(".mov") ||
-        it.endsWith(".mkv") ||
-        it.endsWith(
-            ".webm",
-        )
+            it.endsWith(".avi") ||
+            it.endsWith(".mov") ||
+            it.endsWith(".mkv") ||
+            it.endsWith(
+                ".webm",
+            )
 }
 
 private fun getFileSizeText(filePath: String): String {
@@ -508,17 +505,21 @@ fun ServiceStatusIndicator(
         exit = fadeOut() + slideOutVertically(),
         modifier = modifier.zIndex(1f),
     ) {
-        val (backgroundColor, statusText) = when (monitoringStatus) {
-            MonitoringStatus.STOPPED -> ErrorRed to stringResource(R.string.monitoring_stopped)
-            MonitoringStatus.ACTIVE -> SuccessGreen to stringResource(R.string.monitoring_active)
-            MonitoringStatus.MISSING_PERMISSIONS -> WarningOrange to stringResource(R.string.missing_permissions)
+        val tokens = SnapifyTheme.colors
+        val spacing = SnapifyTheme.spacing
+        val (statusColor, statusText) = when (monitoringStatus) {
+            MonitoringStatus.STOPPED -> tokens.danger to stringResource(R.string.monitoring_stopped)
+            MonitoringStatus.ACTIVE -> tokens.success to stringResource(R.string.monitoring_active)
+            MonitoringStatus.MISSING_PERMISSIONS -> tokens.warning to stringResource(R.string.missing_permissions)
         }
         Surface(
-            color = backgroundColor,
-            shape = RoundedCornerShape(16.dp),
+            color = tokens.surface,
+            shape = SnapifyTheme.shapes.pillShape,
+            border = BorderStroke(1.dp, tokens.hairline),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = spacing.lg, vertical = spacing.xs)
+                .clip(SnapifyTheme.shapes.pillShape)
                 .clickable {
                     if (!allPermissionsGranted) {
                         onPermissionsClick()
@@ -527,13 +528,23 @@ fun ServiceStatusIndicator(
                     }
                 },
         ) {
-            Text(
-                text = statusText,
-                color = Color.White,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(8.dp),
-                style = MaterialTheme.typography.bodyMedium,
-            )
+            Row(
+                modifier = Modifier.padding(horizontal = spacing.lg, vertical = spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(spacing.sm),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(SnapifyTheme.shapes.pillShape)
+                        .background(statusColor),
+                )
+                Text(
+                    text = statusText.uppercase(),
+                    color = tokens.inkSoft,
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
         }
     }
 }
@@ -582,19 +593,20 @@ fun EmptyStateScreen(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(72.dp),
-                tint = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.size(64.dp),
+                tint = SnapifyTheme.colors.inkFaint,
             )
             Text(
                 text = title,
                 style = MaterialTheme.typography.headlineSmall,
+                color = SnapifyTheme.colors.ink,
                 textAlign = TextAlign.Center,
             )
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = SnapifyTheme.colors.inkSoft,
             )
 
             // Show filter information when applicable
@@ -608,7 +620,10 @@ fun EmptyStateScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(4.dp))
+                        .background(
+                            SnapifyTheme.colors.surfaceRaised,
+                            shape = SnapifyTheme.shapes.fieldShape,
+                        )
                         .padding(8.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
@@ -639,7 +654,10 @@ fun EmptyStateScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(4.dp))
+                        .background(
+                            SnapifyTheme.colors.surfaceRaised,
+                            shape = SnapifyTheme.shapes.fieldShape,
+                        )
                         .padding(8.dp),
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
@@ -664,10 +682,11 @@ fun LoadingScreen(modifier: Modifier = Modifier) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            CircularProgressIndicator()
+            CircularProgressIndicator(color = SnapifyTheme.colors.accent)
             Text(
-                text = stringResource(R.string.loading_screenshots),
-                style = MaterialTheme.typography.bodyLarge,
+                text = stringResource(R.string.loading_screenshots).uppercase(),
+                style = MaterialTheme.typography.labelMedium,
+                color = SnapifyTheme.colors.inkFaint,
             )
         }
     }
@@ -683,14 +702,14 @@ fun StatusChip(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        color = color.copy(alpha = 0.1f),
-        shape = RoundedCornerShape(12.dp),
-        modifier = modifier.padding(top = 4.dp),
+        color = color.copy(alpha = 0.12f),
+        shape = SnapifyTheme.shapes.pillShape,
+        modifier = modifier.padding(top = 2.dp),
     ) {
         Text(
             text = text,
             color = color,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.labelSmall,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
         )
     }
@@ -705,14 +724,14 @@ private fun StatusSection(screenshot: MediaItem, currentTime: Long) {
         screenshot.id == -1L -> {
             StatusChip(
                 text = stringResource(R.string.deleting),
-                color = ErrorRed,
+                color = SnapifyTheme.colors.danger,
             )
         }
 
         screenshot.isKept -> {
             StatusChip(
                 text = stringResource(R.string.kept),
-                color = SuccessGreen,
+                color = SnapifyTheme.colors.success,
             )
         }
 
@@ -724,12 +743,12 @@ private fun StatusSection(screenshot: MediaItem, currentTime: Long) {
                         R.string.deletes_in_template,
                         TimeUtils.formatTimeRemaining(remaining),
                     ),
-                    color = WarningOrange,
+                    color = SnapifyTheme.colors.warning,
                 )
             } else {
                 StatusChip(
                     text = stringResource(R.string.deleting),
-                    color = ErrorRed,
+                    color = SnapifyTheme.colors.danger,
                 )
             }
         }
@@ -738,7 +757,7 @@ private fun StatusSection(screenshot: MediaItem, currentTime: Long) {
             val statusText = stringResource(R.string.unmarked)
             StatusChip(
                 text = statusText,
-                color = MaterialTheme.colorScheme.outline,
+                color = SnapifyTheme.colors.inkFaint,
             )
         }
     }
@@ -754,34 +773,38 @@ private fun ActionButtons(
     onUnkeepClick: () -> Unit,
     onDeleteClick: () -> Unit,
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.padding(end = 8.dp),
+    val tokens = SnapifyTheme.colors
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(SnapifyTheme.spacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(end = SnapifyTheme.spacing.sm),
     ) {
         if (screenshot.isKept) {
-            OutlinedIconButton(
+            FilledIconButton(
                 onClick = onUnkeepClick,
                 modifier = Modifier.size(40.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = stringResource(R.string.unkeep_screenshot),
-                    tint = MaterialTheme.colorScheme.outline,
-                )
-            }
-        } else {
-            FilledIconButton(
-                onClick = onKeepClick,
-                modifier = Modifier.size(40.dp),
+                shape = SnapifyTheme.shapes.pillShape,
                 colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = SuccessGreen,
+                    containerColor = tokens.accent,
+                    contentColor = tokens.onAccent,
                 ),
             ) {
                 Icon(
                     imageVector = Icons.Default.Star,
+                    contentDescription = stringResource(R.string.unkeep_screenshot),
+                )
+            }
+        } else {
+            OutlinedIconButton(
+                onClick = onKeepClick,
+                modifier = Modifier.size(40.dp),
+                shape = SnapifyTheme.shapes.pillShape,
+                border = BorderStroke(1.dp, tokens.hairline),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Star,
                     contentDescription = stringResource(R.string.keep_screenshot),
-                    tint = Color.White,
+                    tint = tokens.inkFaint,
                 )
             }
         }
@@ -789,12 +812,13 @@ private fun ActionButtons(
         OutlinedIconButton(
             onClick = onDeleteClick,
             modifier = Modifier.size(40.dp),
-            border = BorderStroke(1.dp, ErrorRed),
+            shape = SnapifyTheme.shapes.pillShape,
+            border = BorderStroke(1.dp, tokens.danger.copy(alpha = 0.5f)),
         ) {
             Icon(
                 imageVector = Icons.Default.Delete,
                 contentDescription = stringResource(R.string.delete_screenshot),
-                tint = ErrorRed,
+                tint = tokens.danger,
             )
         }
     }
@@ -818,8 +842,9 @@ private fun ThumbnailSection(
 
     Box(
         modifier = Modifier
-            .padding(start = 8.dp)
-            .size(100.dp)
+            .padding(start = SnapifyTheme.spacing.lg)
+            .size(56.dp)
+            .clip(SnapifyTheme.shapes.thumbnailShape)
             .onGloballyPositioned { coordinates ->
                 globalPosition = coordinates.boundsInWindow().topLeft
             }
@@ -931,7 +956,7 @@ private fun ThumbnailSection(
                     contentDescription = "Video",
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .size(48.dp),
+                        .size(24.dp),
                     tint = Color.White,
                 )
             }
@@ -949,23 +974,22 @@ private fun ContentSection(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier.padding(vertical = 8.dp),
+        modifier = modifier.padding(vertical = SnapifyTheme.spacing.xs),
     ) {
         Text(
             text = screenshot.fileName,
             style = MaterialTheme.typography.titleMedium,
+            color = SnapifyTheme.colors.ink,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
-
         val sizeText = getFileSizeText(screenshot.filePath)
 
         Text(
-            text = sizeText,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            text = sizeText.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            color = SnapifyTheme.colors.inkFaint,
         )
 
         StatusSection(screenshot, currentTime)
@@ -1001,30 +1025,34 @@ fun ScreenshotCard(
         }
     }
 
-    OutlinedCard(
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .height(120.dp)
             .alpha(alpha)
-            .animateContentSize() // Add smooth animation for content changes
             .pointerInput(Unit) {
                 detectTapGestures(
                     onLongPress = { onLongPress() },
                 )
             },
-        shape = RoundedCornerShape(16.dp),
     ) {
         Row(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = SnapifyTheme.spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             ThumbnailSection(screenshot, liveVideoPreviewEnabled, isVideo, videoThumbnail, onClick)
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(SnapifyTheme.spacing.md))
 
             ContentSection(screenshot, currentTime, modifier = Modifier.weight(1f))
 
             ActionButtons(screenshot, onKeepClick, onUnkeepClick, onDeleteClick)
         }
+        HorizontalDivider(
+            color = SnapifyTheme.colors.hairline,
+            thickness = 1.dp,
+            modifier = Modifier.padding(start = 88.dp),
+        )
     }
 }

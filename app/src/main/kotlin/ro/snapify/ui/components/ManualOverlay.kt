@@ -1,9 +1,9 @@
 package ro.snapify.ui.components
 
+import ro.snapify.ui.theme.SnapifyTheme
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
@@ -39,7 +38,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -75,29 +73,17 @@ fun ScreenshotDetectionOverlay(
         translationYAnimatable.animateTo(0f, animationSpec = tween(300))
     }
 
-    val isOLED = MaterialTheme.colorScheme.surface == Color.Black
     Card(
         modifier = Modifier
             .fillMaxWidth(0.95f)
             .fillMaxHeight(0.7f)
             .padding(8.dp)
             .alpha(alphaAnimatable.value)
-            .graphicsLayer(translationY = translationYAnimatable.value)
-            .then(
-                if (isOLED) {
-                    Modifier.border(
-                        1.dp,
-                        Color.White,
-                        RoundedCornerShape(16.dp),
-                    )
-                } else {
-                    Modifier
-                },
-            ),
-        shape = RoundedCornerShape(16.dp),
+            .graphicsLayer(translationY = translationYAnimatable.value),
+        shape = SnapifyTheme.shapes.sheetShape,
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = SnapifyTheme.colors.surface,
         ),
     ) {
         Column(
@@ -327,10 +313,10 @@ private fun CustomTimePicker(
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+            containerColor = SnapifyTheme.colors.accentSoft,
+            contentColor = SnapifyTheme.colors.accent,
         ),
-        shape = RoundedCornerShape(8.dp),
+        shape = SnapifyTheme.shapes.fieldShape,
     ) {
         Box(
             modifier = Modifier
