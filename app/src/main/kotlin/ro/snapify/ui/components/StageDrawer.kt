@@ -17,6 +17,12 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -41,7 +47,7 @@ import ro.snapify.ui.theme.SnapifyTheme
 private const val PANEL_MAX_WIDTH_DP = 380
 private const val PANEL_WIDTH_FRACTION = 0.82f
 private const val CONTENT_PARALLAX = 1f
-private const val CONTENT_SCALE_DROP = 0.06f
+private const val CONTENT_SCALE_DROP = 0f
 private const val VELOCITY_THRESHOLD_PX = 700f
 
 /** Progress-driven state for [StageDrawer]: 0f = closed, 1f = open. */
@@ -92,7 +98,6 @@ fun StageDrawer(
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
     val tokens = SnapifyTheme.colors
-    val cardRadius = SnapifyTheme.shapes.card
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val panelWidthPx = with(density) {
@@ -156,17 +161,12 @@ fun StageDrawer(
                 .fillMaxSize()
                 .graphicsLayer {
                     // Spring overshoot can push progress slightly below 0 or above 1;
-                    // corner radii and alpha must stay within range.
+                    // alpha and elevation must stay within range. No scale-down and
+                    // no corner radius: a full-width page push leaves no black gaps.
                     val p = state.progress.value.coerceIn(0f, 1f)
                     translationX = panelWidthPx * p * CONTENT_PARALLAX
-                    val scale = 1f - CONTENT_SCALE_DROP * p
-                    scaleX = scale
-                    scaleY = scale
                     shadowElevation = if (p > 0.01f) 8.dp.toPx() * p else 0f
                     clip = p > 0.01f
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(
-                        cardRadius * p,
-                    )
                 },
         ) {
             content()
@@ -233,6 +233,23 @@ fun StageDrawer(
             ) {
                 menuContent()
             }
+            // Accent glow along the panel's trailing edge, fading in with progress
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .fillMaxHeight()
+                    .width(2.dp)
+                    .graphicsLayer { alpha = state.progress.value.coerceIn(0f, 1f) }
+                    .background(
+                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                            listOf(
+                                tokens.accent.copy(alpha = 0f),
+                                tokens.accent.copy(alpha = 0.7f),
+                                tokens.accent.copy(alpha = 0f),
+                            ),
+                        ),
+                    ),
+            )
         }
         // Traveling menu button: its own entity, NOT part of the panel. The
         // panel slides OVER its parked spot, so the button emerges from behind
@@ -259,7 +276,22 @@ fun StageDrawer(
             border = androidx.compose.foundation.BorderStroke(1.dp, tokens.accent),
             shadowElevation = 4.dp,
         ) {
-            Box(contentAlignment = Alignment.Center) {
+            val glowElevation by rememberInfiniteTransition(label = "menuButtonGlow").animateFloat(
+                initialValue = 14f,
+                targetValue = 26f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1400, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse,
+                ),
+                label = "menuButtonGlowElevation",
+            )
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.glow(
+                    color = tokens.accent,
+                    elevation = glowElevation.dp,
+                ),
+            ) {
                 Crossfade(targetState = state.isOpen, label = "menuButtonIcon") { open ->
                     if (open) {
                         Icon(

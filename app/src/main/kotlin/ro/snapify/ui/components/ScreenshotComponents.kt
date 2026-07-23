@@ -1042,6 +1042,7 @@ fun GridScreenshotCard(
     }
     val tokens = SnapifyTheme.colors
     val spacing = SnapifyTheme.spacing
+    val cardShape = SnapifyTheme.shapes.cardShape
     var globalPosition by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -1057,6 +1058,10 @@ fun GridScreenshotCard(
             .graphicsLayer {
                 scaleX = pressScale
                 scaleY = pressScale
+                shadowElevation = ((1f - pressScale) * 400f)
+                shape = cardShape
+                ambientShadowColor = tokens.accent
+                spotShadowColor = tokens.accent
             }
             .clip(SnapifyTheme.shapes.cardShape)
             .background(tokens.surfaceRaised)

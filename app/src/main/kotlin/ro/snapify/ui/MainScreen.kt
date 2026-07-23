@@ -125,6 +125,7 @@ import ro.snapify.ui.destinations.SettingsScreenDestination
 import ro.snapify.ui.components.EmptyStateScreen
 import ro.snapify.ui.components.FolderFilterBar
 import ro.snapify.ui.components.GridScreenshotCard
+import ro.snapify.ui.components.glow
 import ro.snapify.ui.components.LoadingBar
 import ro.snapify.ui.components.LoadingScreen
 import ro.snapify.ui.components.MediaInfoDialog
@@ -587,6 +588,7 @@ fun MainScreen(
                             shape = SnapifyTheme.shapes.buttonShape,
                             containerColor = SnapifyTheme.colors.accent,
                             contentColor = SnapifyTheme.colors.onAccent,
+                            modifier = Modifier.glow(color = SnapifyTheme.colors.accent, elevation = 16.dp),
                         ) {
                             Icon(
                                 Icons.Default.Menu,
@@ -972,6 +974,7 @@ private fun MainMasthead(
                 modifier = Modifier
                     .padding(bottom = spacing.md)
                     .size(10.dp)
+                    .glow(color = statusDotColor, elevation = 12.dp)
                     .clip(SnapifyTheme.shapes.pillShape)
                     .background(statusDotColor.copy(alpha = statusDotAlpha)),
             )
