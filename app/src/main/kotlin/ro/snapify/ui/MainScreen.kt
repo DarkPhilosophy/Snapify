@@ -34,7 +34,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -45,7 +44,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Apps
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -62,8 +60,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
@@ -90,7 +86,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -108,7 +104,6 @@ import androidx.media3.common.util.UnstableApi
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import my.nanihadesuka.compose.LazyColumnScrollbar
@@ -128,6 +123,8 @@ import ro.snapify.ui.components.NewScreenshotDetector
 import ro.snapify.ui.components.PermissionDialog
 import ro.snapify.ui.components.PicturePreviewDialog
 import ro.snapify.ui.components.ScreenshotCard
+import ro.snapify.ui.components.StageDrawer
+import ro.snapify.ui.components.rememberStageDrawerState
 import ro.snapify.ui.components.ServiceStatusIndicator
 import ro.snapify.ui.components.TagFilterBar
 import ro.snapify.ui.components.VideoPreviewDialog
@@ -252,7 +249,6 @@ fun MainScreen(
 
     val settingsViewModel: SettingsViewModel = hiltViewModel()
     var showFolderDialog by remember { mutableStateOf(false) }
-    var showQuickSettings by remember { mutableStateOf(false) }
     val viewMode by preferences?.viewMode?.collectAsState(initial = "grid")
         ?: remember { mutableStateOf("grid") }
     val folderPicker = rememberLauncherForActivityResult(
@@ -446,365 +442,376 @@ fun MainScreen(
         }
     }
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
-        topBar = {
-            val tokens = SnapifyTheme.colors
-            val spacing = SnapifyTheme.spacing
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(tokens.surface),
-            ) {
-                Row(
+    val drawerState = rememberStageDrawerState()
+    BackHandler(enabled = drawerState.isOpen) {
+        drawerState.close()
+    }
+
+    StageDrawer(
+        state = drawerState,
+        menuContent = {
+            DrawerMenuPanel(
+                settingsViewModel = settingsViewModel,
+                scope = scope,
+                onOpenSettings = {
+                    drawerState.close()
+                    navigator?.navigate(SettingsScreenDestination)
+                },
+                onManageFolders = {
+                    drawerState.close()
+                    showFolderDialog = true
+                },
+            )
+        },
+    ) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
+            topBar = {
+                val tokens = SnapifyTheme.colors
+                val spacing = SnapifyTheme.spacing
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 72.dp, end = spacing.sm, top = spacing.sm),
-                    verticalAlignment = Alignment.CenterVertically,
+                        .background(tokens.surface),
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 72.dp, end = spacing.sm, top = spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = BuildConfig.APP_DISPLAY_NAME,
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = tokens.ink,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = stringResource(
+                                    R.string.top_bar_counter,
+                                    filteredItemCount,
+                                    mediaItems.size,
+                                ).uppercase(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = tokens.inkFaint,
+                            )
+                        }
+                        val (statusIcon, statusColor) = when (monitoringStatus) {
+                            MonitoringStatus.STOPPED -> Icons.Default.PlayArrow to tokens.danger
+                            MonitoringStatus.ACTIVE -> Icons.Default.Pause to tokens.success
+                            MonitoringStatus.MISSING_PERMISSIONS -> Icons.Default.Pause to tokens.warning
+                        }
+                        IconButton(onClick = {
+                            when (monitoringStatus) {
+                                MonitoringStatus.STOPPED -> actualViewModel.startMonitoring()
+                                MonitoringStatus.ACTIVE -> actualViewModel.stopMonitoring()
+                                MonitoringStatus.MISSING_PERMISSIONS -> actualViewModel.startMonitoring() // Will check permissions and start or show dialog
+                            }
+                        }) {
+                            Icon(
+                                imageVector = statusIcon,
+                                contentDescription = when (monitoringStatus) {
+                                    MonitoringStatus.STOPPED -> stringResource(R.string.start_service)
+                                    MonitoringStatus.ACTIVE -> stringResource(R.string.stop_service)
+                                    MonitoringStatus.MISSING_PERMISSIONS -> stringResource(R.string.grant_permissions)
+                                },
+                                tint = statusColor,
+                            )
+                        }
+                        IconButton(onClick = { actualViewModel.refreshMediaItems() }) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = stringResource(R.string.refresh),
+                                tint = tokens.inkSoft,
+                            )
+                        }
+                        if (!allPermissionsGranted) {
+                            IconButton(onClick = { actualViewModel.showPermissionsDialog() }) {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = stringResource(R.string.permissions),
+                                    tint = tokens.warning,
+                                )
+                            }
+                        }
+                        IconButton(onClick = {
+                            val nextMode = if (viewMode == "grid") "list" else "grid"
+                            scope.launch { preferences?.setViewMode(nextMode) }
+                        }) {
+                            Icon(
+                                imageVector = if (viewMode == "grid") {
+                                    Icons.AutoMirrored.Filled.List
+                                } else {
+                                    Icons.Default.Apps
+                                },
+                                contentDescription = "Toggle grid or list",
+                                tint = tokens.inkSoft,
+                            )
+                        }
+                        IconButton(onClick = { navigator?.navigate(SettingsScreenDestination) }) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = stringResource(R.string.settings_button),
+                                tint = tokens.inkSoft,
+                            )
+                        }
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 72.dp, end = spacing.lg, bottom = spacing.sm),
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.spacedBy(spacing.lg),
+                    ) {
                         Text(
-                            text = BuildConfig.APP_DISPLAY_NAME,
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = tokens.ink,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
+                            text = filteredItemCount.toString(),
+                            style = MaterialTheme.typography.displayMedium,
+                            color = tokens.accent,
                         )
                         Text(
-                            text = stringResource(
-                                R.string.top_bar_counter,
-                                filteredItemCount,
-                                mediaItems.size,
-                            ).uppercase(),
-                            style = MaterialTheme.typography.labelSmall,
+                            text = stringResource(R.string.hero_visible_label).uppercase(),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = tokens.inkSoft,
+                            modifier = Modifier.padding(bottom = spacing.sm),
+                        )
+                        Text(
+                            text = "${mediaFolderUris.size} " +
+                                    stringResource(R.string.hero_folders_label).uppercase(),
+                            style = MaterialTheme.typography.labelMedium,
                             color = tokens.inkFaint,
+                            modifier = Modifier.padding(bottom = spacing.sm),
                         )
                     }
-                    val (statusIcon, statusColor) = when (monitoringStatus) {
-                        MonitoringStatus.STOPPED -> Icons.Default.PlayArrow to tokens.danger
-                        MonitoringStatus.ACTIVE -> Icons.Default.Pause to tokens.success
-                        MonitoringStatus.MISSING_PERMISSIONS -> Icons.Default.Pause to tokens.warning
+                    HorizontalDivider(color = tokens.hairline, thickness = 1.dp)
+                }
+            },
+
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            bottomBar = {
+                FilterBottomDock(
+                    selectedTags = currentFilterState.selectedTags,
+                    hasFolderFilter = currentFilterState.selectedFolders.isNotEmpty(),
+                    onTagSelectionChanged = { selected ->
+                        val effective = if (selected.isEmpty()) {
+                            setOf(
+                                ScreenshotTab.MARKED,
+                                ScreenshotTab.KEPT,
+                                ScreenshotTab.UNMARKED,
+                            )
+                        } else {
+                            selected
+                        }
+                        actualViewModel.updateTagSelection(effective)
+                    },
+                    onFoldersClick = { showFolderDialog = true },
+                )
+            },
+            floatingActionButton = {
+                // Right side: page indicator, back to top and settings
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                ) {
+                    // Page indicator (appears when scrolled)
+                    AnimatedVisibility(
+                        visible = isScrolled && visiblePageText.isNotEmpty(),
+                        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                        exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
+                    ) {
+                        Text(
+                            text = visiblePageText,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier
+                                .background(
+                                    SnapifyTheme.colors.accentSoft,
+                                    SnapifyTheme.shapes.pillShape,
+                                )
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                            color = SnapifyTheme.colors.accent,
+                        )
                     }
-                    IconButton(onClick = {
+
+                    // Back to top FAB (appears when scrolled)
+                    AnimatedVisibility(
+                        visible = isScrolled,
+                        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                        exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
+                    ) {
+                        FloatingActionButton(
+                            onClick = {
+                                scope.launch {
+                                    listState.animateScrollToItem(0)
+                                }
+                                // Reset scroll tracking when user uses the button
+                                userHasScrolled = false
+                            },
+                            shape = SnapifyTheme.shapes.buttonShape,
+                            containerColor = SnapifyTheme.colors.accent,
+                            contentColor = SnapifyTheme.colors.onAccent,
+                        ) {
+                            Icon(
+                                Icons.Filled.KeyboardArrowUp,
+                                contentDescription = "Back to top",
+                            )
+                        }
+                    }
+
+                    // Settings FAB (only visible when permanent setting menu is enabled)
+                }
+            },
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+            ) {
+                // Service status indicator
+                ServiceStatusIndicator(
+                    monitoringStatus = monitoringStatus,
+                    allPermissionsGranted = allPermissionsGranted,
+                    onStatusClick = {
                         when (monitoringStatus) {
                             MonitoringStatus.STOPPED -> actualViewModel.startMonitoring()
                             MonitoringStatus.ACTIVE -> actualViewModel.stopMonitoring()
-                            MonitoringStatus.MISSING_PERMISSIONS -> actualViewModel.startMonitoring() // Will check permissions and start or show dialog
+                            MonitoringStatus.MISSING_PERMISSIONS -> {} // Should not happen if permissions granted
                         }
-                    }) {
-                        Icon(
-                            imageVector = statusIcon,
-                            contentDescription = when (monitoringStatus) {
-                                MonitoringStatus.STOPPED -> stringResource(R.string.start_service)
-                                MonitoringStatus.ACTIVE -> stringResource(R.string.stop_service)
-                                MonitoringStatus.MISSING_PERMISSIONS -> stringResource(R.string.grant_permissions)
-                            },
-                            tint = statusColor,
+                    },
+                    onPermissionsClick = { actualViewModel.showPermissionsDialog() },
+                )
+
+                FolderFilterBar(
+                    availableUris = availableUris,
+                    availablePaths = availablePaths,
+                    selectedPaths = currentFilterState.selectedFolders,
+                    onFolderSelectionChanged = { actualViewModel.updateFolderSelection(it) },
+                )
+
+                // Content
+                when {
+                    uiState.isLoading && filteredItemCount == 0 -> {
+                        LoadingScreen()
+                    }
+
+                    filteredItemCount == 0 -> {
+                        // Selected folders are already file paths from the filter logic
+                        val selectedFolderDisplayPaths = remember(currentFilterState.selectedFolders) {
+                            currentFilterState.selectedFolders.toList()
+                        }
+                        EmptyStateScreen(
+                            tab = ScreenshotTab.ALL,
+                            filterState = currentFilterState,
+                            selectedFolderPaths = selectedFolderDisplayPaths,
                         )
                     }
-                    IconButton(onClick = { actualViewModel.refreshMediaItems() }) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = stringResource(R.string.refresh),
-                            tint = tokens.inkSoft,
-                        )
-                    }
-                    if (!allPermissionsGranted) {
-                        IconButton(onClick = { actualViewModel.showPermissionsDialog() }) {
-                            Icon(
-                                imageVector = Icons.Default.Lock,
-                                contentDescription = stringResource(R.string.permissions),
-                                tint = tokens.warning,
-                            )
-                        }
-                    }
-                    IconButton(onClick = {
-                        val nextMode = if (viewMode == "grid") "list" else "grid"
-                        scope.launch { preferences?.setViewMode(nextMode) }
-                    }) {
-                        Icon(
-                            imageVector = if (viewMode == "grid") {
-                                Icons.AutoMirrored.Filled.List
+
+                    else -> {
+                        var localLoading by remember { mutableStateOf(false) }
+                        LaunchedEffect(uiState.isLoading) {
+                            if (uiState.isLoading) {
+                                localLoading = true
                             } else {
-                                Icons.Default.Apps
-                            },
-                            contentDescription = "Toggle grid or list",
-                            tint = tokens.inkSoft,
-                        )
-                    }
-                    IconButton(onClick = { navigator?.navigate(SettingsScreenDestination) }) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = stringResource(R.string.settings_button),
-                            tint = tokens.inkSoft,
-                        )
-                    }
-                }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 72.dp, end = spacing.lg, bottom = spacing.sm),
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(spacing.lg),
-                ) {
-                    Text(
-                        text = filteredItemCount.toString(),
-                        style = MaterialTheme.typography.displayMedium,
-                        color = tokens.accent,
-                    )
-                    Text(
-                        text = stringResource(R.string.hero_visible_label).uppercase(),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = tokens.inkSoft,
-                        modifier = Modifier.padding(bottom = spacing.sm),
-                    )
-                    Text(
-                        text = "${mediaFolderUris.size} " +
-                                stringResource(R.string.hero_folders_label).uppercase(),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = tokens.inkFaint,
-                        modifier = Modifier.padding(bottom = spacing.sm),
-                    )
-                }
-                HorizontalDivider(color = tokens.hairline, thickness = 1.dp)
-            }
-        },
-
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        bottomBar = {
-            FilterBottomDock(
-                selectedTags = currentFilterState.selectedTags,
-                hasFolderFilter = currentFilterState.selectedFolders.isNotEmpty(),
-                onTagSelectionChanged = { selected ->
-                    val effective = if (selected.isEmpty()) {
-                        setOf(
-                            ScreenshotTab.MARKED,
-                            ScreenshotTab.KEPT,
-                            ScreenshotTab.UNMARKED,
-                        )
-                    } else {
-                        selected
-                    }
-                    actualViewModel.updateTagSelection(effective)
-                },
-                onFoldersClick = { showFolderDialog = true },
-            )
-        },
-        floatingActionButton = {
-            // Right side: page indicator, back to top and settings
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(20.dp),
-            ) {
-                // Page indicator (appears when scrolled)
-                AnimatedVisibility(
-                    visible = isScrolled && visiblePageText.isNotEmpty(),
-                    enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-                    exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
-                ) {
-                    Text(
-                        text = visiblePageText,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier
-                            .background(
-                                SnapifyTheme.colors.accentSoft,
-                                SnapifyTheme.shapes.pillShape,
-                            )
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                        color = SnapifyTheme.colors.accent,
-                    )
-                }
-
-                // Back to top FAB (appears when scrolled)
-                AnimatedVisibility(
-                    visible = isScrolled,
-                    enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-                    exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
-                ) {
-                    FloatingActionButton(
-                        onClick = {
-                            scope.launch {
-                                listState.animateScrollToItem(0)
+                                delay(
+                                    (200..1200).random().toLong(),
+                                ) // Show for 1.5 seconds after loading stops
+                                localLoading = false
                             }
-                            // Reset scroll tracking when user uses the button
-                            userHasScrolled = false
-                        },
-                        shape = SnapifyTheme.shapes.buttonShape,
-                        containerColor = SnapifyTheme.colors.accent,
-                        contentColor = SnapifyTheme.colors.onAccent,
-                    ) {
-                        Icon(
-                            Icons.Filled.KeyboardArrowUp,
-                            contentDescription = "Back to top",
-                        )
-                    }
-                }
-
-                // Quick settings FAB
-                FloatingActionButton(
-                    onClick = { showQuickSettings = true },
-                    shape = SnapifyTheme.shapes.buttonShape,
-                    containerColor = SnapifyTheme.colors.accent,
-                    contentColor = SnapifyTheme.colors.onAccent,
-                ) {
-                    Icon(
-                        Icons.Default.Tune,
-                        contentDescription = stringResource(R.string.quick_settings),
-                    )
-                }
-
-                // Settings FAB (only visible when permanent setting menu is enabled)
-            }
-        },
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-        ) {
-            // Service status indicator
-            ServiceStatusIndicator(
-                monitoringStatus = monitoringStatus,
-                allPermissionsGranted = allPermissionsGranted,
-                onStatusClick = {
-                    when (monitoringStatus) {
-                        MonitoringStatus.STOPPED -> actualViewModel.startMonitoring()
-                        MonitoringStatus.ACTIVE -> actualViewModel.stopMonitoring()
-                        MonitoringStatus.MISSING_PERMISSIONS -> {} // Should not happen if permissions granted
-                    }
-                },
-                onPermissionsClick = { actualViewModel.showPermissionsDialog() },
-            )
-
-            FolderFilterBar(
-                availableUris = availableUris,
-                availablePaths = availablePaths,
-                selectedPaths = currentFilterState.selectedFolders,
-                onFolderSelectionChanged = { actualViewModel.updateFolderSelection(it) },
-            )
-
-            // Content
-            when {
-                uiState.isLoading && filteredItemCount == 0 -> {
-                    LoadingScreen()
-                }
-
-                filteredItemCount == 0 -> {
-                    // Selected folders are already file paths from the filter logic
-                    val selectedFolderDisplayPaths = remember(currentFilterState.selectedFolders) {
-                        currentFilterState.selectedFolders.toList()
-                    }
-                    EmptyStateScreen(
-                        tab = ScreenshotTab.ALL,
-                        filterState = currentFilterState,
-                        selectedFolderPaths = selectedFolderDisplayPaths,
-                    )
-                }
-
-                else -> {
-                    var localLoading by remember { mutableStateOf(false) }
-                    LaunchedEffect(uiState.isLoading) {
-                        if (uiState.isLoading) {
-                            localLoading = true
-                        } else {
-                            delay(
-                                (200..1200).random().toLong(),
-                            ) // Show for 1.5 seconds after loading stops
-                            localLoading = false
                         }
-                    }
-                    // NewScreenshotDetector with no loading to avoid UI shift
-                    NewScreenshotDetector(
-                        newScreenshotFlow = actualViewModel.newScreenshotDetected,
-                        onLoadingChange = { }, // No-op to prevent loading bar
-                        onNewScreenshot = {
-                            scope.launch {
-                                if (listState.firstVisibleItemIndex <= 1) { // At top or near top
-                                    listState.animateScrollToItem(0)
-                                }
-                            }
-                        },
-                    )
-                    val refreshState = rememberPullToRefreshState()
-                    PullToRefreshBox(
-                        isRefreshing = uiState.isLoading,
-                        onRefresh = { actualViewModel.refreshMediaItems() },
-                        state = refreshState,
-                    ) {
-                        Column {
-                            if (localLoading) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                LoadingBar()
-                            }
-
-                            // Remember callback functions to prevent unnecessary recompositions
-                            val onScreenshotClickCallback =
-                                remember {
-                                    { item: MediaItem, position: androidx.compose.ui.geometry.Offset ->
-                                        actualViewModel.openMediaItem(
-                                            item,
-                                            position,
-                                        )
+                        // NewScreenshotDetector with no loading to avoid UI shift
+                        NewScreenshotDetector(
+                            newScreenshotFlow = actualViewModel.newScreenshotDetected,
+                            onLoadingChange = { }, // No-op to prevent loading bar
+                            onNewScreenshot = {
+                                scope.launch {
+                                    if (listState.firstVisibleItemIndex <= 1) { // At top or near top
+                                        listState.animateScrollToItem(0)
                                     }
                                 }
-                            val onKeepClickCallback =
-                                remember { { item: MediaItem -> actualViewModel.keepMediaItem(item) } }
-                            val onUnkeepClickCallback =
-                                remember { { item: MediaItem -> actualViewModel.unkeepMediaItem(item) } }
-                            val onDeleteClickCallback =
-                                remember { { item: MediaItem -> actualViewModel.deleteMediaItem(item) } }
-                            val onLoadMoreCallback = remember { { actualViewModel.loadMoreMediaItems() } }
+                            },
+                        )
+                        val refreshState = rememberPullToRefreshState()
+                        PullToRefreshBox(
+                            isRefreshing = uiState.isLoading,
+                            onRefresh = { actualViewModel.refreshMediaItems() },
+                            state = refreshState,
+                        ) {
+                            Column {
+                                if (localLoading) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    LoadingBar()
+                                }
 
-                            if (viewMode == "grid") {
-                                ScreenshotGridComposable(
-                                    mediaItems = mediaItems,
-                                    currentFilterState = currentFilterState,
-                                    currentTime = currentTime,
-                                    isLoading = uiState.isLoading,
-                                    liveVideoPreviewEnabled = liveVideoPreviewEnabled,
-                                    mediaFolderUris = mediaFolderUris,
-                                    onScreenshotClick = onScreenshotClickCallback,
-                                    onKeepClick = onKeepClickCallback,
-                                    onUnkeepClick = onUnkeepClickCallback,
-                                    onDeleteClick = onDeleteClickCallback,
-                                    onShowInfoDialog = { item ->
-                                        selectedMediaItem = item
-                                        showInfoDialog = true
-                                    },
-                                )
-                            } else {
-                                ScreenshotListComposable(
-                                    mediaItems = mediaItems,
-                                    currentFilterState = currentFilterState,
-                                    currentTime = currentTime,
-                                    listState = listState,
-                                    isLoading = uiState.isLoading,
-                                    liveVideoPreviewEnabled = liveVideoPreviewEnabled,
-                                    deletingIds = deletingIds,
-                                    mediaFolderUris = mediaFolderUris,
-                                    onScreenshotClick = onScreenshotClickCallback,
-                                    onKeepClick = onKeepClickCallback,
-                                    onUnkeepClick = onUnkeepClickCallback,
-                                    onDeleteClick = onDeleteClickCallback,
-                                    onLoadMore = onLoadMoreCallback,
-                                    showInfoDialog = showInfoDialog,
-                                    selectedMediaItem = selectedMediaItem,
-                                    onShowInfoDialog = { item ->
-                                        selectedMediaItem = item
-                                        showInfoDialog = true
-                                    },
-                                    onDismissInfoDialog = {
-                                        showInfoDialog = false
-                                    },
-                                )
+                                // Remember callback functions to prevent unnecessary recompositions
+                                val onScreenshotClickCallback =
+                                    remember {
+                                        { item: MediaItem, position: androidx.compose.ui.geometry.Offset ->
+                                            actualViewModel.openMediaItem(
+                                                item,
+                                                position,
+                                            )
+                                        }
+                                    }
+                                val onKeepClickCallback =
+                                    remember { { item: MediaItem -> actualViewModel.keepMediaItem(item) } }
+                                val onUnkeepClickCallback =
+                                    remember { { item: MediaItem -> actualViewModel.unkeepMediaItem(item) } }
+                                val onDeleteClickCallback =
+                                    remember { { item: MediaItem -> actualViewModel.deleteMediaItem(item) } }
+                                val onLoadMoreCallback = remember { { actualViewModel.loadMoreMediaItems() } }
+
+                                if (viewMode == "grid") {
+                                    ScreenshotGridComposable(
+                                        mediaItems = mediaItems,
+                                        currentFilterState = currentFilterState,
+                                        currentTime = currentTime,
+                                        isLoading = uiState.isLoading,
+                                        liveVideoPreviewEnabled = liveVideoPreviewEnabled,
+                                        mediaFolderUris = mediaFolderUris,
+                                        onScreenshotClick = onScreenshotClickCallback,
+                                        onKeepClick = onKeepClickCallback,
+                                        onUnkeepClick = onUnkeepClickCallback,
+                                        onDeleteClick = onDeleteClickCallback,
+                                        onShowInfoDialog = { item ->
+                                            selectedMediaItem = item
+                                            showInfoDialog = true
+                                        },
+                                    )
+                                } else {
+                                    ScreenshotListComposable(
+                                        mediaItems = mediaItems,
+                                        currentFilterState = currentFilterState,
+                                        currentTime = currentTime,
+                                        listState = listState,
+                                        isLoading = uiState.isLoading,
+                                        liveVideoPreviewEnabled = liveVideoPreviewEnabled,
+                                        deletingIds = deletingIds,
+                                        mediaFolderUris = mediaFolderUris,
+                                        onScreenshotClick = onScreenshotClickCallback,
+                                        onKeepClick = onKeepClickCallback,
+                                        onUnkeepClick = onUnkeepClickCallback,
+                                        onDeleteClick = onDeleteClickCallback,
+                                        onLoadMore = onLoadMoreCallback,
+                                        showInfoDialog = showInfoDialog,
+                                        selectedMediaItem = selectedMediaItem,
+                                        onShowInfoDialog = { item ->
+                                            selectedMediaItem = item
+                                            showInfoDialog = true
+                                        },
+                                        onDismissInfoDialog = {
+                                            showInfoDialog = false
+                                        },
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
         }
+
     }
 
     // Video preview dialog
@@ -832,18 +839,6 @@ fun MainScreen(
             onAddUri = { scope.launch { settingsViewModel.addMediaFolder(it) } },
             onRemoveFolder = { scope.launch { settingsViewModel.removeMediaFolder(it) } },
             onDismiss = { showFolderDialog = false },
-        )
-    }
-
-    if (showQuickSettings) {
-        QuickSettingsSheet(
-            settingsViewModel = settingsViewModel,
-            scope = scope,
-            onOpenSettings = {
-                showQuickSettings = false
-                navigator?.navigate(SettingsScreenDestination)
-            },
-            onDismiss = { showQuickSettings = false },
         )
     }
 }
@@ -894,68 +889,6 @@ private fun FilterBottomDock(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun QuickSettingsSheet(
-    settingsViewModel: SettingsViewModel,
-    scope: CoroutineScope,
-    onOpenSettings: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = SnapifyTheme.colors.surface,
-        shape = SnapifyTheme.shapes.sheetShape,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = SnapifyTheme.spacing.lg)
-                .padding(bottom = SnapifyTheme.spacing.xl),
-            verticalArrangement = Arrangement.spacedBy(SnapifyTheme.spacing.md),
-        ) {
-            Text(
-                text = stringResource(R.string.quick_settings).uppercase(),
-                style = MaterialTheme.typography.labelLarge,
-                color = SnapifyTheme.colors.inkFaint,
-            )
-            AutoCleanupToggle(
-                enabled = settingsViewModel.autoCleanupEnabled.collectAsState(initial = false).value,
-                onToggle = { enabled ->
-                    scope.launch { settingsViewModel.setAutoCleanupEnabled(enabled) }
-                },
-            )
-            LiveVideoPreviewToggle(
-                enabled = settingsViewModel.liveVideoPreviewEnabled.collectAsState(initial = false).value,
-                onToggle = { enabled ->
-                    scope.launch { settingsViewModel.setLiveVideoPreviewEnabled(enabled) }
-                },
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(SnapifyTheme.shapes.cardShape)
-                    .background(SnapifyTheme.colors.surfaceRaised)
-                    .clickable(onClick = onOpenSettings)
-                    .padding(SnapifyTheme.spacing.lg),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(SnapifyTheme.spacing.md),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = null,
-                    tint = SnapifyTheme.colors.accent,
-                )
-                Text(
-                    text = stringResource(R.string.settings),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = SnapifyTheme.colors.ink,
-                )
-            }
-        }
-    }
-}
 
 fun updatePermissionStatuses(
     context: Context,
@@ -1390,6 +1323,28 @@ private fun rememberFilteredMediaItems(
     }
 }
 
+@Composable
+private fun ItemEntrance(
+    index: Int,
+    content: @Composable () -> Unit,
+) {
+    val alpha = remember { Animatable(0f) }
+    val offsetY = remember { Animatable(28f) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay((index % 12) * 35L)
+        launch { alpha.animateTo(1f, spring(stiffness = Spring.StiffnessMediumLow)) }
+        launch { offsetY.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow)) }
+    }
+    Box(
+        modifier = Modifier.graphicsLayer {
+            this.alpha = alpha.value
+            translationY = offsetY.value
+        },
+    ) {
+        content()
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScreenshotGridComposable(
@@ -1423,17 +1378,19 @@ fun ScreenshotGridComposable(
             },
         ) { index ->
             val screenshot = filteredMediaItems[index]
-            GridScreenshotCard(
-                screenshot = screenshot,
-                currentTime = currentTime,
-                isRefreshing = isLoading,
-                liveVideoPreviewEnabled = liveVideoPreviewEnabled,
-                onClick = { position -> onScreenshotClick(screenshot, position) },
-                onLongPress = { onShowInfoDialog(screenshot) },
-                onKeepClick = { onKeepClick(screenshot) },
-                onUnkeepClick = { onUnkeepClick(screenshot) },
-                onDeleteClick = { onDeleteClick(screenshot) },
-            )
+            ItemEntrance(index = index) {
+                GridScreenshotCard(
+                    screenshot = screenshot,
+                    currentTime = currentTime,
+                    isRefreshing = isLoading,
+                    liveVideoPreviewEnabled = liveVideoPreviewEnabled,
+                    onClick = { position -> onScreenshotClick(screenshot, position) },
+                    onLongPress = { onShowInfoDialog(screenshot) },
+                    onKeepClick = { onKeepClick(screenshot) },
+                    onUnkeepClick = { onUnkeepClick(screenshot) },
+                    onDeleteClick = { onDeleteClick(screenshot) },
+                )
+            }
         }
     }
 }

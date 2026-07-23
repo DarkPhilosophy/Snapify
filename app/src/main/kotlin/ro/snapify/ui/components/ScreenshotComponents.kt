@@ -2,7 +2,17 @@ package ro.snapify.ui.components
 
 import android.graphics.Bitmap
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -55,6 +65,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInWindow
@@ -535,11 +546,24 @@ fun ServiceStatusIndicator(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(spacing.sm),
             ) {
+                val dotAlpha by if (monitoringStatus == MonitoringStatus.ACTIVE) {
+                    rememberInfiniteTransition(label = "statusDotPulse").animateFloat(
+                        initialValue = 0.55f,
+                        targetValue = 1f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(900, easing = FastOutSlowInEasing),
+                            repeatMode = RepeatMode.Reverse,
+                        ),
+                        label = "statusDotPulseAlpha",
+                    )
+                } else {
+                    remember { mutableStateOf(1f) }
+                }
                 Box(
                     modifier = Modifier
                         .size(8.dp)
                         .clip(SnapifyTheme.shapes.pillShape)
-                        .background(statusColor),
+                        .background(statusColor.copy(alpha = dotAlpha)),
                 )
                 Text(
                     text = statusText.uppercase(),
@@ -1106,17 +1130,28 @@ fun GridScreenshotCard(
     val tokens = SnapifyTheme.colors
     val spacing = SnapifyTheme.spacing
     var globalPosition by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "gridCardPressScale",
+    )
 
     Box(
         modifier = modifier
             .aspectRatio(0.8f)
+            .graphicsLayer {
+                scaleX = pressScale
+                scaleY = pressScale
+            }
             .clip(SnapifyTheme.shapes.cardShape)
             .background(tokens.surfaceRaised)
             .alpha(alpha)
             .onGloballyPositioned { coordinates ->
                 globalPosition = coordinates.boundsInWindow().topLeft
             }
-            .pointerInput(Unit) {
+            .pointerInput(interactionSource) {
                 detectTapGestures(
                     onTap = { offset -> onClick(globalPosition + offset) },
                     onLongPress = { onLongPress() },

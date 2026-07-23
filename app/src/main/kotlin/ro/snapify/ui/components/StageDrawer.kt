@@ -1,0 +1,241 @@
+package ro.snapify.ui.components
+
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import ro.snapify.ui.theme.SnapifyTheme
+
+private const val DRAG_HANDLE_WIDTH_DP = 30
+private const val DRAG_HANDLE_HEIGHT_DP = 92
+private const val PANEL_MAX_WIDTH_DP = 380
+private const val PANEL_WIDTH_FRACTION = 0.82f
+private const val CONTENT_PARALLAX = 0.55f
+private const val CONTENT_SCALE_DROP = 0.06f
+private const val VELOCITY_THRESHOLD_PX = 700f
+
+/** Progress-driven state for [StageDrawer]: 0f = closed, 1f = open. */
+@Stable
+class StageDrawerState internal constructor(
+    internal val progress: Animatable<Float, *>,
+    private val scope: CoroutineScope,
+) {
+    val isOpen: Boolean get() = progress.value > 0.5f
+
+    fun open() {
+        scope.launch { progress.animateTo(1f, settleSpring()) }
+    }
+
+    fun close() {
+        scope.launch { progress.animateTo(0f, settleSpring()) }
+    }
+
+    fun toggle() {
+        if (isOpen) close() else open()
+    }
+}
+
+private fun settleSpring() = spring<Float>(
+    dampingRatio = 0.82f,
+    stiffness = Spring.StiffnessMediumLow,
+)
+
+@Composable
+fun rememberStageDrawerState(): StageDrawerState {
+    val scope = rememberCoroutineScope()
+    val progress = remember { Animatable(0f) }
+    return remember { StageDrawerState(progress, scope) }
+}
+
+/**
+ * A gesture-driven side panel that is part of the layout, not an overlay:
+ * the main content recedes (parallax + scale) as the panel slides in, and a
+ * drag handle rides the panel's trailing edge so the button and the panel
+ * move as one physical object.
+ */
+@Composable
+fun StageDrawer(
+    state: StageDrawerState,
+    menuContent: @Composable () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val density = LocalDensity.current
+    val scope = rememberCoroutineScope()
+    val tokens = SnapifyTheme.colors
+    val cardRadius = SnapifyTheme.shapes.card
+
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val panelWidthPx = with(density) {
+            minOf(
+                constraints.maxWidth.toFloat() * PANEL_WIDTH_FRACTION,
+                PANEL_MAX_WIDTH_DP.dp.toPx(),
+            )
+        }
+        val handleWidthPx = with(density) { DRAG_HANDLE_WIDTH_DP.dp.toPx() }
+
+        fun settleTarget(velocityX: Float): Float = when {
+            velocityX > VELOCITY_THRESHOLD_PX -> 1f
+            velocityX < -VELOCITY_THRESHOLD_PX -> 0f
+            state.progress.value > 0.5f -> 1f
+            else -> 0f
+        }
+
+        fun Modifier.stageDrag(): Modifier = this.pointerInput(panelWidthPx) {
+            val velocityTracker = VelocityTracker()
+            detectHorizontalDragGestures(
+                onDragStart = {
+                    velocityTracker.resetTracking()
+                },
+                onHorizontalDrag = { change, dragAmount ->
+                    change.consume()
+                    velocityTracker.addPosition(change.uptimeMillis, Offset(change.position.x, 0f))
+                    scope.launch {
+                        state.progress.snapTo(
+                            (state.progress.value + dragAmount / panelWidthPx).coerceIn(0f, 1f),
+                        )
+                    }
+                },
+                onDragEnd = {
+                    val velocity = velocityTracker.calculateVelocity().x
+                    scope.launch {
+                        state.progress.animateTo(settleTarget(velocity), settleSpring())
+                    }
+                },
+                onDragCancel = {
+                    scope.launch {
+                        state.progress.animateTo(settleTarget(0f), settleSpring())
+                    }
+                },
+            )
+        }
+
+        // Main content: recedes and scales down as the panel takes the stage.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    val p = state.progress.value
+                    translationX = panelWidthPx * p * CONTENT_PARALLAX
+                    val scale = 1f - CONTENT_SCALE_DROP * p
+                    scaleX = scale
+                    scaleY = scale
+                    shadowElevation = if (p > 0.01f) 8.dp.toPx() * p else 0f
+                    clip = p > 0.01f
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(
+                        cardRadius * p,
+                    )
+                }
+                .stageDrag(),
+        ) {
+            content()
+
+            if (state.progress.value > 0.01f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(tokens.scrim.copy(alpha = 0.45f * state.progress.value))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { state.close() },
+                        ),
+                )
+            }
+        }
+
+        // The panel itself: measured offset, never a hardcoded off-screen guess.
+        Surface(
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(with(density) { panelWidthPx.toDp() })
+                .offset {
+                    IntOffset((-panelWidthPx * (1f - state.progress.value)).toInt(), 0)
+                }
+                .graphicsLayer {
+                    // Menu slides slightly faster than its own frame for depth.
+                    clip = true
+                }
+                .stageDrag(),
+            color = tokens.surface,
+            tonalElevation = 2.dp,
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .offset {
+                        IntOffset((-panelWidthPx * 0.12f * (1f - state.progress.value)).toInt(), 0)
+                    },
+            ) {
+                menuContent()
+            }
+        }
+
+        // Traveling handle: glued to the panel's trailing edge.
+        Surface(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .offset {
+                    IntOffset(
+                        (panelWidthPx * state.progress.value - handleWidthPx * 0.35f).toInt(),
+                        0,
+                    )
+                }
+                .width(DRAG_HANDLE_WIDTH_DP.dp)
+                .height(DRAG_HANDLE_HEIGHT_DP.dp)
+                .stageDrag()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                ) { state.toggle() },
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(
+                topEnd = SnapifyTheme.shapes.button,
+                bottomEnd = SnapifyTheme.shapes.button,
+            ),
+            color = tokens.surfaceRaised,
+            border = androidx.compose.foundation.BorderStroke(1.dp, tokens.hairline),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = if (state.isOpen) {
+                        Icons.AutoMirrored.Filled.ArrowBack
+                    } else {
+                        Icons.AutoMirrored.Filled.KeyboardArrowRight
+                    },
+                    contentDescription = if (state.isOpen) "Close menu" else "Open menu",
+                    tint = tokens.accent,
+                )
+            }
+        }
+    }
+}
