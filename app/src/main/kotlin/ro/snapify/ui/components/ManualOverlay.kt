@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -79,7 +80,14 @@ fun ScreenshotDetectionOverlay(
             .fillMaxHeight(0.7f)
             .padding(8.dp)
             .alpha(alphaAnimatable.value)
-            .graphicsLayer(translationY = translationYAnimatable.value),
+            .graphicsLayer(translationY = translationYAnimatable.value)
+            .clickable(
+                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                indication = null,
+            ) {
+                // Consume taps: the overlay only closes via the close button or an
+                // outside touch, never by touching its content.
+            },
         shape = SnapifyTheme.shapes.sheetShape,
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         colors = CardDefaults.cardColors(
@@ -136,6 +144,7 @@ fun ScreenshotDetectionOverlay(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // Left: Detected Media
+                var isInspecting by remember { mutableStateOf(false) }
                 Box(
                     modifier = Modifier.weight(1f),
                     contentAlignment = Alignment.Center,
@@ -144,10 +153,35 @@ fun ScreenshotDetectionOverlay(
                         Image(
                             bitmap = detectedImage,
                             contentDescription = "Detected Screenshot",
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .pointerInput(Unit) {
+                                    detectTapGestures(
+                                        onLongPress = { isInspecting = true },
+                                    )
+                                },
                         )
                     } else {
                         Text("No Image Detected")
+                    }
+                }
+
+                // Fullscreen inspection while the finger holds the image; the
+                // overlay itself stays open underneath and awaits the command.
+                if (isInspecting && detectedImage != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight()
+                            .alpha(0.98f)
+                            .clickable { isInspecting = false },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Image(
+                            bitmap = detectedImage,
+                            contentDescription = "Inspect Screenshot",
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
                 }
 
@@ -171,7 +205,7 @@ fun ScreenshotDetectionOverlay(
                             ),
                             contentPadding = PaddingValues(0.dp),
                         ) {
-                            Text(text = "1 Week")
+                            Text(text = "1 Week", maxLines = 1, softWrap = false)
                         }
                         Button(
                             onClick = on3Days,
@@ -182,7 +216,7 @@ fun ScreenshotDetectionOverlay(
                             ),
                             contentPadding = PaddingValues(0.dp),
                         ) {
-                            Text(text = "3 Days")
+                            Text(text = "3 Days", maxLines = 1, softWrap = false)
                         }
                     }
 
@@ -200,7 +234,7 @@ fun ScreenshotDetectionOverlay(
                             ),
                             contentPadding = PaddingValues(0.dp),
                         ) {
-                            Text(text = "2 Hours")
+                            Text(text = "2 Hours", maxLines = 1, softWrap = false)
                         }
                         Button(
                             onClick = on15Minutes,
@@ -211,7 +245,7 @@ fun ScreenshotDetectionOverlay(
                             ),
                             contentPadding = PaddingValues(0.dp),
                         ) {
-                            Text(text = "15 Min")
+                            Text(text = "15 Min", maxLines = 1, softWrap = false)
                         }
                     }
 
@@ -244,7 +278,7 @@ fun ScreenshotDetectionOverlay(
                         ),
                         contentPadding = PaddingValues(0.dp),
                     ) {
-                        Text(text = "Share and Delete")
+                        Text(text = "Share and Delete", maxLines = 1, softWrap = false)
                     }
                 }
             }

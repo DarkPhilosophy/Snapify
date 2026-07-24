@@ -2,12 +2,19 @@ package ro.snapify.ui.components
 
 import android.graphics.Bitmap
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -1052,6 +1059,17 @@ fun GridScreenshotCard(
         label = "gridCardPressScale",
     )
 
+    // Smooth accent line differentiates tiles; it breathes very slowly.
+    val borderAlpha by rememberInfiniteTransition(label = "gridCardBorder").animateFloat(
+        initialValue = 0.15f,
+        targetValue = 0.35f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "gridCardBorderAlpha",
+    )
+
     Box(
         modifier = modifier
             .aspectRatio(0.8f)
@@ -1065,6 +1083,11 @@ fun GridScreenshotCard(
             }
             .clip(SnapifyTheme.shapes.cardShape)
             .background(tokens.surfaceRaised)
+            .border(
+                width = 1.dp,
+                color = tokens.accent.copy(alpha = borderAlpha),
+                shape = SnapifyTheme.shapes.cardShape,
+            )
             .alpha(alpha)
             .onGloballyPositioned { coordinates ->
                 globalPosition = coordinates.boundsInWindow().topLeft

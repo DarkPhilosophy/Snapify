@@ -333,31 +333,11 @@ fun MainScreen(
         }
     }
 
-    // Refresh screenshots and monitoring status when app resumes
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            DebugLogger.info("MainScreen", "Lifecycle event: $event")
-            if (event == Lifecycle.Event.ON_RESUME) {
-                DebugLogger.info(
-                    "MainScreen",
-                    "ON_RESUME: App regained focus - refreshing media items and monitoring status",
-                )
-                actualViewModel.refreshMediaItems()
-                actualViewModel.refreshMonitoringStatus()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
-
-    // Video lifecycle management for multiple simultaneous videos
-    rememberVideoLifecycleManager()
-
-    // Check if all permissions are granted to hide permission button
+    // Check if all permissions are granted to hide permission button.
+    // Re-evaluated on launch, on every ON_RESUME (returning from system
+    // settings or the in-app permission launcher), not just once.
     var allPermissionsGranted by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
+    val checkPermissions: () -> Unit = {
         val readPerm =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Manifest.permission.READ_MEDIA_IMAGES else Manifest.permission.READ_EXTERNAL_STORAGE
 
@@ -373,6 +353,32 @@ fun MainScreen(
             allPermissionsGranted = statusMap.values.all { it }
         }
     }
+    LaunchedEffect(Unit) {
+        checkPermissions()
+    }
+
+    // Refresh screenshots and monitoring status when app resumes
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            DebugLogger.info("MainScreen", "Lifecycle event: $event")
+            if (event == Lifecycle.Event.ON_RESUME) {
+                DebugLogger.info(
+                    "MainScreen",
+                    "ON_RESUME: App regained focus - refreshing media items and monitoring status",
+                )
+                actualViewModel.refreshMediaItems()
+                actualViewModel.refreshMonitoringStatus()
+                checkPermissions()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    // Video lifecycle management for multiple simultaneous videos
+    rememberVideoLifecycleManager()
 
     val listState = rememberLazyListState()
 
@@ -439,18 +445,23 @@ fun MainScreen(
         }.toList()
     }
 
-    // Hides chrome on scroll down, shows on scroll up - works for both list and
-    // grid because it observes scroll deltas at the container level.
+    // Hides chrome while scrolling (any direction) and brings it back once the
+    // user is idle for a moment - works for both list and grid because it
+    // observes scroll deltas at the container level.
+    var chromeIdleJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     val chromeScrollConnection = remember {
         object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
             override fun onPreScroll(
                 available: androidx.compose.ui.geometry.Offset,
                 source: androidx.compose.ui.input.nestedscroll.NestedScrollSource,
             ): androidx.compose.ui.geometry.Offset {
-                if (available.y < -4f) {
+                if (kotlin.math.abs(available.y) > 4f) {
                     chromeVisible = false
-                } else if (available.y > 4f) {
-                    chromeVisible = true
+                    chromeIdleJob?.cancel()
+                    chromeIdleJob = scope.launch {
+                        delay(700)
+                        chromeVisible = true
+                    }
                 }
                 return androidx.compose.ui.geometry.Offset.Zero
             }
@@ -582,44 +593,21 @@ fun MainScreen(
                         }
 
                         // Permanent drawer FAB (only when enabled in settings)
-                    if (permanentSettingMenuEnabled) {
-                        FloatingActionButton(
-                            onClick = { drawerState.open() },
-                            shape = SnapifyTheme.shapes.buttonShape,
-                            containerColor = SnapifyTheme.colors.accent,
-                            contentColor = SnapifyTheme.colors.onAccent,
-                            modifier = Modifier.glow(color = SnapifyTheme.colors.accent, elevation = 16.dp),
-                        ) {
-                            Icon(
-                                Icons.Default.Menu,
-                                contentDescription = stringResource(R.string.settings_button),
-                            )
-                        }
-                    }
-
-                    // Folder management FAB (floating, follows chrome visibility)
-                        AnimatedVisibility(
-                            visible = chromeVisible,
-                            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-                            exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
-                        ) {
+                        if (permanentSettingMenuEnabled) {
                             FloatingActionButton(
-                                onClick = { showFolderDialog = true },
-                                shape = SnapifyTheme.shapes.pillShape,
-                                containerColor = SnapifyTheme.colors.surfaceRaised,
-                                contentColor = if (currentFilterState.selectedFolders.isNotEmpty()) {
-                                    SnapifyTheme.colors.accent
-                                } else {
-                                    SnapifyTheme.colors.inkSoft
-                                },
-                                modifier = Modifier.size(48.dp),
+                                onClick = { drawerState.open() },
+                                shape = SnapifyTheme.shapes.buttonShape,
+                                containerColor = SnapifyTheme.colors.accent,
+                                contentColor = SnapifyTheme.colors.onAccent,
+                                modifier = Modifier.glow(color = SnapifyTheme.colors.accent, elevation = 16.dp),
                             ) {
                                 Icon(
-                                    Icons.Default.Folder,
-                                    contentDescription = stringResource(R.string.manage_folders),
+                                    Icons.Default.Menu,
+                                    contentDescription = stringResource(R.string.settings_button),
                                 )
                             }
                         }
+
                     }
                 },
             ) { paddingValues ->
@@ -767,6 +755,8 @@ fun MainScreen(
             ) {
                 FilterBottomDock(
                     selectedTags = currentFilterState.selectedTags,
+                    hasFolderFilter = currentFilterState.selectedFolders.isNotEmpty(),
+                    onFoldersClick = { showFolderDialog = true },
                     onTagSelectionChanged = { selected ->
                         val effective = if (selected.isEmpty()) {
                             setOf(
@@ -816,9 +806,12 @@ fun MainScreen(
 @Composable
 private fun FilterBottomDock(
     selectedTags: Set<ScreenshotTab>,
+    hasFolderFilter: Boolean,
     onTagSelectionChanged: (Set<ScreenshotTab>) -> Unit,
+    onFoldersClick: () -> Unit,
 ) {
-    // Centered, floating, borderless: the filter pill hovers above the content.
+    // Centered, floating, borderless: the filter pill hovers above the content,
+    // with the folder picker glued to its end as a distinct segment.
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -832,10 +825,32 @@ private fun FilterBottomDock(
             shadowElevation = 8.dp,
             tonalElevation = 2.dp,
         ) {
-            TagFilterBar(
-                selectedTags = selectedTags,
-                onTagSelectionChanged = onTagSelectionChanged,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(end = SnapifyTheme.spacing.xs),
+            ) {
+                TagFilterBar(
+                    selectedTags = selectedTags,
+                    onTagSelectionChanged = onTagSelectionChanged,
+                )
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(24.dp)
+                        .background(SnapifyTheme.colors.hairline),
+                )
+                IconButton(onClick = onFoldersClick) {
+                    Icon(
+                        imageVector = Icons.Default.Folder,
+                        contentDescription = stringResource(R.string.manage_folders),
+                        tint = if (hasFolderFilter) {
+                            SnapifyTheme.colors.accent
+                        } else {
+                            SnapifyTheme.colors.inkSoft
+                        },
+                    )
+                }
+            }
         }
     }
 }
@@ -876,11 +891,15 @@ private fun MainMasthead(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
-                    text = stringResource(R.string.top_bar_counter, filteredItemCount, totalItems).uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = tokens.inkFaint,
-                )
+            }
+            if (!allPermissionsGranted) {
+                IconButton(onClick = onPermissionsClick) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = stringResource(R.string.permissions),
+                        tint = tokens.warning,
+                    )
+                }
             }
             val (statusIcon, statusColor) = when (monitoringStatus) {
                 MonitoringStatus.STOPPED -> Icons.Default.PlayArrow to tokens.danger
@@ -905,15 +924,6 @@ private fun MainMasthead(
                     tint = tokens.inkSoft,
                 )
             }
-            if (!allPermissionsGranted) {
-                IconButton(onClick = onPermissionsClick) {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = stringResource(R.string.permissions),
-                        tint = tokens.warning,
-                    )
-                }
-            }
             IconButton(onClick = onViewModeToggle) {
                 Icon(
                     imageVector = if (viewMode == "grid") {
@@ -926,64 +936,62 @@ private fun MainMasthead(
                 )
             }
         }
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(SnapifyTheme.shapes.fieldShape)
                 .clickable(onClick = onMonitoringToggle)
                 .padding(start = 72.dp, end = spacing.lg, bottom = spacing.sm),
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(spacing.lg),
         ) {
             Text(
                 text = filteredItemCount.toString(),
                 style = MaterialTheme.typography.displayMedium,
                 color = tokens.accent,
             )
-            Text(
-                text = stringResource(R.string.hero_visible_label).uppercase(),
-                style = MaterialTheme.typography.labelMedium,
-                color = tokens.inkSoft,
-                modifier = Modifier.padding(bottom = spacing.sm),
-            )
-            Text(
-                text = "$folderCount " + stringResource(R.string.hero_folders_label).uppercase(),
-                style = MaterialTheme.typography.labelMedium,
-                color = tokens.inkFaint,
-                modifier = Modifier.padding(bottom = spacing.sm),
-            )
-            val statusDotColor = when (monitoringStatus) {
-                MonitoringStatus.STOPPED -> tokens.danger
-                MonitoringStatus.ACTIVE -> tokens.success
-                MonitoringStatus.MISSING_PERMISSIONS -> tokens.warning
-            }
-            val statusDotAlpha by if (monitoringStatus == MonitoringStatus.ACTIVE) {
-                rememberInfiniteTransition(label = "mastheadStatusPulse").animateFloat(
-                    initialValue = 0.55f,
-                    targetValue = 1f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(900),
-                        repeatMode = RepeatMode.Reverse,
-                    ),
-                    label = "mastheadStatusPulseAlpha",
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(spacing.lg),
+            ) {
+                Text(
+                    text = stringResource(R.string.hero_visible_label).uppercase() + " / $totalItems",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = tokens.inkSoft,
                 )
-            } else {
-                remember { mutableStateOf(1f) }
+                Text(
+                    text = "$folderCount " + stringResource(R.string.hero_folders_label).uppercase(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = tokens.inkFaint,
+                )
+                val statusDotColor = when (monitoringStatus) {
+                    MonitoringStatus.STOPPED -> tokens.danger
+                    MonitoringStatus.ACTIVE -> tokens.success
+                    MonitoringStatus.MISSING_PERMISSIONS -> tokens.warning
+                }
+                val statusDotAlpha by if (monitoringStatus == MonitoringStatus.ACTIVE) {
+                    rememberInfiniteTransition(label = "mastheadStatusPulse").animateFloat(
+                        initialValue = 0.55f,
+                        targetValue = 1f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(900),
+                            repeatMode = RepeatMode.Reverse,
+                        ),
+                        label = "mastheadStatusPulseAlpha",
+                    )
+                } else {
+                    remember { mutableStateOf(1f) }
+                }
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(SnapifyTheme.shapes.pillShape)
+                        .background(statusDotColor.copy(alpha = statusDotAlpha)),
+                )
+                Text(
+                    text = if (monitoringStatus == MonitoringStatus.ACTIVE) "ON" else "OFF",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = statusDotColor,
+                )
             }
-            Box(
-                modifier = Modifier
-                    .padding(bottom = spacing.md)
-                    .size(10.dp)
-                    .glow(color = statusDotColor, elevation = 12.dp)
-                    .clip(SnapifyTheme.shapes.pillShape)
-                    .background(statusDotColor.copy(alpha = statusDotAlpha)),
-            )
-            Text(
-                text = if (monitoringStatus == MonitoringStatus.ACTIVE) "ON" else "OFF",
-                style = MaterialTheme.typography.labelMedium,
-                color = statusDotColor,
-                modifier = Modifier.padding(bottom = spacing.sm),
-            )
         }
         HorizontalDivider(color = tokens.hairline, thickness = 1.dp)
     }
