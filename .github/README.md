@@ -23,7 +23,7 @@ A modern, intelligent Android application to automatically manage and organize y
 <!-- LINT-RESULT-START -->
 ### Linting Status
 > **Status**: ✅ **Passing**  
-> **Last Updated**: 2026-07-24 00:07:25 UTC  
+> **Last Updated**: 2026-07-24 00:36:54 UTC  
 > **Summary**: 0 errors, 0 warnings
 
 <details>
@@ -76,17 +76,17 @@ Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configurat
 > Task :core:generateDebugRFile
 > Task :app:generateDebugBuildConfig
 > Task :core:writeDebugAarMetadata
-> Task :core:detekt
+> Task :app:checkDebugAarMetadata
 > Task :app:compileDebugNavigationResources
 > Task :app:mapDebugSourceSetPaths
 > Task :app:createDebugCompatibleScreenManifests
 > Task :app:extractDeepLinksDebug
 > Task :core:extractDeepLinksDebug
-> Task :app:checkDebugAarMetadata
+> Task :core:processDebugManifest
+> Task :core:detekt
 > Task :core:compileDebugLibraryResources
 > Task :core:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :core:generateDebugBuildConfig
-> Task :core:processDebugManifest
 > Task :app:processDebugMainManifest
 > Task :app:processDebugManifest
 > Task :app:processDebugManifestForPackage
@@ -96,6 +96,7 @@ Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configurat
 > Task :app:javaPreCompileDebugUnitTest
 > Task :app:preReleaseBuild UP-TO-DATE
 > Task :app:buildKotlinToolingMetadata
+> Task :app:dataBindingMergeDependencyArtifactsRelease
 > Task :app:generateReleaseResValues
 > Task :app:generateReleaseResources
 > Task :app:injectCrashlyticsMappingFileIdRelease
@@ -106,7 +107,6 @@ Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configurat
 > Task :core:generateReleaseResValues
 > Task :core:generateReleaseResources
 > Task :core:packageReleaseResources
-> Task :app:dataBindingMergeDependencyArtifactsRelease
 > Task :app:packageReleaseResources
 > Task :core:processReleaseNavigationResources
 > Task :app:processReleaseNavigationResources
@@ -116,8 +116,6 @@ Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configurat
 > Task :app:generateReleaseBuildConfig
 > Task :core:writeReleaseAarMetadata
 > Task :app:checkReleaseAarMetadata
-> Task :app:mergeDebugResources
-> Task :app:dataBindingGenBaseClassesDebug
 > Task :app:compileReleaseNavigationResources
 > Task :app:mapReleaseSourceSetPaths
 > Task :app:createReleaseCompatibleScreenManifests
@@ -129,6 +127,8 @@ Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configurat
 > Task :app:processReleaseManifestForPackage
 > Task :core:compileReleaseLibraryResources
 > Task :core:generateReleaseBuildConfig
+> Task :app:mergeDebugResources
+> Task :app:dataBindingGenBaseClassesDebug
 > Task :app:processDebugResources
 > Task :core:javaPreCompileRelease
 > Task :app:javaPreCompileRelease
@@ -143,14 +143,14 @@ Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configurat
 > Task :app:mergeReleaseResources
 > Task :app:dataBindingGenBaseClassesRelease
 > Task :app:processReleaseResources
-> Task :core:compileReleaseKotlin
 > Task :core:compileDebugKotlin
+> Task :core:compileReleaseKotlin
 > Task :core:processDebugJavaRes
 > Task :core:processReleaseJavaRes
-> Task :core:compileReleaseJavaWithJavac
 > Task :core:compileDebugJavaWithJavac
-> Task :core:bundleLibRuntimeToJarRelease
+> Task :core:compileReleaseJavaWithJavac
 > Task :core:bundleLibRuntimeToJarDebug
+> Task :core:bundleLibRuntimeToJarRelease
 > Task :core:bundleLibCompileToJarDebug
 > Task :core:bundleLibCompileToJarRelease
 > Task :core:createFullJarRelease
@@ -160,8 +160,8 @@ Property 'naming>FunctionNaming>ignoreOverridden' is deprecated. This configurat
 > Task :core:compileDebugUnitTestJavaWithJavac NO-SOURCE
 > Task :core:processDebugUnitTestJavaRes NO-SOURCE
 > Task :core:compileReleaseUnitTestJavaWithJavac NO-SOURCE
-> Task :core:testDebugUnitTest NO-SOURCE
 > Task :core:processReleaseUnitTestJavaRes NO-SOURCE
+> Task :core:testDebugUnitTest NO-SOURCE
 > Task :core:testReleaseUnitTest NO-SOURCE
 > Task :core:test UP-TO-DATE
 > Task :app:kspReleaseKotlin
@@ -187,12 +187,12 @@ w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/co
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/VideoPlayer.kt:40:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
 w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/components/VideoPreviewDialog.kt:120:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
 
-> Task :app:compileDebugJavaWithJavac
 > Task :app:compileReleaseJavaWithJavac
+> Task :app:compileDebugJavaWithJavac
 > Task :app:hiltAggregateDepsRelease
 > Task :app:hiltAggregateDepsDebug
-> Task :app:hiltJavaCompileDebug
 > Task :app:hiltJavaCompileRelease
+> Task :app:hiltJavaCompileDebug
 > Task :app:processDebugJavaRes
 > Task :app:processReleaseJavaRes
 > Task :app:bundleDebugClassesToCompileJar
@@ -200,25 +200,25 @@ w: file:///home/runner/work/Snapify/Snapify/app/src/main/kotlin/ro/snapify/ui/co
 > Task :app:transformDebugClassesWithAsm
 > Task :app:transformReleaseClassesWithAsm
 > Task :app:bundleDebugClassesToRuntimeJar
-> Task :app:bundleReleaseClassesToRuntimeJar
-> Task :app:kspDebugUnitTestKotlin
 > Task :app:kspReleaseUnitTestKotlin
+> Task :app:kspDebugUnitTestKotlin
+> Task :app:bundleReleaseClassesToRuntimeJar
 > Task :app:compileReleaseUnitTestKotlin
-> Task :app:compileReleaseUnitTestJavaWithJavac NO-SOURCE
 > Task :app:compileDebugUnitTestKotlin
 > Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:compileReleaseUnitTestJavaWithJavac NO-SOURCE
 > Task :app:hiltAggregateDepsReleaseUnitTest
-> Task :app:hiltJavaCompileReleaseUnitTest NO-SOURCE
 > Task :app:hiltAggregateDepsDebugUnitTest
 > Task :app:hiltJavaCompileDebugUnitTest NO-SOURCE
+> Task :app:hiltJavaCompileReleaseUnitTest NO-SOURCE
 > Task :app:processDebugUnitTestJavaRes
 > Task :app:processReleaseUnitTestJavaRes
-> Task :app:transformDebugUnitTestClassesWithAsm
 > Task :app:transformReleaseUnitTestClassesWithAsm
-> Task :app:testDebugUnitTest
+> Task :app:transformDebugUnitTestClassesWithAsm
 > Task :app:testReleaseUnitTest
+> Task :app:testDebugUnitTest
 > Task :app:test
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/lint_step-1784851542744.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/lint_step-1784853312777.json
 
 [Incubating] Problems report is available at: file:///home/runner/work/Snapify/Snapify/build/reports/problems/problems-report.html
 
