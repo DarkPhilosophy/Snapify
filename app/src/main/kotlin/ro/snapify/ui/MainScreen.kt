@@ -875,7 +875,8 @@ private fun MainMasthead(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(tokens.surface),
+            .background(tokens.surface)
+            .statusBarsPadding(),
     ) {
         Row(
             modifier = Modifier
@@ -956,11 +957,16 @@ private fun MainMasthead(
                     text = stringResource(R.string.hero_visible_label).uppercase() + " / $totalItems",
                     style = MaterialTheme.typography.labelMedium,
                     color = tokens.inkSoft,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
                 Text(
                     text = "$folderCount " + stringResource(R.string.hero_folders_label).uppercase(),
                     style = MaterialTheme.typography.labelMedium,
                     color = tokens.inkFaint,
+                    maxLines = 1,
+                    softWrap = false,
                 )
                 val statusDotColor = when (monitoringStatus) {
                     MonitoringStatus.STOPPED -> tokens.danger
@@ -990,6 +996,8 @@ private fun MainMasthead(
                     text = if (monitoringStatus == MonitoringStatus.ACTIVE) "ON" else "OFF",
                     style = MaterialTheme.typography.labelMedium,
                     color = statusDotColor,
+                    maxLines = 1,
+                    softWrap = false,
                 )
             }
         }

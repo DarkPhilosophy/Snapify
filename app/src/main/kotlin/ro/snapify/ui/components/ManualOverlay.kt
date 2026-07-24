@@ -107,19 +107,21 @@ fun ScreenshotDetectionOverlay(
                 verticalArrangement = Arrangement.Center,
             ) {
                 // Title with close button
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
+                Box(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         text = "Screenshot Detect",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .fillMaxWidth(),
                     )
                     IconButton(
                         onClick = onClose,
-                        modifier = Modifier.padding(0.dp),
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(0.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
