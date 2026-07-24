@@ -4,6 +4,7 @@ import ro.snapify.ui.theme.SnapifyTheme
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -74,214 +75,221 @@ fun ScreenshotDetectionOverlay(
         translationYAnimatable.animateTo(0f, animationSpec = tween(300))
     }
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth(0.95f)
-            .fillMaxHeight(0.7f)
-            .padding(8.dp)
-            .alpha(alphaAnimatable.value)
-            .graphicsLayer(translationY = translationYAnimatable.value)
-            .clickable(
-                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                indication = null,
+    var isInspecting by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .fillMaxHeight(0.7f)
+                .padding(8.dp)
+                .alpha(alphaAnimatable.value)
+                .graphicsLayer(translationY = translationYAnimatable.value)
+                .clickable(
+                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                    indication = null,
+                ) {
+                    // Consume taps: the overlay only closes via the close button or an
+                    // outside touch, never by touching its content.
+                },
+            shape = SnapifyTheme.shapes.sheetShape,
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = SnapifyTheme.colors.surface,
+            ),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight()
+                    .padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
             ) {
-                // Consume taps: the overlay only closes via the close button or an
-                // outside touch, never by touching its content.
-            },
-        shape = SnapifyTheme.shapes.sheetShape,
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = SnapifyTheme.colors.surface,
-        ),
-    ) {
-        Column(
+                // Title with close button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Screenshot Detect",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    IconButton(
+                        onClick = onClose,
+                        modifier = Modifier.padding(0.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(4.dp),
+                        )
+                    }
+                }
+
+                androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(4.dp))
+
+                Text(
+                    text = "Select a time when the screenshot should be deleted otherwise you can keep",
+                    style = MaterialTheme.typography.labelSmall,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(8.dp))
+
+                // Row: Left - Detected Media, Right - Choices
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // Left: Detected Media
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (detectedImage != null) {
+                            Image(
+                                bitmap = detectedImage,
+                                contentDescription = "Detected Screenshot",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onPress = {
+                                                isInspecting = true
+                                                tryAwaitRelease()
+                                                isInspecting = false
+                                            },
+                                        )
+                                    },
+                            )
+                        } else {
+                            Text("No Image Detected")
+                        }
+                    }
+
+                    // Right: Choices
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        // Row 1: 1 Week | 3 Days
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Button(
+                                onClick = on1Week,
+                                modifier = Modifier.weight(1f).height(40.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                ),
+                                contentPadding = PaddingValues(0.dp),
+                            ) {
+                                Text(text = "1 Week", maxLines = 1, softWrap = false)
+                            }
+                            Button(
+                                onClick = on3Days,
+                                modifier = Modifier.weight(1f).height(40.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                ),
+                                contentPadding = PaddingValues(0.dp),
+                            ) {
+                                Text(text = "3 Days", maxLines = 1, softWrap = false)
+                            }
+                        }
+
+                        // Row 2: 2 Hours | 15 Min
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Button(
+                                onClick = on2Hours,
+                                modifier = Modifier.weight(1f).height(40.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                ),
+                                contentPadding = PaddingValues(0.dp),
+                            ) {
+                                Text(text = "2 Hours", maxLines = 1, softWrap = false)
+                            }
+                            Button(
+                                onClick = on15Minutes,
+                                modifier = Modifier.weight(1f).height(40.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                ),
+                                contentPadding = PaddingValues(0.dp),
+                            ) {
+                                Text(text = "15 Min", maxLines = 1, softWrap = false)
+                            }
+                        }
+
+                        // Custom Time Picker
+                        CustomTimePicker(
+                            onTimeSelected = onCustomTime,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+
+                        // Keep Button
+                        Button(
+                            onClick = onKeep,
+                            modifier = Modifier.fillMaxWidth().height(40.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                            ),
+                            contentPadding = PaddingValues(0.dp),
+                        ) {
+                            Text(text = "Keep")
+                        }
+
+                        // Share and Delete Button
+                        Button(
+                            onClick = onShare,
+                            modifier = Modifier.fillMaxWidth().height(40.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondary,
+                                contentColor = MaterialTheme.colorScheme.onSecondary,
+                            ),
+                            contentPadding = PaddingValues(0.dp),
+                        ) {
+                            Text(text = "Share and Delete", maxLines = 1, softWrap = false)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Fullscreen inspection at the root level, above the whole overlay.
+    // Shows only while the finger holds the image; on release the overlay
+    // is back, awaiting the next command.
+    if (isInspecting && detectedImage != null) {
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight()
-                .padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+                .background(SnapifyTheme.colors.scrim.copy(alpha = 0.95f)),
+            contentAlignment = Alignment.Center,
         ) {
-            // Title with close button
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "Screenshot Detect",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-                IconButton(
-                    onClick = onClose,
-                    modifier = Modifier.padding(0.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Close",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(4.dp),
-                    )
-                }
-            }
-
-            androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(4.dp))
-
-            Text(
-                text = "Select a time when the screenshot should be deleted otherwise you can keep",
-                style = MaterialTheme.typography.labelSmall,
-                textAlign = TextAlign.Center,
+            Image(
+                bitmap = detectedImage,
+                contentDescription = "Inspect Screenshot",
                 modifier = Modifier.fillMaxWidth(),
             )
-
-            androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(8.dp))
-
-            // Row: Left - Detected Media, Right - Choices
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // Left: Detected Media
-                var isInspecting by remember { mutableStateOf(false) }
-                Box(
-                    modifier = Modifier.weight(1f),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (detectedImage != null) {
-                        Image(
-                            bitmap = detectedImage,
-                            contentDescription = "Detected Screenshot",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .pointerInput(Unit) {
-                                    detectTapGestures(
-                                        onLongPress = { isInspecting = true },
-                                    )
-                                },
-                        )
-                    } else {
-                        Text("No Image Detected")
-                    }
-                }
-
-                // Fullscreen inspection while the finger holds the image; the
-                // overlay itself stays open underneath and awaits the command.
-                if (isInspecting && detectedImage != null) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight()
-                            .alpha(0.98f)
-                            .clickable { isInspecting = false },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Image(
-                            bitmap = detectedImage,
-                            contentDescription = "Inspect Screenshot",
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                }
-
-                // Right: Choices
-                Column(
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    // Row 1: 1 Week | 3 Days
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Button(
-                            onClick = on1Week,
-                            modifier = Modifier.weight(1f).height(40.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            ),
-                            contentPadding = PaddingValues(0.dp),
-                        ) {
-                            Text(text = "1 Week", maxLines = 1, softWrap = false)
-                        }
-                        Button(
-                            onClick = on3Days,
-                            modifier = Modifier.weight(1f).height(40.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            ),
-                            contentPadding = PaddingValues(0.dp),
-                        ) {
-                            Text(text = "3 Days", maxLines = 1, softWrap = false)
-                        }
-                    }
-
-                    // Row 2: 2 Hours | 15 Min
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Button(
-                            onClick = on2Hours,
-                            modifier = Modifier.weight(1f).height(40.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            ),
-                            contentPadding = PaddingValues(0.dp),
-                        ) {
-                            Text(text = "2 Hours", maxLines = 1, softWrap = false)
-                        }
-                        Button(
-                            onClick = on15Minutes,
-                            modifier = Modifier.weight(1f).height(40.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            ),
-                            contentPadding = PaddingValues(0.dp),
-                        ) {
-                            Text(text = "15 Min", maxLines = 1, softWrap = false)
-                        }
-                    }
-
-                    // Custom Time Picker
-                    CustomTimePicker(
-                        onTimeSelected = onCustomTime,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-
-                    // Keep Button
-                    Button(
-                        onClick = onKeep,
-                        modifier = Modifier.fillMaxWidth().height(40.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                        contentPadding = PaddingValues(0.dp),
-                    ) {
-                        Text(text = "Keep")
-                    }
-
-                    // Share and Delete Button
-                    Button(
-                        onClick = onShare,
-                        modifier = Modifier.fillMaxWidth().height(40.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondary,
-                            contentColor = MaterialTheme.colorScheme.onSecondary,
-                        ),
-                        contentPadding = PaddingValues(0.dp),
-                    ) {
-                        Text(text = "Share and Delete", maxLines = 1, softWrap = false)
-                    }
-                }
-            }
         }
     }
 }
