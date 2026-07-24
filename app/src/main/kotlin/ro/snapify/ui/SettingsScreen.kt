@@ -1134,6 +1134,25 @@ internal fun AutoCleanupToggle(
     }
 }
 
+internal enum class NotificationPermissionState {
+    GRANTED,
+    REQUESTABLE,
+    PERMANENTLY_DENIED,
+}
+
+internal fun classifyNotificationPermission(
+    sdkInt: Int,
+    permissionGranted: Boolean,
+    shouldShowRationale: Boolean,
+    requestAttempted: Boolean,
+): NotificationPermissionState = when {
+    permissionGranted -> NotificationPermissionState.GRANTED
+    sdkInt < Build.VERSION_CODES.TIRAMISU -> NotificationPermissionState.GRANTED
+    !requestAttempted -> NotificationPermissionState.REQUESTABLE
+    shouldShowRationale -> NotificationPermissionState.REQUESTABLE
+    else -> NotificationPermissionState.PERMANENTLY_DENIED
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun NotificationToggle(
