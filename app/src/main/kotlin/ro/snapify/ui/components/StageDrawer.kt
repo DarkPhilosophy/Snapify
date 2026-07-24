@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.animation.Crossfade
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -92,6 +94,12 @@ fun StageDrawer(
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
     val tokens = SnapifyTheme.colors
+    val statusBarTopPx = with(density) {
+        androidx.compose.foundation.layout.WindowInsets.statusBars
+            .asPaddingValues()
+            .calculateTopPadding()
+            .toPx()
+    }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val panelWidthPx = with(density) {
@@ -237,9 +245,14 @@ fun StageDrawer(
                 .offset {
                     val closedX = with(density) { 16.dp.toPx() }
                     val openX = panelWidthPx - with(density) { (44 + 16).dp.toPx() }
+                    // The button centers on the seam between the title row and the
+                    // status row, derived from the device's real status-bar inset
+                    // instead of a hardcoded offset: inset + title row (56dp) -
+                    // half the button (22dp).
+                    val seamY = statusBarTopPx + with(density) { 34.dp.toPx() }
                     IntOffset(
                         (closedX + (openX - closedX) * state.progress.value).toInt(),
-                        with(density) { 36.dp.toPx() }.toInt(),
+                        seamY.toInt(),
                     )
                 }
                 .width(44.dp)

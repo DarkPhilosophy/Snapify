@@ -881,7 +881,7 @@ private fun MainMasthead(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 72.dp, end = spacing.sm, top = spacing.sm),
+                .padding(start = 72.dp, end = spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -959,14 +959,7 @@ private fun MainMasthead(
                     color = tokens.inkSoft,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                Text(
-                    text = "$folderCount " + stringResource(R.string.hero_folders_label).uppercase(),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = tokens.inkFaint,
-                    maxLines = 1,
-                    softWrap = false,
+                    modifier = Modifier.weight(1f),
                 )
                 val statusDotColor = when (monitoringStatus) {
                     MonitoringStatus.STOPPED -> tokens.danger
@@ -986,19 +979,33 @@ private fun MainMasthead(
                 } else {
                     remember { mutableStateOf(1f) }
                 }
-                Box(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .clip(SnapifyTheme.shapes.pillShape)
-                        .background(statusDotColor.copy(alpha = statusDotAlpha)),
-                )
-                Text(
-                    text = if (monitoringStatus == MonitoringStatus.ACTIVE) "ON" else "OFF",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = statusDotColor,
-                    maxLines = 1,
-                    softWrap = false,
-                )
+                Column(horizontalAlignment = Alignment.End) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(spacing.xs),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(SnapifyTheme.shapes.pillShape)
+                                .background(statusDotColor.copy(alpha = statusDotAlpha)),
+                        )
+                        Text(
+                            text = if (monitoringStatus == MonitoringStatus.ACTIVE) "ON" else "OFF",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = statusDotColor,
+                            maxLines = 1,
+                            softWrap = false,
+                        )
+                    }
+                    Text(
+                        text = "$folderCount " + stringResource(R.string.hero_folders_label).uppercase(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = tokens.inkFaint,
+                        maxLines = 1,
+                        softWrap = false,
+                    )
+                }
             }
         }
         HorizontalDivider(color = tokens.hairline, thickness = 1.dp)
